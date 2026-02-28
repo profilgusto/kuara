@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+@layer base {
+
+  /* ─── Dark Mode (default) ─────────────────────────────────────── */
+  :root {
+    --background: 160 30% 6%;
+    /* #0B1411 */
+    --foreground: 120 15% 92%;
+    --card: 160 28% 9%;
+    /* #11201A */
+    --card-foreground: 120 15% 90%;
+    --popover: 160 28% 9%;
+    --popover-foreground: 120 15% 90%;
+    --primary: 137 48% 46%;
+    /* #3FAF5C */
+    --primary-foreground: 160 30% 6%;
+    --secondary: 188 60% 45%;
+    /* #2FA8B8 */
+    --secondary-foreground: 160 30% 6%;
+    --muted: 160 22% 14%;
+    --muted-foreground: 160 14% 58%;
+    --accent: 155 18% 42%;
+    /* #5B7F6E */
+    --accent-foreground: 120 15% 92%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 120 15% 92%;
+    --border: 160 32% 17%;
+    /* #1F3A30 */
+    --input: 160 28% 14%;
+    --ring: 137 48% 46%;
+    --radius: 0.5rem;
+  }
+
+  /* ─── Light Mode ─────────────────────────────────────────────── */
+  .light {
+    --background: 120 14% 95%;
+    /* #F2F5F1 */
+    --foreground: 160 30% 8%;
+    --card: 120 14% 92%;
+    /* #E6ECE7 */
+    --card-foreground: 160 30% 8%;
+    --popover: 120 14% 92%;
+    --popover-foreground: 160 30% 8%;
+    --primary: 137 48% 46%;
+    --primary-foreground: 160 30% 6%;
+    --secondary: 188 60% 45%;
+    --secondary-foreground: 160 30% 6%;
+    --muted: 120 14% 88%;
+    /* #CFD8D2 */
+    --muted-foreground: 160 12% 36%;
+    --accent: 155 18% 42%;
+    --accent-foreground: 160 30% 8%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 120 15% 92%;
+    --border: 120 10% 83%;
+    --input: 120 14% 85%;
+    --ring: 137 48% 46%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply text-foreground antialiased;
+    font-family: var(--font-ibm-plex-sans), system-ui, sans-serif;
+    background-color: #0B1411;
+    min-height: 100dvh;
+  }
+
+  /* ─── Dynamic background breathe ─── */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg,
+        #0B1411 0%,
+        #11201A 40%,
+        #0d1816 70%,
+        #0B1411 100%);
+    background-size: 300% 300%;
+    animation: bg-breathe 35s ease infinite;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .light body::before {
+    background: linear-gradient(135deg, #F2F5F1 0%, #E6ECE7 40%, #EDF1EC 70%, #F2F5F1 100%);
+    background-size: 300% 300%;
+    animation: bg-breathe 35s ease infinite;
+  }
+
+  h1 {
+    @apply font-semibold tracking-tight;
+    font-family: var(--font-fraunces), Georgia, serif;
+  }
+
+  h2,
+  h3 {
+    @apply font-semibold;
+    font-family: var(--font-ibm-plex-sans), system-ui, sans-serif;
+  }
+
+  code,
+  pre {
+    @apply tracking-wide;
+    font-family: var(--font-ibm-plex-mono), Menlo, monospace;
+  }
+}
+
+@layer utilities {
+
+  /* Scroll-reveal helper – apply via JS intersection observer */
+  .reveal {
+    @apply opacity-0;
+  }
+
+  .reveal.visible {
+    @apply animate-scroll-reveal;
+  }
+
+  /* Bio link underline animation */
+  .bio-link {
+    @apply relative no-underline;
+    color: #2FA8B8;
+  }
+
+  .bio-link::after {
+    content: "";
+    @apply absolute left-0 bottom-0 h-px w-0 transition-[width] duration-200;
+    background-color: #2FA8B8;
+  }
+
+  .bio-link:hover::after {
+    @apply w-full;
+  }
+
+  /* Glow border utility */
+  .glow-border {
+    box-shadow: 0 0 0 1px #3FAF5C, 0 0 14px 0 rgba(63, 175, 92, 0.25);
+  }
+
+  /* Data metric mono style */
+  .metric {
+    @apply font-medium tracking-wide;
+    font-family: var(--font-ibm-plex-mono), Menlo, monospace;
+    color: #3FAF5C;
+  }
+}

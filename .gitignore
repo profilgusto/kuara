@@ -1,0 +1,10 @@
+.env
+.tmp/
+credentials.json
+token.json
+__pycache__/
+*.pyc
+# Next.js
+app/.next/
+app/node_modules/
+app/out/
