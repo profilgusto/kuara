@@ -6,9 +6,27 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat
 
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
-# ─── Stage 2: builder ─────────────────────────────────────────────────────────
+# ─── Stage: dev (used by docker-compose for local development) ────────────────
+# Runs `next dev` so Payload's push:true auto-creates database tables.
+FROM node:20-alpine AS dev
+WORKDIR /app
+
+RUN apk add --no-cache libc6-compat
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]
+
+# ─── Stage 2: builder (for production builds) ─────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
 
@@ -21,7 +39,7 @@ ENV NODE_ENV=production
 
 RUN npm run build
 
-# ─── Stage 3: runner ──────────────────────────────────────────────────────────
+# ─── Stage 3: runner (production) ─────────────────────────────────────────────
 FROM node:20-alpine AS runner
 WORKDIR /app
 
