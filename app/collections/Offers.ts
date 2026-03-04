@@ -60,5 +60,42 @@ export const Offers: CollectionConfig = {
                 description: 'Students enrolled in this offer',
             },
         },
+        {
+            name: 'currentModule',
+            type: 'relationship',
+            relationTo: 'modules',
+            admin: {
+                description:
+                    'The module the class is currently on. Controls synchronous progression for students.',
+            },
+        },
+        {
+            name: 'logs',
+            type: 'array',
+            admin: {
+                description: 'Audit log tracking grading/activity changes',
+            },
+            fields: [
+                {
+                    name: 'timestamp',
+                    type: 'date',
+                    required: true,
+                },
+                {
+                    name: 'action',
+                    type: 'text',
+                    required: true,
+                },
+                {
+                    name: 'details',
+                    type: 'textarea',
+                },
+                {
+                    name: 'performedBy',
+                    type: 'relationship',
+                    relationTo: 'users',
+                },
+            ],
+        },
     ],
 }
