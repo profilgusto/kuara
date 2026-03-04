@@ -7,6 +7,8 @@ import { CourseSidebar } from '@/components/mdx/CourseSidebar'
 import { ModulePageClient } from '@/components/mdx/ModulePageClient'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
+import { draftMode } from 'next/headers'
+
 export const dynamic = 'force-dynamic'
 
 export default async function ModulePage({
@@ -15,11 +17,12 @@ export default async function ModulePage({
     params: Promise<{ slug: string; mod: string }>
 }) {
     const { slug, mod } = await params
+    const { isEnabled: isDraftMode } = await draftMode()
 
     // Need both the full course (for the sidebar) and the specific module
     const [course, result] = await Promise.all([
-        getCourse(slug),
-        getModule(slug, mod)
+        getCourse(slug, isDraftMode),
+        getModule(slug, mod, isDraftMode)
     ])
 
     if (!course || !result) notFound()

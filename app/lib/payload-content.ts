@@ -59,13 +59,15 @@ export async function listCourses(): Promise<CourseListItem[]> {
 
 /**
  * Get a single course by slug, with all its visible modules.
+ * If draft is true, fetches draft modules and draft course data.
  */
-export async function getCourse(slug: string): Promise<CourseDetail | null> {
+export async function getCourse(slug: string, draft: boolean = false): Promise<CourseDetail | null> {
     const payload = await getPayload({ config: configPromise })
     const courseResult = await payload.find({
         collection: 'courses',
         where: { slug: { equals: slug } },
         limit: 1,
+        draft,
     })
 
     const course = courseResult.docs[0] as any
@@ -80,6 +82,7 @@ export async function getCourse(slug: string): Promise<CourseDetail | null> {
         },
         sort: 'order',
         limit: 100,
+        draft,
     })
 
     // Auto-assign numbers by type (teórico: 1,2,3...; prático: 1,2,3...)
@@ -118,7 +121,8 @@ export async function getCourse(slug: string): Promise<CourseDetail | null> {
  */
 export async function getModule(
     courseSlug: string,
-    moduleSlug: string
+    moduleSlug: string,
+    draft: boolean = false
 ): Promise<{ module: CourseModule; courseTitle: string; courseSlug: string } | null> {
     const payload = await getPayload({ config: configPromise })
 
@@ -127,6 +131,7 @@ export async function getModule(
         collection: 'courses',
         where: { slug: { equals: courseSlug } },
         limit: 1,
+        draft,
     })
     const course = courseResult.docs[0] as any
     if (!course) return null
@@ -139,6 +144,7 @@ export async function getModule(
             slug: { equals: moduleSlug },
         },
         limit: 1,
+        draft,
     })
     const mod = moduleResult.docs[0] as any
     if (!mod) return null

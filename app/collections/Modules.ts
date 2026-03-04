@@ -4,16 +4,33 @@ export const Modules: CollectionConfig = {
     slug: 'modules',
     admin: {
         useAsTitle: 'title',
-        defaultColumns: ['title', 'type', 'course', 'order', 'visible'],
+        defaultColumns: ['title', 'type', 'course', 'order', '_status'],
+        livePreview: {
+            url: ({ data }) => {
+                return `http://localhost:3000/preview/modules/${data.id}`
+            },
+        },
     },
     access: {
-        // Public read - anyone can see module content
-        read: () => true,
+        // Public read requires item to be published (unless admin)
+        read: ({ req: { user } }) => {
+            if (user?.role === 'admin' || user?.role === 'professor') return true
+            return {
+                _status: {
+                    equals: 'published',
+                },
+            }
+        },
         create: ({ req: { user } }) =>
             user?.role === 'admin' || user?.role === 'professor',
         update: ({ req: { user } }) =>
             user?.role === 'admin' || user?.role === 'professor',
         delete: ({ req: { user } }) => user?.role === 'admin',
+    },
+    versions: {
+        drafts: {
+            autosave: true,
+        },
     },
     fields: [
         {
@@ -53,8 +70,10 @@ export const Modules: CollectionConfig = {
             name: 'content',
             type: 'textarea',
             admin: {
-                description: 'Raw MDX content for this module',
-                rows: 30,
+                description: 'Conteúdo MDX do módulo. Use a toolbar ou Ctrl+Espaço para inserir snippets.',
+                components: {
+                    Field: '@/admin/components/MonacoMDXField',
+                },
             },
         },
         {
