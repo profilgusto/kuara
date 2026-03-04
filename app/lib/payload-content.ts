@@ -158,3 +158,44 @@ export async function getModule(
         courseSlug: course.slug,
     }
 }
+
+/**
+ * List paginated public posts (news/announcements).
+ * Only fetches posts where status = 'published' and offer is not set (general news).
+ */
+export async function getPosts(page: number = 1, limit: number = 10): Promise<{ docs: any[], totalPages: number }> {
+    const payload = await getPayload({ config: configPromise })
+    const result = await payload.find({
+        collection: 'posts',
+        where: {
+            status: { equals: 'published' },
+            offer: { exists: false }, // Only general news
+        },
+        sort: '-publishedAt', // descending by date
+        page,
+        limit,
+    })
+
+    return {
+        docs: result.docs,
+        totalPages: result.totalPages,
+    }
+}
+
+/**
+ * Get a single public post by its slug.
+ */
+export async function getPost(slug: string): Promise<any | null> {
+    const payload = await getPayload({ config: configPromise })
+    const result = await payload.find({
+        collection: 'posts',
+        where: {
+            slug: { equals: slug },
+            status: { equals: 'published' },
+            offer: { exists: false },
+        },
+        limit: 1,
+    })
+
+    return result.docs[0] || null
+}
