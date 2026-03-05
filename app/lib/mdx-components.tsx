@@ -11,6 +11,9 @@ import { PresentOnly, TextOnly } from '@/components/mdx/Only'
 import Callout from '@/components/mdx/Callout'
 import YouTube from '@/components/mdx/YouTube'
 import PDF from '@/components/mdx/PDF'
+import KImage from '@/components/mdx/KImage'
+import ExternalLink from '@/components/mdx/ExternalLink'
+import Download from '@/components/mdx/Download'
 import CodeBlock from '@/components/mdx/CodeBlock'
 import type { ComponentType } from 'react'
 
@@ -31,6 +34,9 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
         Callout,
         YouTube,
         PDF,
+        KImage,
+        ExternalLink,
+        Download,
 
         // Code block override
         pre: (props: any) => {
@@ -38,12 +44,12 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
             if (child?.type === 'code') {
                 return (
                     <CodeBlock
-            code= { child.props.children }
-                className = { child.props.className }
+                        code={child.props.children}
+                        className={child.props.className}
                     />
-        )
+                )
             }
-            return <pre { ...props } />
-    },
+            return <pre {...props} />
+        },
     }
 }

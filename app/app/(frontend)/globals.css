@@ -158,3 +158,40 @@
     color: #3FAF5C;
   }
 }
+
+/* ─── MDX Content Overrides ───────────────────────────────────── */
+/* Highlight.js Theme for CodeBlocks */
+@import 'highlight.js/styles/atom-one-dark.css';
+
+/* Fix inline MathJax SVG rendering inside Tailwind Typography (.prose) */
+/* This targets both the container and any potential wrapper elements */
+.prose mjx-container[display="false"] {
+  display: inline-block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+  line-height: 0 !important;
+  width: auto !important;
+}
+
+.prose mjx-container[display="false"] [mjx-assistive-mml] {
+  display: none !important;
+}
+
+.prose mjx-container[display="false"] svg {
+  display: inline-block !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
+  max-width: none !important;
+}
+
+/* Ensure the paragraph containing the math doesn't flex or break oddly */
+.prose p {
+  display: block;
+}
+
+.prose mjx-container[display="true"] {
+  display: block !important;
+  text-align: center !important;
+  margin: 1.5rem 0 !important;
+}

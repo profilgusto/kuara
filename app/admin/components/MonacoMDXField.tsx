@@ -23,22 +23,22 @@ const SNIPPETS: Snippet[] = [
     {
         label: 'Título H1',
         icon: 'H1',
-        template: '# ${1:Título}\n\n',
-        description: 'Cabeçalho principal',
+        template: '# ${1:Título do Conteúdo}\n\n',
+        description: 'Cabeçalho principal (Título)',
         category: 'structure',
     },
     {
         label: 'Título H2',
         icon: 'H2',
-        template: '## ${1:Subtítulo}\n\n',
-        description: 'Subcabeçalho (aparece na barra lateral)',
+        template: '## ${1:Subtítulo da Seção}\n\n',
+        description: 'Título de nível 2 (aparece no índice)',
         category: 'structure',
     },
     {
         label: 'Título H3',
         icon: 'H3',
-        template: '### ${1:Seção}\n\n',
-        description: 'Seção menor',
+        template: '### ${1:Nome da Subseção}\n\n',
+        description: 'Título de nível 3',
         category: 'structure',
     },
     {
@@ -53,22 +53,57 @@ const SNIPPETS: Snippet[] = [
     {
         label: 'Negrito',
         icon: 'B',
-        template: '**${1:texto}**',
+        template: '**${1:texto importante}**',
         description: 'Texto em negrito',
         category: 'content',
     },
     {
         label: 'Itálico',
         icon: 'I',
-        template: '*${1:texto}*',
+        template: '*${1:ênfase}*',
         description: 'Texto em itálico',
+        category: 'content',
+    },
+    {
+        label: 'Riscado',
+        icon: 'S',
+        template: '~~${1:texto removido}~~',
+        description: 'Texto tachado (GFM)',
         category: 'content',
     },
     {
         label: 'Lista',
         icon: '☰',
-        template: '- ${1:Item 1}\n- ${2:Item 2}\n- ${3:Item 3}\n',
+        template: '- ${1:Primeiro item}\n- ${2:Segundo item}\n- ${3:Terceiro item}\n',
         description: 'Lista com marcadores',
+        category: 'content',
+    },
+    {
+        label: 'Checklist',
+        icon: '☑',
+        template: '- [ ] ${1:Tarefa pendente}\n- [x] ${2:Tarefa concluída}\n',
+        description: 'Lista de tarefas (GFM)',
+        category: 'content',
+    },
+    {
+        label: 'Tabela',
+        icon: '田',
+        template: '| ${1:Coluna 1} | ${2:Coluna 2} |\n| :--- | :--- |\n| ${3:Dado A} | ${4:Dado B} |\n| ${5:Dado C} | ${6:Dado D} |\n',
+        description: 'Tabela formatada (GFM)',
+        category: 'content',
+    },
+    {
+        label: 'Link',
+        icon: '🔗',
+        template: '[${1:texto do link}](${2:https://exemplo.com})',
+        description: 'Link inline padrão',
+        category: 'content',
+    },
+    {
+        label: 'Link Externo (Destaque)',
+        icon: '↗',
+        template: '<ExternalLink\n  url="${1:https://}"\n  title="${2:Título do Link}"\n  description="${3:Breve descrição do destino}"\n/>\n',
+        description: 'Banner de link externo estilizado',
         category: 'content',
     },
     {
@@ -82,74 +117,74 @@ const SNIPPETS: Snippet[] = [
         label: 'Equação Inline',
         icon: 'π',
         template: '$${1:E = mc^2}$',
-        description: 'Equação inline no texto',
+        description: 'Equação inline no meio do texto',
         category: 'content',
     },
     {
         label: 'Código',
         icon: '</>',
-        template: '```${1:python}\n${2:# seu código aqui}\n```\n',
-        description: 'Bloco de código com syntax highlight',
+        template: '```${1|python,javascript,typescript,css,html,json,bash|}\n${2:# insira seu código aqui}\n```\n',
+        description: 'Bloco de código com destaque de sintaxe',
         category: 'content',
     },
     {
         label: 'Callout',
         icon: '💡',
-        template: '<Callout type="${1|info,warning,danger|}">\n${2:Conteúdo do callout}\n</Callout>\n',
-        description: 'Caixa de destaque (info, warning, danger)',
-        category: 'content',
-    },
-    {
-        label: 'Link',
-        icon: '🔗',
-        template: '[${1:texto do link}](${2:https://})',
-        description: 'Hyperlink',
-        category: 'content',
-    },
-    {
-        label: 'Imagem',
-        icon: '🖼',
-        template: '![${1:descrição}](${2:url-da-imagem})\n',
-        description: 'Inserir imagem',
+        template: '<Callout type="${1|info,warning,danger,tip|}">\n${2:Conteúdo ou aviso importante}\n</Callout>\n',
+        description: 'Caixa de aviso (info, warning, danger, tip)',
         category: 'content',
     },
 
     // ── Media ──
     {
+        label: 'Imagem',
+        icon: '🖼',
+        template: '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  width="${2:400}"\n  align="${3|center,left,right|}"\n  alt="${4:descrição da imagem}"\n/>\n',
+        description: 'Imagem customizada com controle de tamanho e alinhamento',
+        category: 'media',
+    },
+    {
         label: 'YouTube',
         icon: '▶',
-        template: '<YouTube url="${1:https://youtu.be/VIDEO_ID}" />\n',
-        description: 'Embed de vídeo do YouTube',
+        template: '<YouTube\n  url="${1:https://youtu.be/ID_DO_VIDEO}"\n  start={${2:0}}\n  title="${3:Título do Vídeo}"\n/>\n',
+        description: 'Incorporar vídeo do YouTube (URL ou ID)',
         category: 'media',
     },
     {
         label: 'PDF',
         icon: '📄',
-        template: '<PDF url="${1:/caminho/do/arquivo.pdf}" />\n',
-        description: 'Embed de PDF',
+        template: '<PDF\n  url="${1:/api/media/file/documento.pdf}"\n  title="${2:Título do PDF}"\n/>\n',
+        description: 'Visualizador de PDF incorporado',
+        category: 'media',
+    },
+    {
+        label: 'Download',
+        icon: '⬇',
+        template: '<Download\n  url="${1:/api/media/file/arquivo.zip}"\n  label="${2:Baixar Material Complementar}"\n  filename="${3:material.zip}"\n/>\n',
+        description: 'Banner para download de arquivos genéricos',
         category: 'media',
     },
 
-    // ── Presentation ──
+    // ── Presentation (Slides) ──
     {
-        label: 'Slide',
+        label: 'Novo Slide',
         icon: '🖥',
-        template: '---\n\n<Slide>\n\n${1:Conteúdo do slide}\n\n</Slide>\n\n',
-        description: 'Novo slide (separado por ---)',
+        template: '---\n\n<Slide>\n\n${1:## Título do Slide}\n\n${2:Conteúdo do slide...}\n\n</Slide>\n\n',
+        description: 'Cria um novo slide na apresentação',
         category: 'presentation',
     },
     {
-        label: 'TextOnly',
+        label: 'Apenas Texto',
         icon: '📝',
-        template: '<TextOnly>\n\n${1:Conteúdo visível apenas na versão texto}\n\n</TextOnly>\n',
-        description: 'Conteúdo exibido apenas na versão texto (não em slides)',
+        template: '<TextOnly>\n\n${1:Este conteúdo aparece apenas na leitura (não nos slides)}\n\n</TextOnly>\n',
+        description: 'Conteúdo oculto na visualização de slides',
         category: 'presentation',
     },
     {
-        label: 'PresentOnly',
+        label: 'Apenas Slides',
         icon: '📊',
-        template: '<PresentOnly>\n\n${1:Conteúdo visível apenas na apresentação}\n\n</PresentOnly>\n',
-        description: 'Conteúdo exibido apenas na versão apresentação',
+        template: '<PresentOnly>\n\n${1:Este conteúdo aparece apenas nos slides (não na leitura)}\n\n</PresentOnly>\n',
+        description: 'Conteúdo oculto na visualização de texto corrido',
         category: 'presentation',
     },
 ]
@@ -217,6 +252,19 @@ export const MonacoMDXField: React.FC<MonacoMDXFieldProps> = ({ path, field }) =
         },
         []
     )
+
+    // Intercept and disable Cmd+S / Ctrl+S
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                e.preventDefault()
+                e.stopPropagation()
+                console.log('Cmd+S intercepted and disabled.')
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown, true) // useCapture=true to catch it first
+        return () => window.removeEventListener('keydown', handleKeyDown, true)
+    }, [])
 
     const insertSnippet = useCallback((template: string) => {
         const editor = editorRef.current

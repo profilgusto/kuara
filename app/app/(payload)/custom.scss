@@ -1,1 +1,8 @@
-.custom-minimal-css {}
+/* Overrides for Live Preview layout split */
+.collection-edit__main.collection-edit__main--is-live-previewing {
+    width: 50% !important;
+}
+
+.live-preview-window {
+    width: 50% !important;
+}

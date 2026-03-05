@@ -10,6 +10,12 @@ export const Modules: CollectionConfig = {
                 return `http://localhost:3000/preview/modules/${data.id}`
             },
         },
+        components: {
+            edit: {
+                SaveDraftButton: '@/admin/components/SaveDraftButton',
+                PublishButton: '@/admin/components/CustomPublishButton',
+            },
+        },
     },
     access: {
         // Public read requires item to be published (unless admin)
@@ -29,8 +35,12 @@ export const Modules: CollectionConfig = {
     },
     versions: {
         drafts: {
-            autosave: true,
+            autosave: {
+                showSaveDraftButton: true,
+                interval: 300000, // 5 minutes in milliseconds
+            },
         },
+        maxPerDoc: 50, // Keep last 50 versions to avoid history bloat
     },
     fields: [
         {

@@ -8,10 +8,14 @@ export const Media: CollectionConfig = {
             'application/pdf',
             'video/*',
             'audio/*',
+            'application/zip',
+            'application/x-zip-compressed',
         ],
     },
     admin: {
         useAsTitle: 'alt',
+        defaultColumns: ['alt', 'usedIn', 'filename', 'mimeType', 'filesize'],
+        listSearchableFields: ['alt', 'filename'],
     },
     access: {
         // Public read
@@ -27,9 +31,21 @@ export const Media: CollectionConfig = {
         {
             name: 'alt',
             type: 'text',
+            required: true,
             admin: {
                 description: 'Alternative text for accessibility',
             },
+        },
+        {
+            name: 'usedIn',
+            type: 'relationship',
+            relationTo: ['modules', 'posts', 'courses', 'activities'],
+            hasMany: true,
+            admin: {
+                description: 'Vincule esta mídia a módulos, posts ou cursos para melhor organização.',
+                position: 'sidebar',
+            },
+            index: true,
         },
     ],
 }

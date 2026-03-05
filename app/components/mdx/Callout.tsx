@@ -1,8 +1,8 @@
 'use client'
 import { ReactNode } from 'react'
-import { Info, AlertTriangle, Lightbulb } from 'lucide-react'
+import { Info, AlertTriangle, Lightbulb, AlertOctagon } from 'lucide-react'
 
-type CalloutType = 'note' | 'warning' | 'tip'
+type CalloutType = 'note' | 'warning' | 'tip' | 'danger'
 
 interface CalloutProps {
     type?: CalloutType
@@ -24,6 +24,11 @@ const config: Record<CalloutType, { icon: typeof Info; label: string; colors: st
         icon: Lightbulb,
         label: 'Dica',
         colors: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-900 dark:text-emerald-200',
+    },
+    danger: {
+        icon: AlertOctagon,
+        label: 'Perigo',
+        colors: 'border-red-500/30 bg-red-500/5 text-red-900 dark:text-red-200',
     },
 }
 

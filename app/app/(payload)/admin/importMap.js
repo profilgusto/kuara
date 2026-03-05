@@ -1,4 +1,6 @@
 import { default as default_a394cf3bb6107d91a310bd3d4a0b01a0 } from '@/admin/components/MonacoMDXField'
+import { default as default_1de2e4b9883e0c13c552cfc8d5bd502f } from '@/admin/components/CustomPublishButton'
+import { default as default_fd3f0ff9d6d59846e58e9b9678ee8433 } from '@/admin/components/SaveDraftButton'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { LexicalDiffComponent as LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -26,6 +28,8 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 
 export const importMap = {
   "@/admin/components/MonacoMDXField#default": default_a394cf3bb6107d91a310bd3d4a0b01a0,
+  "@/admin/components/CustomPublishButton#default": default_1de2e4b9883e0c13c552cfc8d5bd502f,
+  "@/admin/components/SaveDraftButton#default": default_fd3f0ff9d6d59846e58e9b9678ee8433,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#LexicalDiffComponent": LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e,

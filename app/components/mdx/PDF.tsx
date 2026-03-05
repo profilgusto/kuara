@@ -3,13 +3,14 @@ import React from 'react'
 
 type Props = {
     src?: string
+    url?: string
     title?: string
     className?: string
     style?: React.CSSProperties
 }
 
-export default function PDF({ src, title, className, style }: Props) {
-    const url = typeof src === 'string' ? src : ''
+export default function PDF({ src, url: urlProp, title, className, style }: Props) {
+    const url = typeof urlProp === 'string' ? urlProp : (typeof src === 'string' ? src : '')
     // Parse width controls from title: wsm=N wlg=N or size=SM,LG
     let wsm: number | undefined
     let wlg: number | undefined
