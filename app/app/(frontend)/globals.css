@@ -165,20 +165,20 @@
 
 /* Fix inline MathJax SVG rendering inside Tailwind Typography (.prose) */
 /* This targets both the container and any potential wrapper elements */
-.prose mjx-container[display="false"] {
+.prose mjx-container:not([display="true"]) {
   display: inline-block !important;
   margin: 0 !important;
   padding: 0 !important;
   vertical-align: middle !important;
-  line-height: 0 !important;
+  line-height: normal !important;
   width: auto !important;
 }
 
-.prose mjx-container[display="false"] [mjx-assistive-mml] {
+.prose mjx-container:not([display="true"]) [mjx-assistive-mml] {
   display: none !important;
 }
 
-.prose mjx-container[display="false"] svg {
+.prose mjx-container:not([display="true"]) svg {
   display: inline-block !important;
   margin: 0 !important;
   vertical-align: middle !important;

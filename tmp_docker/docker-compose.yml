@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    volumes:
+      - kuara-pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: kuara
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: kuara
+    networks:
+      - kuara-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U kuara" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: ../app
+      dockerfile: Dockerfile
+      target: dev
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://kuara:${POSTGRES_PASSWORD}@postgres:5432/kuara
+      - PAYLOAD_SECRET=${PAYLOAD_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - kuara-net
+    restart: unless-stopped
+    volumes:
+      - ../app:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  kuara-pgdata:
+
+
+networks:
+  kuara-net:

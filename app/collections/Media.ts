@@ -14,8 +14,8 @@ export const Media: CollectionConfig = {
     },
     admin: {
         useAsTitle: 'alt',
-        defaultColumns: ['alt', 'usedIn', 'filename', 'mimeType', 'filesize'],
-        listSearchableFields: ['alt', 'filename'],
+        defaultColumns: ['alt', 'category', 'filename', 'mimeType', 'filesize'],
+        listSearchableFields: ['alt', 'category', 'filename'],
     },
     access: {
         // Public read
@@ -31,18 +31,15 @@ export const Media: CollectionConfig = {
         {
             name: 'alt',
             type: 'text',
-            required: true,
             admin: {
                 description: 'Alternative text for accessibility',
             },
         },
         {
-            name: 'usedIn',
-            type: 'relationship',
-            relationTo: ['modules', 'posts', 'courses', 'activities'],
-            hasMany: true,
+            name: 'category',
+            type: 'text',
             admin: {
-                description: 'Vincule esta mídia a módulos, posts ou cursos para melhor organização.',
+                description: 'Categorize this media (e.g., Module 1, Post X, etc.)',
                 position: 'sidebar',
             },
             index: true,
