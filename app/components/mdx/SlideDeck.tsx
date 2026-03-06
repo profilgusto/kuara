@@ -138,7 +138,7 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
     const progress = ids.length > 1 ? ((index) / (ids.length - 1)) * 100 : 0
 
     return (
-        <div className="presentation-deck relative mx-auto w-full bg-background">
+        <div className="presentation-deck relative mx-auto w-full bg-background" data-fullscreen={isFullscreen}>
             {/* Progress bar */}
             <div className="sticky top-0 z-30 h-1 w-full bg-muted">
                 <div

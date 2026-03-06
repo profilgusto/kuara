@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import { useViewMode } from './useViewMode'
 
 interface KImageProps {
     url?: string
@@ -7,6 +8,8 @@ interface KImageProps {
     alt?: string
     width?: string | number
     height?: string | number
+    widthPresentation?: string | number
+    heightPresentation?: string | number
     align?: 'left' | 'center' | 'right'
     className?: string
 }
@@ -17,9 +20,12 @@ export default function KImage({
     alt = '',
     width,
     height,
+    widthPresentation,
+    heightPresentation,
     align = 'center',
     className
 }: KImageProps) {
+    const mode = useViewMode()
     const imageSrc = url || src
 
     if (!imageSrc) return null
@@ -30,17 +36,21 @@ export default function KImage({
         right: 'justify-end'
     }
 
+    // Determine the active width and height based on the view mode
+    const activeWidth = mode === 'apresentacao' && widthPresentation !== undefined ? widthPresentation : width
+    const activeHeight = mode === 'apresentacao' && heightPresentation !== undefined ? heightPresentation : height
+
     return (
         <div className={`my-8 flex w-full ${alignmentStyles[align]} ${className || ''}`}>
             <img
                 src={imageSrc}
                 alt={alt}
-                width={width}
-                height={height}
-                className="rounded-lg shadow-md h-auto"
+                width={activeWidth}
+                height={activeHeight}
+                className="rounded-lg shadow-md h-auto transition-all duration-300"
                 style={{
-                    width: width ? (typeof width === 'number' ? `${width}px` : width) : 'auto',
-                    height: height ? (typeof height === 'number' ? `${height}px` : height) : 'auto',
+                    width: activeWidth ? (typeof activeWidth === 'number' ? `${activeWidth}px` : activeWidth) : 'auto',
+                    height: activeHeight ? (typeof activeHeight === 'number' ? `${activeHeight}px` : activeHeight) : 'auto',
                 }}
             />
         </div>

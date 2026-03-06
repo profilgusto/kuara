@@ -121,6 +121,20 @@ const SNIPPETS: Snippet[] = [
         category: 'content',
     },
     {
+        label: 'Equação Numerada',
+        icon: '∑#',
+        template: '$$\n\\begin{equation}\n  ${1:E = mc^2} \\label{eq:${2:referencia}}\n\\end{equation}\n$$\n',
+        description: 'Equação com numeração automática e label para referência (AMS)',
+        category: 'content',
+    },
+    {
+        label: 'Ref. Equação',
+        icon: '(1)',
+        template: '$\\eqref{eq:${1:referencia}}$',
+        description: 'Cria hiperlink referenciando uma equação numerada',
+        category: 'content',
+    },
+    {
         label: 'Código',
         icon: '</>',
         template: '```${1|python,javascript,typescript,css,html,json,bash|}\n${2:# insira seu código aqui}\n```\n',
@@ -139,7 +153,7 @@ const SNIPPETS: Snippet[] = [
     {
         label: 'Imagem',
         icon: '🖼',
-        template: '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  width="${2:400}"\n  align="${3|center,left,right|}"\n  alt="${4:descrição da imagem}"\n/>\n',
+        template: '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  width="${2:400}"\n  widthPresentation="${3:600}"\n  align="${4|center,left,right|}"\n  alt="${5:descrição da imagem}"\n/>\n',
         description: 'Imagem customizada com controle de tamanho e alinhamento',
         category: 'media',
     },

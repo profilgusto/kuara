@@ -169,7 +169,6 @@
   display: inline-block !important;
   margin: 0 !important;
   padding: 0 !important;
-  vertical-align: middle !important;
   line-height: normal !important;
   width: auto !important;
 }
@@ -181,7 +180,6 @@
 .prose mjx-container:not([display="true"]) svg {
   display: inline-block !important;
   margin: 0 !important;
-  vertical-align: middle !important;
   max-width: none !important;
 }
 
@@ -191,7 +189,102 @@
 }
 
 .prose mjx-container[display="true"] {
-  display: block !important;
+  display: flex !important;
+  justify-content: center !important;
   text-align: center !important;
   margin: 1.5rem 0 !important;
+  width: 100% !important;
+}
+
+/* Style MathJax equation reference links (SVG anchor tags) to override Tailwind */
+.prose mjx-container a,
+.prose mjx-container a use {
+  color: inherit !important;
+  fill: currentColor !important;
+}
+
+.prose mjx-container a {
+  text-decoration: none !important;
+  font-weight: inherit !important;
+  opacity: 0.7 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.prose mjx-container a:hover {
+  opacity: 1 !important;
+}
+
+/* ─── Presentation Fullscreen Overrides ───────────────────────── */
+/* When in full-screen presentation mode, scale up the typography for projectors (720p/1080p) */
+.presentation-deck[data-fullscreen="true"] .prose {
+  max-width: none;
+  /* Add lateral padding and center content. Cut top padding in half (from 4rem to 2rem). */
+  padding: 2rem 5%;
+  margin: 0 auto;
+}
+
+/* Scale up base paragraph and list text (Increased by 20% from 1.5rem to 1.8rem) */
+.presentation-deck[data-fullscreen="true"] .prose p,
+.presentation-deck[data-fullscreen="true"] .prose ul,
+.presentation-deck[data-fullscreen="true"] .prose ol,
+.presentation-deck[data-fullscreen="true"] .prose li {
+  font-size: 1.8rem;
+  line-height: 1.7;
+}
+
+/* Headings (also scaled up by 20%) */
+.presentation-deck[data-fullscreen="true"] .prose h1 {
+  font-size: 4.2rem;
+  line-height: 1.2;
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+}
+
+.presentation-deck[data-fullscreen="true"] .prose h2 {
+  font-size: 3.3rem;
+  line-height: 1.3;
+  margin-top: 3rem;
+  margin-bottom: 1.5rem;
+}
+
+.presentation-deck[data-fullscreen="true"] .prose h3 {
+  font-size: 2.7rem;
+  line-height: 1.4;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Code blocks & inline code */
+.presentation-deck[data-fullscreen="true"] .prose pre {
+  font-size: 1.25rem;
+  padding: 1.5rem;
+}
+
+.presentation-deck[data-fullscreen="true"] .prose code {
+  font-size: 1.25em;
+  /* relative to parent context */
+}
+
+/* Blockquotes */
+.presentation-deck[data-fullscreen="true"] .prose blockquote {
+  font-size: 1.8rem;
+  padding-left: 1.5rem;
+}
+
+/* Tables (make sure text in tables scales up properly to match other text) */
+.presentation-deck[data-fullscreen="true"] .prose table,
+.presentation-deck[data-fullscreen="true"] .prose th,
+.presentation-deck[data-fullscreen="true"] .prose td {
+  font-size: 1.8rem;
+}
+
+/* Math Equations (Scale display block math by an additional 40% (1.4 * 1.4 = ~1.96em). Inline math stays inherit) */
+.presentation-deck[data-fullscreen="true"] .prose mjx-container[display="true"] {
+  font-size: 1.96em !important;
+}
+
+/* Fix any overflowing issue on fullscreen mode container */
+.presentation-deck[data-fullscreen="true"] {
+  height: 100vh;
+  overflow-y: auto;
 }

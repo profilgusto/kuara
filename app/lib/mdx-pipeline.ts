@@ -38,8 +38,8 @@ const remarkPlugins = [
     remarkWrapSlides,
 ]
 
-const rehypePlugins = [
-    rehypeMathjax,
+const rehypePlugins: any = [
+    [rehypeMathjax, { tex: { tags: 'ams' } }],
     rehypeSlug,
 ]
 
