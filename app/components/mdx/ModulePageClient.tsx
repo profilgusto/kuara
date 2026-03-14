@@ -2,6 +2,7 @@
 
 import React, { ReactNode } from 'react'
 import { ViewModeProvider } from './useViewMode'
+import { ModuleContext } from './ModuleContext'
 import ViewToggle from './ViewToggle'
 import SlideDeck from './SlideDeck'
 
@@ -13,7 +14,7 @@ export function ModulePageClient({
     title: string
 }) {
     return (
-        <>
+        <ModuleContext.Provider value={{ title }}>
             <div className="flex items-center justify-between mb-8 gap-4">
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{title}</h1>
                 {/* Toggle appears on md+ screens to switch between Text and Presentation mode */}
@@ -24,6 +25,6 @@ export function ModulePageClient({
             <SlideDeck>
                 {children}
             </SlideDeck>
-        </>
+        </ModuleContext.Provider>
     )
 }

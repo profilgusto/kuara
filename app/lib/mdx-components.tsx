@@ -6,6 +6,9 @@
  * were defined in 3 separate places.
  */
 import Slide from '@/components/mdx/Slide'
+import SlideBreak from '@/components/mdx/SlideBreak'
+import SlideCover from '@/components/mdx/SlideCover'
+import SlideSecondColumnContent from '@/components/mdx/SlideSecondColumnContent'
 import SlideDeck from '@/components/mdx/SlideDeck'
 import { PresentOnly, TextOnly } from '@/components/mdx/Only'
 import Callout from '@/components/mdx/Callout'
@@ -26,6 +29,9 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
     return {
         // Presentation components
         Slide,
+        SlideBreak,
+        SlideCover,
+        SlideSecondColumnContent,
         SlideDeck,
         PresentOnly,
         TextOnly,
@@ -39,6 +45,7 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
         Download,
 
         // Code block override
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         pre: (props: any) => {
             const child = props.children
             if (child?.type === 'code') {

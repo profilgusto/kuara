@@ -7,8 +7,10 @@ interface KImageProps {
     src?: string
     alt?: string
     width?: string | number
-    height?: string | number
     widthPresentation?: string | number
+    // We keep height on the interface so existing MDX won't throw TS errors if they pass it,
+    // but we ignore it to force aspect ratio.
+    height?: string | number
     heightPresentation?: string | number
     align?: 'left' | 'center' | 'right'
     className?: string
@@ -19,9 +21,7 @@ export default function KImage({
     src,
     alt = '',
     width,
-    height,
     widthPresentation,
-    heightPresentation,
     align = 'center',
     className
 }: KImageProps) {
@@ -36,9 +36,8 @@ export default function KImage({
         right: 'justify-end'
     }
 
-    // Determine the active width and height based on the view mode
+    // Determine the active width based on the view mode
     const activeWidth = mode === 'apresentacao' && widthPresentation !== undefined ? widthPresentation : width
-    const activeHeight = mode === 'apresentacao' && heightPresentation !== undefined ? heightPresentation : height
 
     return (
         <div className={`my-8 flex w-full ${alignmentStyles[align]} ${className || ''}`}>
@@ -46,11 +45,10 @@ export default function KImage({
                 src={imageSrc}
                 alt={alt}
                 width={activeWidth}
-                height={activeHeight}
                 className="rounded-lg shadow-md h-auto transition-all duration-300"
                 style={{
                     width: activeWidth ? (typeof activeWidth === 'number' ? `${activeWidth}px` : activeWidth) : 'auto',
-                    height: activeHeight ? (typeof activeHeight === 'number' ? `${activeHeight}px` : activeHeight) : 'auto',
+                    height: 'auto',
                 }}
             />
         </div>

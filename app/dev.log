@@ -1,0 +1,86 @@
+
+> app@0.1.0 dev
+> next dev
+
+ ⚠ Port 3000 is in use by process 3666
+4391, using available port 3001 instead.
+   ▲ Next.js 15.4.11
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.15.28:3001
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 1343ms
+ ○ Compiling /disciplinas/[slug]/[mod] ...
+ ✓ Compiled /disciplinas/[slug]/[mod] in 3.2s (2023 modules)
+ ✓ Compiled in 60ms (505 modules)
+[10:52:55] [31mERROR[39m: [36mError: cannot connect to Postgres. Details: [39m
+    err: {
+      "type": "AggregateError",
+      "message": "",
+      "stack":
+          AggregateError: 
+              at /Users/filgusto/git-sources/kuara-website/app/node_modules/pg-pool/index.js:45:11
+              at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+              at async connectWithReconnect (file:///Users/filgusto/git-sources/kuara-website/app/node_modules/@payloadcms/db-postgres/dist/connect.js:7:18)
+              at async Object.connect (file:///Users/filgusto/git-sources/kuara-website/app/node_modules/@payloadcms/db-postgres/dist/connect.js:46:13)
+              at async BasePayload.init (file:///Users/filgusto/git-sources/kuara-website/app/node_modules/payload/dist/index.js:371:13)
+      "aggregateErrors": [
+        {
+          "type": "Error",
+          "message": "connect ECONNREFUSED ::1:5432",
+          "stack":
+              Error: connect ECONNREFUSED ::1:5432
+                  at createConnectionError (node:net:1678:14)
+                  at afterConnectMultiple (node:net:1708:16)
+          "errno": -61,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "::1",
+          "port": 5432
+        },
+        {
+          "type": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:5432",
+          "stack":
+              Error: connect ECONNREFUSED 127.0.0.1:5432
+                  at createConnectionError (node:net:1678:14)
+                  at afterConnectMultiple (node:net:1708:16)
+          "errno": -61,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 5432
+        }
+      ],
+      "code": "ECONNREFUSED"
+    }
+undefined
+ ⨯ unhandledRejection: undefined
+ ⨯ unhandledRejection:  undefined
+ ⨯ [Error: Error: cannot connect to Postgres: ] {
+  payloadInitError: true,
+  digest: '2458914240'
+}
+ GET /disciplinas/projetos-roboticos/teste-dos-slides 500 in 5899ms
+ ✓ Compiled in 151ms (505 modules)
+ ✓ Compiled in 119ms (504 modules)
+ ✓ Compiled in 93ms (504 modules)
+ ✓ Compiled in 198ms (504 modules)
+ ✓ Compiled in 104ms (505 modules)
+ ✓ Compiled in 75ms (505 modules)
+ ✓ Compiled in 103ms (505 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/filgusto/git-sources/kuara-website/app/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/filgusto/git-sources/kuara-website/app/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 140ms (505 modules)
+ ✓ Compiled in 83ms (505 modules)
+ ✓ Compiled in 83ms (505 modules)
+ ✓ Compiled in 94ms (505 modules)
+ ✓ Compiled in 69ms (505 modules)
+ ✓ Compiled in 149ms (505 modules)
+ ✓ Compiled in 137ms (505 modules)
+ ✓ Compiled in 76ms (505 modules)
+ ✓ Compiled in 82ms (505 modules)
+ ✓ Compiled in 74ms (505 modules)
+ ✓ Compiled in 86ms (505 modules)
+ ✓ Compiled in 93ms (505 modules)
+[?25h

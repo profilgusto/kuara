@@ -1,7 +1,3 @@
-// mdx-plugins/remark-wrap-slides.ts
-// Wraps top-level content between ## headings into <Slide> components.
-// Also supports explicit :::slide directives and ---sldbrk / ---sldlayoutN markers
-// for backward compatibility with existing Telaclass MDX content.
 import type { Plugin } from 'unified'
 import { toString } from 'mdast-util-to-string'
 
@@ -24,62 +20,53 @@ const remarkWrapSlides: Plugin = () => {
         const kids = root.children || []
         if (!kids.length) return
 
-        // Quick scan: does it have any heading that would trigger slide splitting?
-        const hasBreakHeading = kids.some(
-            (n: Node) => n.type === 'heading' && (n.depth === 2 || n.depth === 3 || n.depth === 4)
-        )
-        if (!hasBreakHeading) return
+        console.log("remarkWrapSlides running! Number of children:", kids.length)
 
         // Build segments
         const segments: Node[][] = []
         let current: Node[] = []
-        let currentLayout = '1'
-        const segmentLayouts: string[] = []
 
         const push = () => {
+            // ensure there's something other than only slidebreaks
             if (current.length) {
                 segments.push(current)
-                segmentLayouts.push(currentLayout)
                 current = []
             }
         }
 
-        function isSlideBreak(n: Node): boolean {
-            if (n.type === 'paragraph' && Array.isArray(n.children) && n.children.length === 1) {
-                const c = n.children[0]
-                if (c.type === 'text' && c.value && c.value.trim() === '---sldbrk') return true
+        function isSlideBreakComponent(n: Node): boolean {
+            if (n.type === 'mdxJsxFlowElement' && n.name === 'SlideBreak') {
+                return true
             }
             return false
         }
 
-        function isLayoutCommand(n: Node): { isLayout: boolean; layout?: string } {
-            if (n.type === 'paragraph' && Array.isArray(n.children) && n.children.length === 1) {
-                const c = n.children[0]
-                if (c.type === 'text' && c.value) {
-                    const trimmed = c.value.trim()
-                    const match = trimmed.match(/^---sldlayout(\d+)$/)
-                    if (match) {
-                        return { isLayout: true, layout: match[1] }
-                    }
-                }
+        function isSlideCoverComponent(n: Node): boolean {
+            if (n.type === 'mdxJsxFlowElement' && n.name === 'SlideCover') {
+                return true
             }
-            return { isLayout: false }
+            return false
         }
 
         for (const n of kids) {
-            const layoutCheck = isLayoutCommand(n)
+            // Check if this node triggers a slide break
+            let shouldBreak = false
 
-            if (layoutCheck.isLayout) {
-                currentLayout = layoutCheck.layout || '1'
-                continue
+            if (n.type === 'heading' && (n.depth === 1 || n.depth === 2 || n.depth === 3)) {
+                shouldBreak = true
+            } else if (isSlideBreakComponent(n)) {
+                shouldBreak = true
+            } else if (n.type === 'mdxJsxFlowElement' && n.name === 'Slide') {
+                // Already wrapped explicit Slide tag? If the user typed it, we break here so we don't double wrap.
+                shouldBreak = true
             }
 
-            if (
-                (n.type === 'heading' && (n.depth === 2 || n.depth === 3 || n.depth === 4)) ||
-                isSlideBreak(n)
-            ) {
-                push()
-                if (isSlideBreak(n)) continue
+            if (shouldBreak) {
+                push() // push previous segment
+                if (isSlideBreakComponent(n)) {
+                    // We don't need to include the SlideBreak component in the slide content
+                    continue
+                }
                 current.push(n)
             } else {
                 current.push(n)
@@ -87,16 +74,15 @@ const remarkWrapSlides: Plugin = () => {
         }
         push()
 
-        // Generate mdxJsxFlowElement nodes
+        // Generate mdxJsxFlowElement nodes named Slide
         const out: Node[] = []
         const used = new Set<string>()
 
         segments.forEach((seg, idx) => {
             const heading =
-                seg.find((n: Node) => n.type === 'heading' && n.depth === 2) ||
                 seg.find((n: Node) => n.type === 'heading' && n.depth === 1) ||
-                seg.find((n: Node) => n.type === 'heading' && n.depth === 3) ||
-                seg.find((n: Node) => n.type === 'heading' && n.depth === 4)
+                seg.find((n: Node) => n.type === 'heading' && n.depth === 2) ||
+                seg.find((n: Node) => n.type === 'heading' && n.depth === 3)
 
             const text = heading
                 ? toString(heading).trim()
@@ -105,6 +91,7 @@ const remarkWrapSlides: Plugin = () => {
                     : `slide-${idx + 1}`
 
             let base = slugify(text) || `slide-${idx + 1}`
+            if (base === 'slide') base = `slide-${idx + 1}`
             let id = base
             let counter = 2
             while (used.has(id)) {
@@ -112,18 +99,56 @@ const remarkWrapSlides: Plugin = () => {
             }
             used.add(id)
 
-            const layout = segmentLayouts[idx] || '1'
+            // Try to extract the closest preceding heading name to name the slide,
+            // or just fallback to the current segment's own heading.
+            let titleText = text
+            // Look backward in previous segments if this segment doesn't have a title
+            if (!heading) {
+                for (let k = idx - 1; k >= 0; k--) {
+                    const prevHeading = segments[k].find((n: Node) => n.type === 'heading' && (n.depth === 1 || n.depth === 2 || n.depth === 3))
+                    if (prevHeading) {
+                        titleText = toString(prevHeading).trim()
+                        break
+                    }
+                }
+            }
+
+            // Special case: if the segment is just one item and it's ALREADY a Slide,
+            // (from legacy content), just ensure it has data-id.
+            if (seg.length === 1 && seg[0].type === 'mdxJsxFlowElement' && seg[0].name === 'Slide') {
+                const existingSlide = seg[0]
+                const hasDataId = existingSlide.attributes?.some((attr: any) => attr.name === 'data-id')
+                if (!hasDataId) {
+                    existingSlide.attributes = existingSlide.attributes || []
+                    existingSlide.attributes.push({ type: 'mdxJsxAttribute', name: 'data-id', value: id })
+                }
+                const hasDataTitle = existingSlide.attributes?.some((attr: any) => attr.name === 'data-title')
+                if (!hasDataTitle && titleText) {
+                    existingSlide.attributes.push({ type: 'mdxJsxAttribute', name: 'data-title', value: titleText })
+                }
+                const hasIsCover = existingSlide.attributes?.some((attr: any) => attr.name === 'isCover')
+                if (!hasIsCover && seg.some((n: Node) => isSlideCoverComponent(n))) {
+                    existingSlide.attributes.push({ type: 'mdxJsxAttribute', name: 'isCover', value: true })
+                }
+                out.push(existingSlide)
+                return
+            }
+
+            const isCover = seg.some((n: Node) => isSlideCoverComponent(n))
 
             out.push({
                 type: 'mdxJsxFlowElement',
                 name: 'Slide',
                 attributes: [
                     { type: 'mdxJsxAttribute', name: 'data-id', value: id },
-                    { type: 'mdxJsxAttribute', name: 'data-layout', value: layout },
+                    { type: 'mdxJsxAttribute', name: 'data-title', value: titleText },
+                    { type: 'mdxJsxAttribute', name: 'isCover', value: isCover === true }
                 ],
                 children: seg,
             })
         })
+
+        console.log("remarkWrapSlides generated", out.length, "slides")
 
         root.children = out
     }

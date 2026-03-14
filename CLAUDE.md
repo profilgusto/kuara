@@ -1,69 +1,63 @@
-# Agent Instructions
+# Kuara Website Project Instructions
 
-> This file is mirrored across CLAUDE.md, AGENTS.md, and GEMINI.md so the same instructions load in any AI environment.
+This document contains the primary technical guidelines and best practices for developing the Kuara platform. The platform is a unified educational system leveraging modern Web technologies.
 
-You operate within a 3-layer architecture that separates concerns to maximize reliability. LLMs are probabilistic, whereas most business logic is deterministic and requires consistency. This system fixes that mismatch.
+## What (Stack and Structure)
+- **Frontend / Core App:** Next.js 15 (App Router), React 19, Tailwind CSS, Shadcn UI.
+- **CMS / Backend:** Payload CMS 3 integrated natively into the Next.js app (`@payloadcms/next`), backed by PostgreSQL (`@payloadcms/db-postgres`).
+- **Content Engine:** MDX-based system for rendering rich content and presentations (slides), featuring `rehype-mathjax`, Drag-and-Drop (`dnd-kit`), Monaco Editor (`@monaco-editor/react`), and custom components (e.g., `KImage`).
 
-## The 3-Layer Architecture
+## Why (Project Purpose)
+- **Primary Goal:** Kuara is an educational content platform and CMS designed to serve rich, interactive modules, presentations, and courses. 
+- It empowers creators to build dynamic learning experiences through customizable MDX content and an elegant, performant UI.
 
-**Layer 1: Directive (What to do)**
-- Basically just SOPs written in Markdown, live in `directives/`
-- Define the goals, inputs, tools/scripts to use, outputs, and edge cases
-- Natural language instructions, like you'd give a mid-level employee
+## How (Running, Testing, and Conventions)
 
-**Layer 2: Orchestration (Decision making)**
-- This is you. Your job: intelligent routing.
-- Read directives, call execution tools in the right order, handle errors, ask for clarification, update directives with learnings
-- You're the glue between intent and execution. E.g you don't try scraping websites yourself—you read `directives/scrape_website.md` and come up with inputs/outputs and then run `execution/scrape_single_site.py`
+### 1. Environment & Setup
 
-**Layer 3: Execution (Doing the work)**
-- Deterministic Python scripts in `execution/`
-- Environment variables, api tokens, etc are stored in `.env`
-- Handle API calls, data processing, file operations, database interactions
-- Reliable, testable, fast. Use scripts instead of manual work. Commented well.
+When developing, follow a **Two-Phase Verification** approach to ensure code quality before spinning up the heavy Docker environment.
 
-**Why this works:** if you do everything yourself, errors compound. 90% accuracy per step = 59% success over 5 steps. The solution is push complexity into deterministic code. That way you just focus on decision-making.
+#### Phase 1: Static Validation (Local)
+Before running the app or declaring a task complete, you must verify the code is syntactically correct and properly formatted using the local `npm` scripts in the `app/` directory:
+- **`npm run typecheck`**: Ensures no TypeScript compilation errors.
+- **`npm run lint`**: Ensures no React hook or Next.js linting errors.
+- **`npm run test`**: Runs Vitest to ensure local component logic passes.
+- **`npm run format`**: Automatically formats the code using Prettier.
 
-## Operating Principles
+#### Phase 2: Integration Testing (Docker)
+Once Phase 1 passes cleanly, test the full application (Frontend + CMS + Database):
+- **Running the App:** The entire application is orchestrated via Docker Compose.
+- **Starting the environment:** Run from the root directory:
+  ```bash
+  docker-compose up --build -d
+  ```
+- **Accessing the App:** The web application runs on `http://localhost:3000` and the Payload admin panel at `http://localhost:3000/admin`.
+- **Viewing Logs:** Use `docker-compose logs -f web` to monitor the Next.js/Payload output. **Never start `npm run dev` directly on the host machine.** If you need to stop the environment, run `docker-compose down`.
+### 2. File Organization
+- `app/admin/`: Payload CMS admin panel files.
+- `app/app/`: Next.js frontend pages and API configurations (App Router).
+- `app/collections/`: Payload CMS schema definitions.
+- `app/components/`: Reusable React components (often Shadcn UI).
+- `app/mdx-plugins/`: Custom rehype/remark plugins for processing Markdown.
+- `app/payload.config.ts`: The central configuration file for Payload CMS.
 
-**1. Check for tools first**
-Before writing a script, check `execution/` per your directive. Only create new scripts if none exist.
+### 3. Agent Best Practices (For Claude/AI Assistants)
 
-**2. Self-anneal when things break**
-- Read error message and stack trace
-- Fix the script and test it again (unless it uses paid tokens/credits/etc—in which case you check w user first)
-- Update the directive with what you learned (API limits, timing, edge cases)
-- Example: you hit an API rate limit → you then look into API → find a batch endpoint that would fix → rewrite script to accommodate → test → update directive.
+When working on this repository, act as an expert Senior Full-Stack Next.js Developer.
 
-**3. Update directives as you learn**
-Directives are living documents. When you discover API constraints, better approaches, common errors, or timing expectations—update the directive. But don't create or overwrite directives without asking unless explicitly told to. Directives are your instruction set and must be preserved (and improved upon over time, not extemporaneously used and then discarded).
+1. **Understand KIs (Knowledge Items):** Always check existing KIs and previous conversation history before starting new component implementations or schema designs. Do not reinvent established patterns.
+2. **Component Mindset:** Prefer modular, reusable React components in `app/components/`. If using Shadcn UI, rely on the established Tailwind syntax.
+3. **Database & CMS Changes:** Any new data requirement requires a Payload CMS Collection. Define it in `app/collections/`, then ensure `app/payload.config.ts` exports it. 
+4. **Testing UI:** Assume you should incrementally build and verify visually. For complex frontend components (like drag-and-drop or Monaco Editor integrations), check the browser developer console directly for React warnings.
+5. **Plan Before Execution:** Always use task boundaries and artifacts to plan complex workflows. Break down large requests into smaller chunks. Use `task.md` checklists to track your progress meticulously.
+6. **Ask for Clarification:** If a task is ambiguous, requirements are missing, or user intent is unclear, use the `notify_user` tool early rather than making irreversible assumptions. Focus on specific decisions that require their expertise.
 
-## Self-annealing loop
+### 4. Verification Protocol
+Execute this protocol before declaring a task complete or returning control:
 
-Errors are learning opportunities. When something breaks:
-1. Fix it
-2. Update the tool
-3. Test tool, make sure it works
-4. Update directive to include new flow
-5. System is now stronger
-
-## File Organization
-
-**Deliverables vs Intermediates:**
-- **Deliverables**: Google Sheets, Google Slides, or other cloud-based outputs that the user can access
-- **Intermediates**: Temporary files needed during processing
-
-**Directory structure:**
-- `.tmp/` - All intermediate files (dossiers, scraped data, temp exports). Never commit, always regenerated.
-- `execution/` - Python scripts (the deterministic tools)
-- `directives/` - SOPs in Markdown (the instruction set)
-- `.env` - Environment variables and API keys
-- `credentials.json`, `token.json` - Google OAuth credentials (required files, in `.gitignore`)
-
-**Key principle:** Local files are only for processing. Deliverables live in cloud services (Google Sheets, Slides, etc.) where the user can access them. Everything in `.tmp/` can be deleted and regenerated.
-
-## Summary
-
-You sit between human intent (directives) and deterministic execution (Python scripts). Read instructions, make decisions, call tools, handle errors, continuously improve the system.
-
-Be pragmatic. Be reliable. Self-anneal.
+- Re-read the full original task specification.
+- For each stated requirement: test it, confirm it works, and state the evidence. Do not self-report "done" without executing the actual check.
+- For each implicit quality bar (error handling, edge cases, formatting): apply the same standard.
+- If something fails: fix and re-verify from scratch. Do not patch and assume.
+- After 3 full fix-verify cycles with a persistent failure, stop and report the specific blocker with your diagnosis. Do not return broken work and do not loop silently.
+- Only return control when every requirement has verified evidence of passing, or you've explicitly flagged what you couldn't solve and why.

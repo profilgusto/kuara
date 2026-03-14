@@ -18,19 +18,21 @@ const ViewModeOverrideContext = createContext<ViewMode | null>(null)
 
 export function useViewMode(): ViewMode {
     const override = useContext(ViewModeOverrideContext)
-    if (override) return override
-
     const [mode, setMode] = useState<ViewMode>('texto')
 
     useEffect(() => {
+        if (override) return
         const sync = () => setMode(readModeFromStorage())
         sync()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         window.addEventListener('telaclass:view-mode', sync as any)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return () => window.removeEventListener('telaclass:view-mode', sync as any)
-    }, [])
+    }, [override])
 
     // Force text mode on small screens
     useEffect(() => {
+        if (override) return
         const mq = window.matchMedia('(max-width: 767.98px)')
         const apply = () => {
             if (mq.matches && mode !== 'texto') {
@@ -41,13 +43,14 @@ export function useViewMode(): ViewMode {
         apply()
         mq.addEventListener('change', apply)
         return () => mq.removeEventListener('change', apply)
-    }, [mode])
+    }, [mode, override])
 
     useEffect(() => {
+        if (override) return
         try { localStorage.setItem('view-mode', mode) } catch { }
-    }, [mode])
+    }, [mode, override])
 
-    return mode
+    return override || mode
 }
 
 export function ViewModeProvider({ mode, children }: { mode: ViewMode; children: ReactNode }) {

@@ -13,7 +13,6 @@ import rehypeMathjax from 'rehype-mathjax'
 import rehypeSlug from 'rehype-slug'
 import remarkDirectiveToMdx from '../mdx-plugins/remark-directive-to-mdx'
 import remarkWrapSlides from '../mdx-plugins/remark-wrap-slides'
-
 // For heading extraction
 import { unified } from 'unified'
 import remarkParse from 'remark-parse'

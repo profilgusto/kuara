@@ -4,14 +4,18 @@ import React, { useCallback, useRef } from 'react'
 import { useField } from '@payloadcms/ui'
 import Editor, { type Monaco } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
+import { Heading1, Heading2, Heading3, Link as LinkIcon, Minus, Image as ImageIcon, Video, FileText, ArrowDownToLine, Bold, Italic, Strikethrough, Code, Code2, Presentation, Columns2, Lightbulb, ExternalLink as ExternalLinkIcon, List, Quote, Maximize, CheckSquare, Table, Sigma, Pi, Hash, TextCursorInput } from 'lucide-react'
 
+// Assuming Button component is available or imported from a UI library like shadcn/ui
+// If not, you'd need to define it or import it. For this task, I'll assume it's available.
+// import { Button } from '@/components/ui/button' // Example import path
 
 /* ──────────────────────────────────────
    Snippet Definitions
    ──────────────────────────────────── */
 interface Snippet {
     label: string
-    icon: string
+    icon: React.ElementType | string // Changed to allow Lucide icons or string
     template: string
     description: string
     /** category for grouping in the toolbar */
@@ -22,28 +26,28 @@ const SNIPPETS: Snippet[] = [
     // ── Structure ──
     {
         label: 'Título H1',
-        icon: 'H1',
+        icon: Heading1,
         template: '# ${1:Título do Conteúdo}\n\n',
         description: 'Cabeçalho principal (Título)',
         category: 'structure',
     },
     {
         label: 'Título H2',
-        icon: 'H2',
+        icon: Heading2,
         template: '## ${1:Subtítulo da Seção}\n\n',
         description: 'Título de nível 2 (aparece no índice)',
         category: 'structure',
     },
     {
         label: 'Título H3',
-        icon: 'H3',
+        icon: Heading3,
         template: '### ${1:Nome da Subseção}\n\n',
         description: 'Título de nível 3',
         category: 'structure',
     },
     {
         label: 'Divisor (hr)',
-        icon: '—',
+        icon: Minus,
         template: '\n---\n\n',
         description: 'Linha divisória horizontal',
         category: 'structure',
@@ -52,98 +56,98 @@ const SNIPPETS: Snippet[] = [
     // ── Content ──
     {
         label: 'Negrito',
-        icon: 'B',
+        icon: Bold,
         template: '**${1:texto importante}**',
         description: 'Texto em negrito',
         category: 'content',
     },
     {
         label: 'Itálico',
-        icon: 'I',
+        icon: Italic,
         template: '*${1:ênfase}*',
         description: 'Texto em itálico',
         category: 'content',
     },
     {
         label: 'Riscado',
-        icon: 'S',
+        icon: Strikethrough,
         template: '~~${1:texto removido}~~',
         description: 'Texto tachado (GFM)',
         category: 'content',
     },
     {
         label: 'Lista',
-        icon: '☰',
+        icon: List,
         template: '- ${1:Primeiro item}\n- ${2:Segundo item}\n- ${3:Terceiro item}\n',
         description: 'Lista com marcadores',
         category: 'content',
     },
     {
         label: 'Checklist',
-        icon: '☑',
+        icon: CheckSquare,
         template: '- [ ] ${1:Tarefa pendente}\n- [x] ${2:Tarefa concluída}\n',
         description: 'Lista de tarefas (GFM)',
         category: 'content',
     },
     {
         label: 'Tabela',
-        icon: '田',
+        icon: Table,
         template: '| ${1:Coluna 1} | ${2:Coluna 2} |\n| :--- | :--- |\n| ${3:Dado A} | ${4:Dado B} |\n| ${5:Dado C} | ${6:Dado D} |\n',
         description: 'Tabela formatada (GFM)',
         category: 'content',
     },
     {
         label: 'Link',
-        icon: '🔗',
+        icon: LinkIcon,
         template: '[${1:texto do link}](${2:https://exemplo.com})',
         description: 'Link inline padrão',
         category: 'content',
     },
     {
         label: 'Link Externo (Destaque)',
-        icon: '↗',
+        icon: ExternalLinkIcon,
         template: '<ExternalLink\n  url="${1:https://}"\n  title="${2:Título do Link}"\n  description="${3:Breve descrição do destino}"\n/>\n',
         description: 'Banner de link externo estilizado',
         category: 'content',
     },
     {
         label: 'Equação',
-        icon: '∑',
+        icon: Sigma,
         template: '$$\n${1:\\\\frac{a}{b}}\n$$\n',
         description: 'Bloco de equação matemática (LaTeX)',
         category: 'content',
     },
     {
         label: 'Equação Inline',
-        icon: 'π',
+        icon: Pi,
         template: '$${1:E = mc^2}$',
         description: 'Equação inline no meio do texto',
         category: 'content',
     },
     {
         label: 'Equação Numerada',
-        icon: '∑#',
+        icon: Hash,
         template: '$$\n\\begin{equation}\n  ${1:E = mc^2} \\label{eq:${2:referencia}}\n\\end{equation}\n$$\n',
         description: 'Equação com numeração automática e label para referência (AMS)',
         category: 'content',
     },
     {
         label: 'Ref. Equação',
-        icon: '(1)',
+        icon: TextCursorInput, // Using a generic text input icon for now
         template: '$\\eqref{eq:${1:referencia}}$',
         description: 'Cria hiperlink referenciando uma equação numerada',
         category: 'content',
     },
     {
         label: 'Código',
-        icon: '</>',
+        icon: Code,
         template: '```${1|python,javascript,typescript,css,html,json,bash|}\n${2:# insira seu código aqui}\n```\n',
         description: 'Bloco de código com destaque de sintaxe',
         category: 'content',
     },
     {
         label: 'Callout',
-        icon: '💡',
+        icon: Lightbulb,
         template: '<Callout type="${1|info,warning,danger,tip|}">\n${2:Conteúdo ou aviso importante}\n</Callout>\n',
         description: 'Caixa de aviso (info, warning, danger, tip)',
         category: 'content',
@@ -152,28 +156,28 @@ const SNIPPETS: Snippet[] = [
     // ── Media ──
     {
         label: 'Imagem',
-        icon: '🖼',
+        icon: ImageIcon,
         template: '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  width="${2:400}"\n  widthPresentation="${3:600}"\n  align="${4|center,left,right|}"\n  alt="${5:descrição da imagem}"\n/>\n',
         description: 'Imagem customizada com controle de tamanho e alinhamento',
         category: 'media',
     },
     {
         label: 'YouTube',
-        icon: '▶',
+        icon: Video,
         template: '<YouTube\n  url="${1:https://youtu.be/ID_DO_VIDEO}"\n  start={${2:0}}\n  title="${3:Título do Vídeo}"\n/>\n',
         description: 'Incorporar vídeo do YouTube (URL ou ID)',
         category: 'media',
     },
     {
         label: 'PDF',
-        icon: '📄',
+        icon: FileText,
         template: '<PDF\n  url="${1:/api/media/file/documento.pdf}"\n  title="${2:Título do PDF}"\n/>\n',
         description: 'Visualizador de PDF incorporado',
         category: 'media',
     },
     {
         label: 'Download',
-        icon: '⬇',
+        icon: ArrowDownToLine,
         template: '<Download\n  url="${1:/api/media/file/arquivo.zip}"\n  label="${2:Baixar Material Complementar}"\n  filename="${3:material.zip}"\n/>\n',
         description: 'Banner para download de arquivos genéricos',
         category: 'media',
@@ -181,23 +185,37 @@ const SNIPPETS: Snippet[] = [
 
     // ── Presentation (Slides) ──
     {
-        label: 'Novo Slide',
-        icon: '🖥',
-        template: '---\n\n<Slide>\n\n${1:## Título do Slide}\n\n${2:Conteúdo do slide...}\n\n</Slide>\n\n',
-        description: 'Cria um novo slide na apresentação',
+        label: 'Capa',
+        icon: Maximize,
+        template: '<SlideCover\n  title="${1:Título Principal}"\n  subtitle="${2:Subtítulo de Apoio}"\n  author="${3:Nome do Autor}"\n  date="${4:Maio 2026}"\n  backgroundImage="${5:/api/media/file/background.png}"\n  backgroundMaskOpacity="${6:60%}"\n  backgroundMaskBlur="${7:2px}"\n  logoImage="${8:/api/media/file/logo.png}"\n/>\n\n',
+        description: 'Capa do slide (primeiro slide)',
+        category: 'presentation',
+    },
+    {
+        label: 'Quebra de Slide',
+        icon: Presentation,
+        template: '<SlideBreak />\n\n',
+        description: 'Força a quebra para um novo slide (H1, H2 e H3 também quebram automaticamente)',
+        category: 'presentation',
+    },
+    {
+        label: 'Segunda Coluna',
+        icon: Columns2,
+        template: '<SlideSecondColumnContent width="${1:50%}">\n\n${2:Conteúdo da segunda coluna}\n\n</SlideSecondColumnContent>\n\n',
+        description: 'Cria um layout de duas colunas neste slide',
         category: 'presentation',
     },
     {
         label: 'Apenas Texto',
-        icon: '📝',
-        template: '<TextOnly>\n\n${1:Este conteúdo aparece apenas na leitura (não nos slides)}\n\n</TextOnly>\n',
+        icon: '📝', // No direct Lucide icon for this, keeping string
+        template: '<TextOnly>\n${1:Este conteúdo aparece apenas na leitura (não nos slides)}\n</TextOnly>\n',
         description: 'Conteúdo oculto na visualização de slides',
         category: 'presentation',
     },
     {
         label: 'Apenas Slides',
-        icon: '📊',
-        template: '<PresentOnly>\n\n${1:Este conteúdo aparece apenas nos slides (não na leitura)}\n\n</PresentOnly>\n',
+        icon: '📊', // No direct Lucide icon for this, keeping string
+        template: '<PresentOnly>\n${1:Este conteúdo aparece apenas nos slides (não na leitura)}\n</PresentOnly>\n',
         description: 'Conteúdo oculto na visualização de texto corrido',
         category: 'presentation',
     },
@@ -226,6 +244,13 @@ interface MonacoMDXFieldProps {
         }
     }
 }
+
+// Placeholder for Button component if not imported from a UI library
+// In a real application, you would import this from your component library.
+const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string }> = ({ children, className, ...props }) => (
+    <button className={className} {...props}>{children}</button>
+);
+
 
 export const MonacoMDXField: React.FC<MonacoMDXFieldProps> = ({ path, field }) => {
     const { value, setValue } = useField<string>({ path })
@@ -315,6 +340,19 @@ export const MonacoMDXField: React.FC<MonacoMDXFieldProps> = ({ path, field }) =
         setValue(newValue)
     }, [setValue])
 
+    // Specific handlers for presentation snippets using Lucide icons
+    const insertSlideCover = useCallback(() => {
+        insertSnippet('<SlideCover\n  title="${1:Título Principal}"\n  subtitle="${2:Subtítulo de Apoio}"\n  author="${3:Nome do Autor}"\n  date="${4:Maio 2026}"\n  backgroundImage="${5:/api/media/file/background.png}"\n  backgroundMaskOpacity="${6:60%}"\n  backgroundMaskBlur="${7:2px}"\n  logoImage="${8:/api/media/file/logo.png}"\n/>\n\n')
+    }, [insertSnippet])
+
+    const insertSlideBreak = useCallback(() => {
+        insertSnippet('<SlideBreak />\n\n')
+    }, [insertSnippet])
+
+    const insertSlideSecondColumn = useCallback(() => {
+        insertSnippet('<SlideSecondColumnContent width="${1:50%}">\n\n${2:Conteúdo da segunda coluna}\n\n</SlideSecondColumnContent>\n\n')
+    }, [insertSnippet])
+
     const handleChange = useCallback(
         (newValue: string | undefined) => {
             setValue(newValue ?? '')
@@ -352,6 +390,7 @@ export const MonacoMDXField: React.FC<MonacoMDXFieldProps> = ({ path, field }) =
                 {fieldLabel}
             </label>
 
+            {/* Snippet Toolbar */}
             {/* Snippet Toolbar */}
             <div
                 style={{
@@ -423,7 +462,7 @@ export const MonacoMDXField: React.FC<MonacoMDXFieldProps> = ({ path, field }) =
                                     e.currentTarget.style.borderColor = '#444'
                                 }}
                             >
-                                {snippet.icon}
+                                {typeof snippet.icon === 'string' ? snippet.icon : <snippet.icon className="w-4 h-4" />}
                             </button>
                         ))}
                     </React.Fragment>
@@ -476,18 +515,20 @@ export const MonacoMDXField: React.FC<MonacoMDXFieldProps> = ({ path, field }) =
             </div>
 
             {/* Description */}
-            {field.admin?.description && (
-                <div
-                    style={{
-                        marginTop: '6px',
-                        fontSize: '12px',
-                        color: '#888',
-                    }}
-                >
-                    {field.admin.description}
-                </div>
-            )}
-        </div>
+            {
+                field.admin?.description && (
+                    <div
+                        style={{
+                            marginTop: '6px',
+                            fontSize: '12px',
+                            color: '#888',
+                        }}
+                    >
+                        {field.admin.description}
+                    </div>
+                )
+            }
+        </div >
     )
 }
 

@@ -1,12 +1,7 @@
 .env
-.tmp/
-credentials.json
-token.json
-__pycache__/
-*.pyc
+.claude
 # Next.js
 app/.next/
 app/node_modules/
 app/out/
 .DS_Store
-

@@ -1,0 +1,148 @@
+
+> app@0.1.0 dev
+> next dev
+
+ ⚠ Port 3000 is in use by process 3666
+4391, using available port 3003 instead.
+   ▲ Next.js 15.4.11
+   - Local:        http://localhost:3003
+   - Network:      http://192.168.15.28:3003
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 1102ms
+ ○ Compiling /disciplinas/[slug]/[mod] ...
+ ✓ Compiled /disciplinas/[slug]/[mod] in 3s (2025 modules)
+ ✓ Compiled in 57ms (505 modules)
+[11:07:29] [31mERROR[39m: [36mError: cannot connect to Postgres. Details: [39m
+    err: {
+      "type": "AggregateError",
+      "message": "",
+      "stack":
+          AggregateError: 
+              at /Users/filgusto/git-sources/kuara-website/app/node_modules/pg-pool/index.js:45:11
+              at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+              at async connectWithReconnect (file:///Users/filgusto/git-sources/kuara-website/app/node_modules/@payloadcms/db-postgres/dist/connect.js:7:18)
+              at async Object.connect (file:///Users/filgusto/git-sources/kuara-website/app/node_modules/@payloadcms/db-postgres/dist/connect.js:46:13)
+              at async BasePayload.init (file:///Users/filgusto/git-sources/kuara-website/app/node_modules/payload/dist/index.js:371:13)
+      "aggregateErrors": [
+        {
+          "type": "Error",
+          "message": "connect ECONNREFUSED ::1:5432",
+          "stack":
+              Error: connect ECONNREFUSED ::1:5432
+                  at createConnectionError (node:net:1678:14)
+                  at afterConnectMultiple (node:net:1708:16)
+          "errno": -61,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "::1",
+          "port": 5432
+        },
+        {
+          "type": "Error",
+          "message": "connect ECONNREFUSED 127.0.0.1:5432",
+          "stack":
+              Error: connect ECONNREFUSED 127.0.0.1:5432
+                  at createConnectionError (node:net:1678:14)
+                  at afterConnectMultiple (node:net:1708:16)
+          "errno": -61,
+          "code": "ECONNREFUSED",
+          "syscall": "connect",
+          "address": "127.0.0.1",
+          "port": 5432
+        }
+      ],
+      "code": "ECONNREFUSED"
+    }
+undefined
+ ⨯ unhandledRejection: undefined
+ ⨯ unhandledRejection:  undefined
+ ⨯ [Error: Error: cannot connect to Postgres: ] {
+  payloadInitError: true,
+  digest: '2458914240'
+}
+ GET /disciplinas/projetos-roboticos/teste-dos-slides 500 in 5484ms
+ ✓ Compiled in 117ms (505 modules)
+ ✓ Compiled in 166ms (505 modules)
+ ✓ Compiled in 99ms (506 modules)
+ ✓ Compiled in 75ms (506 modules)
+ ✓ Compiled in 99ms (506 modules)
+ ⨯ ./components/mdx/Slide.tsx
+Error:   [31mx[0m Expected '}', got '<eof>'
+    ,-[[36;1;4m/Users/filgusto/git-sources/kuara-website/app/components/mdx/Slide.tsx[0m:84:1]
+ [2m81[0m |                     </div>
+ [2m82[0m |                 )}
+ [2m83[0m |             </section>
+ [2m84[0m |         )
+    : [35;1m        ^[0m
+ [2m85[0m |     }
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/mdx/Slide.tsx
+ ⨯ ./components/mdx/Slide.tsx
+Error:   [31mx[0m Expected '}', got '<eof>'
+    ,-[[36;1;4m/Users/filgusto/git-sources/kuara-website/app/components/mdx/Slide.tsx[0m:84:1]
+ [2m81[0m |                     </div>
+ [2m82[0m |                 )}
+ [2m83[0m |             </section>
+ [2m84[0m |         )
+    : [35;1m        ^[0m
+ [2m85[0m |     }
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/mdx/Slide.tsx
+ ⨯ ./components/mdx/Slide.tsx
+Error:   [31mx[0m Expected '}', got '<eof>'
+    ,-[[36;1;4m/Users/filgusto/git-sources/kuara-website/app/components/mdx/Slide.tsx[0m:84:1]
+ [2m81[0m |                     </div>
+ [2m82[0m |                 )}
+ [2m83[0m |             </section>
+ [2m84[0m |         )
+    : [35;1m        ^[0m
+ [2m85[0m |     }
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/mdx/Slide.tsx
+ ⨯ ./components/mdx/Slide.tsx
+Error:   [31mx[0m Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+    ,-[[36;1;4m/Users/filgusto/git-sources/kuara-website/app/components/mdx/Slide.tsx[0m:82:1]
+ [2m79[0m |                     {mainColumnContent}
+ [2m80[0m |                 </div>
+ [2m81[0m |             )}
+ [2m82[0m |             )}
+    : [35;1m             ^[0m
+ [2m83[0m |         </section>
+ [2m84[0m |     )
+ [2m85[0m | }
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/mdx/Slide.tsx
+ ✓ Compiled in 77ms (506 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/filgusto/git-sources/kuara-website/app/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/filgusto/git-sources/kuara-website/app/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 151ms (506 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/filgusto/git-sources/kuara-website/app/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/filgusto/git-sources/kuara-website/app/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 107ms (506 modules)
+ ✓ Compiled in 80ms (506 modules)
+ ✓ Compiled in 92ms (506 modules)
+ ✓ Compiled in 70ms (506 modules)
+ ✓ Compiled in 84ms (506 modules)
+ ✓ Compiled in 95ms (506 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/filgusto/git-sources/kuara-website/app/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/filgusto/git-sources/kuara-website/app/.next/cache/webpack/client-development/0.pack.gz'
+[?25h
