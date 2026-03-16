@@ -1,5 +1,5 @@
 # ─── Stage 1: deps ────────────────────────────────────────────────────────────
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 
 # Install libc compat for native modules
@@ -11,7 +11,7 @@ RUN npm ci --legacy-peer-deps
 # ─── Stage: migrator (runs Payload DB migrations in production) ───────────────
 # Has full source + node_modules so `npx payload migrate` can run.
 # NODE_ENV=production disables push:true, enabling the migration runner.
-FROM node:20-alpine AS migrator
+FROM node:22-alpine AS migrator
 WORKDIR /app
 
 RUN apk add --no-cache libc6-compat
@@ -26,7 +26,7 @@ CMD ["npx", "payload", "migrate"]
 
 # ─── Stage: dev (used by docker-compose for local development) ────────────────
 # Runs `next dev`. Payload uses push:true in dev (NODE_ENV != production).
-FROM node:20-alpine AS dev
+FROM node:22-alpine AS dev
 WORKDIR /app
 
 RUN apk add --no-cache libc6-compat
@@ -43,7 +43,7 @@ EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
 # ─── Stage 2: builder (for production builds) ─────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
@@ -56,7 +56,7 @@ ENV NODE_ENV=production
 RUN npm run build
 
 # ─── Stage 3: runner (production) ─────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

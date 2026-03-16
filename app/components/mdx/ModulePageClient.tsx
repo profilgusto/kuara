@@ -16,7 +16,7 @@ export function ModulePageClient({
     return (
         <ModuleContext.Provider value={{ title }}>
             <div className="flex items-center justify-between mb-8 gap-4">
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{title}</h1>
+                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{title}</h1>
                 {/* Toggle appears on md+ screens to switch between Text and Presentation mode */}
                 <ViewToggle />
             </div>

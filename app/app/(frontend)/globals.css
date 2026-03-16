@@ -214,6 +214,41 @@
   opacity: 1 !important;
 }
 
+/* ─── MDX Heading Hierarchy ────────────────────────────────────── */
+/* Module Title (outside .prose) is the top-level title.
+   H1 = section, H2 = subsection, H3 = sub-subsection, etc. */
+.prose h1 {
+  font-size: 1.75em;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 2.5em;
+  margin-bottom: 0.6em;
+}
+
+.prose h2 {
+  font-size: 1.375em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+}
+
+.prose h3 {
+  font-size: 1.125em;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-top: 1.5em;
+  margin-bottom: 0.4em;
+}
+
+.prose h4 {
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-top: 1.25em;
+  margin-bottom: 0.3em;
+}
+
 /* ─── Presentation Fullscreen Overrides ───────────────────────── */
 /* When in full-screen presentation mode, scale up the typography for projectors (720p/1080p) */
 .presentation-deck[data-fullscreen="true"] .prose {

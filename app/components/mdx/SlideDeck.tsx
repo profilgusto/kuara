@@ -8,11 +8,23 @@ import type { ReactNode } from 'react'
 
 export default function SlideDeck({ children }: { children: ReactNode }) {
     const mode = useViewMode()
+    const deckRef = useRef<HTMLDivElement | null>(null)
     const containerRef = useRef<HTMLDivElement | null>(null)
+    const outerAreaRef = useRef<HTMLDivElement | null>(null)
     const [index, setIndex] = useState(0)
     const [ids, setIds] = useState<string[]>([])
     const [title, setTitle] = useState('')
     const [isFullscreen, setIsFullscreen] = useState(false)
+
+    // Zoom/pan state kept in a ref for synchronous access inside event handlers
+    const transformRef = useRef({ zoom: 1, panX: 0, panY: 0 })
+    const [transform, setTransform] = useState({ zoom: 1, panX: 0, panY: 0 })
+
+    const applyTransform = (fn: (t: typeof transformRef.current) => typeof transformRef.current) => {
+        const next = fn(transformRef.current)
+        transformRef.current = next
+        setTransform({ ...next })
+    }
 
     // Collect slide sections (no DOM mutation, just reading)
     useEffect(() => {
@@ -49,7 +61,7 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
         return () => window.removeEventListener('keydown', onKey)
     }, [mode, isFullscreen, ids.length])
 
-    // Show/hide slides based on index
+    // Show/hide slides based on index, reset zoom on slide change
     useEffect(() => {
         if (mode !== 'apresentacao') return
         const root = containerRef.current
@@ -62,8 +74,8 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
         })
         const activeSection = sections[index]
         if (activeSection) {
-            const title = activeSection.dataset.title
-            if (title) setTitle(title)
+            const t = activeSection.dataset.title
+            if (t) setTitle(t)
 
             const id = activeSection.dataset.id
             if (id) {
@@ -72,13 +84,17 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
                 window.history.replaceState({}, '', url.toString())
             }
         }
+        // Reset zoom/pan on slide change
+        applyTransform(() => ({ zoom: 1, panX: 0, panY: 0 }))
+        // Scroll the inner slide container back to top
+        if (root) root.scrollTop = 0
         try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch { window.scrollTo(0, 0) }
     }, [index, mode, ids.length])
 
     // 1-finger horizontal swipe
     useEffect(() => {
         if (mode !== 'apresentacao') return
-        const el = containerRef.current
+        const el = outerAreaRef.current
         if (!el) return
 
         let startX = 0
@@ -112,10 +128,59 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
         }
     }, [mode, ids.length])
 
+    // Trackpad pinch-to-zoom (ctrlKey + wheel) and pan when zoomed in
+    useEffect(() => {
+        if (mode !== 'apresentacao') return
+        const el = outerAreaRef.current
+        if (!el) return
+
+        const onWheel = (e: WheelEvent) => {
+            if (e.ctrlKey) {
+                // Pinch-to-zoom: zoom centered on cursor position
+                e.preventDefault()
+                const rect = el.getBoundingClientRect()
+                const mx = e.clientX - rect.left - rect.width / 2
+                const my = e.clientY - rect.top - rect.height / 2
+
+                applyTransform(({ zoom, panX, panY }) => {
+                    const factor = e.deltaY > 0 ? 0.95 : 1.05
+                    const newZoom = Math.max(0.5, Math.min(4, zoom * factor))
+                    const ratio = newZoom / zoom
+                    return {
+                        zoom: newZoom,
+                        panX: mx * (1 - ratio) + panX * ratio,
+                        panY: my * (1 - ratio) + panY * ratio,
+                    }
+                })
+            } else if (transformRef.current.zoom > 1) {
+                // Pan when zoomed in (two-finger scroll without pinch)
+                e.preventDefault()
+                applyTransform(({ zoom, panX, panY }) => ({
+                    zoom,
+                    panX: panX - e.deltaX / zoom,
+                    panY: panY - e.deltaY / zoom,
+                }))
+            }
+        }
+
+        el.addEventListener('wheel', onWheel, { passive: false })
+        return () => el.removeEventListener('wheel', onWheel)
+    }, [mode])
+
+    // Double-click to reset zoom/pan
+    useEffect(() => {
+        if (mode !== 'apresentacao') return
+        const el = outerAreaRef.current
+        if (!el) return
+        const onDblClick = () => applyTransform(() => ({ zoom: 1, panX: 0, panY: 0 }))
+        el.addEventListener('dblclick', onDblClick)
+        return () => el.removeEventListener('dblclick', onDblClick)
+    }, [mode])
+
     // Fullscreen toggle
     const toggleFullscreen = () => {
         if (!document.fullscreenElement) {
-            containerRef.current?.parentElement?.requestFullscreen?.()
+            deckRef.current?.requestFullscreen?.()
             setIsFullscreen(true)
         } else {
             document.exitFullscreen?.()
@@ -134,9 +199,11 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
     }
 
     const progress = ids.length > 1 ? ((index) / (ids.length - 1)) * 100 : 0
+    const isZoomed = transform.zoom !== 1
 
     return (
         <div
+            ref={deckRef}
             className={`presentation-deck relative mx-auto w-full bg-background flex flex-col min-h-[500px] ${isFullscreen ? 'h-screen' : 'h-[600px]'}`}
             data-fullscreen={isFullscreen}
         >
@@ -152,6 +219,17 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
                     <div className="font-semibold text-sm truncate" title={title}>{title}</div>
                 </div>
                 <div className="flex items-center gap-2">
+                    {isZoomed && (
+                        <button
+                            className="text-xs font-mono opacity-60 hover:opacity-100 transition-opacity tabular-nums"
+                            onClick={() => applyTransform(() => ({ zoom: 1, panX: 0, panY: 0 }))}
+                            title="Resetar zoom (ou duplo clique)"
+                            aria-label="Resetar zoom"
+                        >
+                            {Math.round(transform.zoom * 100)}%
+                        </button>
+                    )}
+
                     <Button
                         variant="ghost"
                         size="icon"
@@ -188,9 +266,20 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
                 </div>
             </div>
 
-            <div ref={containerRef} className="flex-1 relative overflow-hidden" suppressHydrationWarning>
-                <div className="absolute inset-0 overflow-y-auto">
-                    {children}
+            <div ref={outerAreaRef} className="flex-1 relative overflow-hidden" suppressHydrationWarning>
+                <div
+                    style={{
+                        transform: `translate(${transform.panX}px, ${transform.panY}px) scale(${transform.zoom})`,
+                        transformOrigin: 'center center',
+                        width: '100%',
+                        height: '100%',
+                        willChange: 'transform',
+                        cursor: isZoomed ? 'grab' : undefined,
+                    }}
+                >
+                    <div ref={containerRef} className="absolute inset-0 overflow-y-auto">
+                        {children}
+                    </div>
                 </div>
             </div>
         </div>

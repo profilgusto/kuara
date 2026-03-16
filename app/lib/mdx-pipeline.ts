@@ -80,7 +80,7 @@ function buildRemarkBase() {
 }
 
 /**
- * Extract level-2 headings (##) from MDX source with GitHub-style slug IDs.
+ * Extract level-1 headings (#) from MDX source with GitHub-style slug IDs.
  * Used for sidebar scroll-spy navigation.
  */
 export function extractHeadings(source: string): Heading[] {
@@ -89,7 +89,7 @@ export function extractHeadings(source: string): Heading[] {
 
     const collectHeadings = () => (tree: any) => {
         visit(tree, 'heading', (node: any) => {
-            if (node.depth === 2) {
+            if (node.depth === 1) {
                 const text = toString(node).trim()
                 if (!text) return
                 const id = slugger.slug(text)
