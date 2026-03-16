@@ -11,6 +11,7 @@ interface CourseSidebarProps {
     course: CourseDetail
     currentModuleSlug?: string
     headings?: Heading[]
+    onLinkClick?: () => void
 }
 
 const typeConfig: Record<string, { label: string; icon: typeof BookOpen; color: string }> = {
@@ -20,7 +21,7 @@ const typeConfig: Record<string, { label: string; icon: typeof BookOpen; color: 
     'recurso': { label: 'Recursos', icon: FileText, color: 'text-purple-500' },
 }
 
-export function CourseSidebar({ course, currentModuleSlug, headings = [] }: CourseSidebarProps) {
+export function CourseSidebar({ course, currentModuleSlug, headings = [], onLinkClick }: CourseSidebarProps) {
     const pathname = usePathname()
     const [activeHeading, setActiveHeading] = useState<string | null>(null)
 
@@ -93,6 +94,7 @@ export function CourseSidebar({ course, currentModuleSlug, headings = [] }: Cour
                                     <div key={m.id}>
                                         <Link
                                             href={href}
+                                            onClick={onLinkClick}
                                             className={`block py-1 transition-colors hover:text-primary ${isActive ? 'font-medium text-primary' : 'text-muted-foreground'
                                                 }`}
                                         >
@@ -113,10 +115,10 @@ export function CourseSidebar({ course, currentModuleSlug, headings = [] }: Cour
                                                                         : 'text-muted-foreground hover:text-foreground'
                                                                     }`}
                                                                 onClick={(e) => {
-                                                                    // Smooth scroll
                                                                     e.preventDefault()
                                                                     document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth' })
                                                                     history.pushState(null, '', `#${h.id}`)
+                                                                    onLinkClick?.()
                                                                 }}
                                                             >
                                                                 {h.text}

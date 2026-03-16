@@ -45,6 +45,7 @@ export async function listCourses(): Promise<CourseListItem[]> {
     const payload = await getPayload({ config: configPromise })
     const result = await payload.find({
         collection: 'courses',
+        where: { visibility: { equals: true } },
         limit: 100,
         sort: 'title',
     })
@@ -71,7 +72,7 @@ export async function getCourse(slug: string, draft: boolean = false): Promise<C
     })
 
     const course = courseResult.docs[0] as any
-    if (!course) return null
+    if (!course || course.visibility === false) return null
 
     // Fetch modules for this course
     const modulesResult = await payload.find({
@@ -134,7 +135,7 @@ export async function getModule(
         draft,
     })
     const course = courseResult.docs[0] as any
-    if (!course) return null
+    if (!course || course.visibility === false) return null
 
     // Find the module
     const moduleResult = await payload.find({

@@ -288,3 +288,20 @@
   height: 100vh;
   overflow-y: auto;
 }
+
+/* Remove max-width constraint on non-cover slide sections in fullscreen — fill 90% width with 5% side padding */
+.presentation-deck[data-fullscreen="true"] section:not([data-cover]) {
+  max-width: none !important;
+  padding-left: 5% !important;
+  padding-right: 5% !important;
+}
+
+/* Give the article an explicit height so h-full on child sections resolves correctly */
+.presentation-deck .overflow-y-auto > article {
+  height: 100%;
+}
+
+/* Cover sections fill the full article height */
+.presentation-deck section[data-cover] {
+  height: 100%;
+}

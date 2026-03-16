@@ -85,17 +85,15 @@ export default async function CourseHomePage({ params }: { params: Promise<{ slu
                                             href={`/disciplinas/${slug}/${m.slug}`}
                                             className="group block rounded-lg border bg-card p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
                                         >
-                                            <div className="flex items-start gap-3">
+                                            <div className="flex items-center gap-3">
                                                 {m.number != null && (
-                                                    <span className={`text-2xl font-bold opacity-30 ${cfg.color}`}>
+                                                    <span className={`text-sm font-mono font-semibold opacity-40 shrink-0 ${cfg.color}`}>
                                                         {String(m.number).padStart(2, '0')}
                                                     </span>
                                                 )}
-                                                <div>
-                                                    <h3 className="font-medium text-sm leading-snug group-hover:text-primary transition-colors">
-                                                        {m.title}
-                                                    </h3>
-                                                </div>
+                                                <h3 className="font-medium text-sm leading-snug group-hover:text-primary transition-colors">
+                                                    {m.title}
+                                                </h3>
                                             </div>
                                         </Link>
                                     ))}

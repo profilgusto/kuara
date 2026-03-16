@@ -8,8 +8,24 @@ RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json* ./
 RUN npm ci --legacy-peer-deps
 
+# ─── Stage: migrator (runs Payload DB migrations in production) ───────────────
+# Has full source + node_modules so `npx payload migrate` can run.
+# NODE_ENV=production disables push:true, enabling the migration runner.
+FROM node:20-alpine AS migrator
+WORKDIR /app
+
+RUN apk add --no-cache libc6-compat
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+CMD ["npx", "payload", "migrate"]
+
 # ─── Stage: dev (used by docker-compose for local development) ────────────────
-# Runs `next dev` so Payload's push:true auto-creates database tables.
+# Runs `next dev`. Payload uses push:true in dev (NODE_ENV != production).
 FROM node:20-alpine AS dev
 WORKDIR /app
 

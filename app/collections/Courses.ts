@@ -4,7 +4,7 @@ export const Courses: CollectionConfig = {
     slug: 'courses',
     admin: {
         useAsTitle: 'title',
-        defaultColumns: ['title', 'code', 'instructor'],
+        defaultColumns: ['title', 'code', 'instructor', 'visibility'],
     },
     access: {
         // Public read - anyone can see courses
@@ -71,6 +71,14 @@ export const Courses: CollectionConfig = {
             relationTo: 'users',
             admin: {
                 description: 'Default instructor for this course',
+            },
+        },
+        {
+            name: 'visibility',
+            type: 'checkbox',
+            defaultValue: true,
+            admin: {
+                description: 'When unchecked, this course is hidden from /disciplinas and all its links return 404.',
             },
         },
     ],

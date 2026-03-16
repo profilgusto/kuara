@@ -31,7 +31,11 @@ export default buildConfig({
         outputFile: path.resolve(dirname, 'payload-types.ts'),
     },
     db: postgresAdapter({
-        push: true,
+        // push:true is convenient in dev (auto-syncs schema on startup).
+        // In production (NODE_ENV=production) it is disabled — use explicit
+        // migrations instead: npx payload migrate:create → npx payload migrate.
+        push: process.env.NODE_ENV !== 'production',
+        migrationDir: path.resolve(dirname, 'migrations'),
         pool: {
             connectionString: process.env.DATABASE_URL || '',
         },

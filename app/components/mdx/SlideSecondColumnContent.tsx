@@ -1,33 +1,53 @@
 'use client'
-import React, { ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useContext, type ReactNode } from 'react'
 import { useViewMode } from './useViewMode'
+import { SlideSecondColumnContext } from './SlideSecondColumnContext'
+
+// useLayoutEffect runs synchronously before browser paint, preventing a
+// single-column flash when switching to presentation mode. The server-safe
+// fallback to useEffect avoids SSR warnings in Next.js.
+const useIsomorphicLayoutEffect =
+    typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
 /**
  * SlideSecondColumnContent
- * 
- * In text mode, it renders its children normally.
- * In presentation mode, its presence acts as a trigger for SlideDeck to use a
- * two-column layout for the current slide. SlideDeck extracts this content and
- * puts it in the right column, so it renders nothing here inline to avoid duplication.
+ *
+ * In presentation mode, registers its children into the parent Slide's state
+ * via SlideSecondColumnContext, causing the slide to switch to a two-column
+ * layout. The component itself renders nothing in presentation mode.
+ *
+ * In text mode, renders children inline unless textModeVisible is false.
+ *
+ * Props:
+ *   width            – right column width in presentation mode (default "50%")
+ *   textModeVisible  – whether to render in text mode (default true)
  */
 export default function SlideSecondColumnContent({
     children,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     width = '50%',
+    textModeVisible = true,
 }: {
     children: ReactNode
     width?: string
+    textModeVisible?: boolean | string
 }) {
     const mode = useViewMode()
+    const ctx = useContext(SlideSecondColumnContext)
 
-    // In presentation mode, SlideDeck will extract and render this content
-    // in the second column, so we don't render it here inline.
+    // Register / deregister with the parent Slide.
+    // Deps: [mode] only — children content is static MDX so we intentionally
+    // skip it to avoid an infinite re-render loop (React elements are new
+    // objects each render even when content is identical).
+    useIsomorphicLayoutEffect(() => {
+        if (mode === 'apresentacao' && ctx) {
+            ctx.register(children, width)
+            return () => ctx.clear()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mode, ctx])
+
     if (mode === 'apresentacao') return null
 
-    // In text mode, just render the content normally
-    return (
-        <div className="slide-second-column-content my-4 p-4 border rounded bg-muted/30">
-            {children}
-        </div>
-    )
+    const isVisible = textModeVisible !== false && textModeVisible !== 'false'
+    return isVisible ? <>{children}</> : null
 }
