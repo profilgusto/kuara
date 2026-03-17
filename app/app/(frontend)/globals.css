@@ -253,37 +253,39 @@
 /* When in full-screen presentation mode, scale up the typography for projectors (720p/1080p) */
 .presentation-deck[data-fullscreen="true"] .prose {
   max-width: none;
-  /* Add lateral padding and center content. Cut top padding in half (from 4rem to 2rem). */
-  padding: 2rem 5%;
+  /* Lateral padding only — vertical spacing is handled by the section's own padding. */
+  padding: 0 5%;
   margin: 0 auto;
 }
 
-/* Scale up base paragraph and list text (Increased by 20% from 1.5rem to 1.8rem) */
+/* Scale up base paragraph and list text.
+   Uses `em` so values scale relative to the section's font-size,
+   which is driven by --slide-content-scale for the ±scale buttons. */
 .presentation-deck[data-fullscreen="true"] .prose p,
 .presentation-deck[data-fullscreen="true"] .prose ul,
 .presentation-deck[data-fullscreen="true"] .prose ol,
 .presentation-deck[data-fullscreen="true"] .prose li {
-  font-size: 1.8rem;
-  line-height: 1.7;
+  font-size: 1.4em;
+  line-height: 1.65;
 }
 
-/* Headings (also scaled up by 20%) */
+/* Headings */
 .presentation-deck[data-fullscreen="true"] .prose h1 {
-  font-size: 4.2rem;
+  font-size: 4.2em;
   line-height: 1.2;
   margin-top: 1rem;
   margin-bottom: 2rem;
 }
 
 .presentation-deck[data-fullscreen="true"] .prose h2 {
-  font-size: 3.3rem;
+  font-size: 3.3em;
   line-height: 1.3;
   margin-top: 3rem;
   margin-bottom: 1.5rem;
 }
 
 .presentation-deck[data-fullscreen="true"] .prose h3 {
-  font-size: 2.7rem;
+  font-size: 2.7em;
   line-height: 1.4;
   margin-top: 2.5rem;
   margin-bottom: 1rem;
@@ -291,29 +293,29 @@
 
 /* Code blocks & inline code */
 .presentation-deck[data-fullscreen="true"] .prose pre {
-  font-size: 1.25rem;
+  font-size: 1.25em;
   padding: 1.5rem;
 }
 
 .presentation-deck[data-fullscreen="true"] .prose code {
   font-size: 1.25em;
-  /* relative to parent context */
 }
 
 /* Blockquotes */
 .presentation-deck[data-fullscreen="true"] .prose blockquote {
-  font-size: 1.8rem;
+  font-size: 1.4em;
   padding-left: 1.5rem;
 }
 
-/* Tables (make sure text in tables scales up properly to match other text) */
+/* Tables */
 .presentation-deck[data-fullscreen="true"] .prose table,
 .presentation-deck[data-fullscreen="true"] .prose th,
 .presentation-deck[data-fullscreen="true"] .prose td {
-  font-size: 1.8rem;
+  font-size: 1.4em;
 }
 
-/* Math Equations (Scale display block math by an additional 40% (1.4 * 1.4 = ~1.96em). Inline math stays inherit) */
+/* Math Equations — the 1.96em multiplier applies on top of the section's
+   scaled font-size, so equations scale correctly with --slide-content-scale. */
 .presentation-deck[data-fullscreen="true"] .prose mjx-container[display="true"] {
   font-size: 1.96em !important;
 }
@@ -324,9 +326,11 @@
   overflow-y: auto;
 }
 
-/* Remove max-width constraint on non-cover slide sections in fullscreen — fill 90% width with 5% side padding */
+/* Remove max-width constraint on non-cover slide sections in fullscreen — fill 90% width with 5% side padding.
+   Also zero out the section top padding (the prose wrapper no longer has top padding either). */
 .presentation-deck[data-fullscreen="true"] section:not([data-cover]) {
   max-width: none !important;
+  padding-top: 0 !important;
   padding-left: 5% !important;
   padding-right: 5% !important;
 }
@@ -339,4 +343,9 @@
 /* Cover sections fill the full article height */
 .presentation-deck section[data-cover] {
   height: 100%;
+}
+
+/* Suppress the prose top margin on the first content element of each slide (both modes) */
+.presentation-deck section:not([data-cover]) > div > :first-child {
+  margin-top: 0;
 }

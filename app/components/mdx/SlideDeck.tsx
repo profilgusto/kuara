@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { useViewMode } from './useViewMode'
-import { ArrowLeft, ArrowRight, Maximize2, Minimize2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Maximize2, Minimize2, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ReactNode } from 'react'
 
@@ -15,6 +15,13 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
     const [ids, setIds] = useState<string[]>([])
     const [title, setTitle] = useState('')
     const [isFullscreen, setIsFullscreen] = useState(false)
+    const [contentScale, setContentScale] = useState(1.0)
+
+    const adjustContentScale = (delta: number) =>
+        setContentScale(s => Math.min(2.0, Math.max(0.5, Math.round((s + delta) * 10) / 10)))
+
+    // Reset content scale when leaving fullscreen
+    useEffect(() => { if (!isFullscreen) setContentScale(1.0) }, [isFullscreen])
 
     // Zoom/pan state kept in a ref for synchronous access inside event handlers
     const transformRef = useRef({ zoom: 1, panX: 0, panY: 0 })
@@ -206,6 +213,7 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
             ref={deckRef}
             className={`presentation-deck relative mx-auto w-full bg-background flex flex-col min-h-[500px] ${isFullscreen ? 'h-screen' : 'h-[600px]'}`}
             data-fullscreen={isFullscreen}
+            style={{ '--slide-content-scale': contentScale } as React.CSSProperties}
         >
             <div className="sticky top-0 z-30 h-1 w-full bg-muted shrink-0">
                 <div
@@ -219,6 +227,32 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
                     <div className="font-semibold text-sm truncate" title={title}>{title}</div>
                 </div>
                 <div className="flex items-center gap-2">
+                    {isFullscreen && (
+                        <>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => adjustContentScale(-0.1)}
+                                aria-label="Diminuir conteúdo"
+                            >
+                                <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="text-xs font-mono opacity-70 tabular-nums w-10 text-center select-none">
+                                {Math.round(contentScale * 100)}%
+                            </span>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => adjustContentScale(+0.1)}
+                                aria-label="Aumentar conteúdo"
+                            >
+                                <Plus className="h-3 w-3" />
+                            </Button>
+                            <div className="w-px h-4 bg-border/60 mx-1 shrink-0" />
+                        </>
+                    )}
                     {isZoomed && (
                         <button
                             className="text-xs font-mono opacity-60 hover:opacity-100 transition-opacity tabular-nums"

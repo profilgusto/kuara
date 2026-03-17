@@ -157,7 +157,7 @@ const SNIPPETS: Snippet[] = [
     {
         label: 'Imagem',
         icon: ImageIcon,
-        template: '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  width="${2:400}"\n  widthPresentation="${3:600}"\n  align="${4|center,left,right|}"\n  alt="${5:descrição da imagem}"\n/>\n',
+        template: '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  width="${2:400}"\n  widthPresentation="${3:auto}"\n  align="${4:|center,left,right|}"\n  alt="${5:descrição da imagem}"\n/>\n',
         description: 'Imagem customizada com controle de tamanho e alinhamento',
         category: 'media',
     },

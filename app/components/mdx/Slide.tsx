@@ -42,8 +42,9 @@ export default function Slide({
                     'relative flex flex-col min-h-[400px]',
                     isCover
                         ? 'w-full h-full p-0 m-0 rounded-none shadow-none bg-transparent'
-                        : 'mx-auto my-2 max-w-4xl px-6 py-6 pb-12 rounded-2xl shadow-sm bg-[var(--bg)] text-[var(--fg)] w-full'
+                        : 'mx-auto mb-2 max-w-4xl px-6 pt-3 pb-12 rounded-2xl shadow-sm bg-[var(--bg)] text-[var(--fg)] w-full'
                 ].filter(Boolean).join(' ')}
+                style={!isCover ? { fontSize: 'calc(1rem * var(--slide-content-scale, 1))' } : undefined}
             >
                 {secondCol ? (
                     // Two-column layout: main content left, registered second column right.
