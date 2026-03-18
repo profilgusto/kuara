@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, ReactNode } from 'react'
+import { useState, useEffect, ReactNode } from 'react'
 import Link from 'next/link'
-import { PanelLeftOpen, PanelLeftClose, Leaf } from 'lucide-react'
+import { PanelLeftOpen, PanelLeftClose, Leaf, Sun, Moon } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { CourseSidebar } from './CourseSidebar'
 import { CourseDetail } from '@/lib/payload-content'
@@ -29,6 +30,10 @@ export function ModuleLayout({
 }: ModuleLayoutProps) {
     const [desktopOpen, setDesktopOpen] = useState(true)
     const [mobileOpen, setMobileOpen] = useState(false)
+    const { theme, setTheme } = useTheme()
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => { setMounted(true) }, [])
 
     const sidebarContent = (onLinkClick?: () => void) => (
         <CourseSidebar
@@ -89,6 +94,19 @@ export function ModuleLayout({
                     </Link>
                     <span className="shrink-0">/</span>
                     <span className="text-foreground font-medium truncate">{moduleTitle}</span>
+
+                    {/* Theme toggle — pushed to the far right */}
+                    <div className="ml-auto shrink-0">
+                        {mounted && (
+                            <button
+                                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                                aria-label="Alternar tema"
+                                className="flex items-center justify-center h-6 w-6 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                            >
+                                {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                            </button>
+                        )}
+                    </div>
                 </nav>
             </div>
 
