@@ -189,19 +189,32 @@ export default function KImage({
         right: 'justify-end',
     }
 
+    const captionTextAlign = {
+        left: 'text-left',
+        center: 'text-center',
+        right: 'text-right',
+    }
+
     if (isAutoMode) {
         return (
             <div
                 ref={wrapperRef}
                 className={`mt-2 mb-0 flex w-full ${alignmentStyles[align]} ${className || ''}`}
             >
-                <img
-                    ref={imgRef}
-                    src={imageSrc}
-                    alt={alt}
-                    className="rounded-lg shadow-md block"
-                    style={autoStyle}
-                />
+                <div className="flex flex-col">
+                    <img
+                        ref={imgRef}
+                        src={imageSrc}
+                        alt={alt}
+                        className="rounded-lg shadow-md block"
+                        style={autoStyle}
+                    />
+                    {alt && (
+                        <figcaption className={`mt-1.5 text-xs text-muted-foreground italic ${captionTextAlign[align]}`}>
+                            {alt}
+                        </figcaption>
+                    )}
+                </div>
             </div>
         )
     }
@@ -210,6 +223,15 @@ export default function KImage({
     const activeWidth = mode === 'apresentacao' && widthPresentation !== undefined
         ? widthPresentation
         : width
+
+    // Normalize a width value to a valid CSS string.
+    // Handles numbers (500 → "500px") and plain numeric strings ("500" → "500px").
+    // Percentage and unit-bearing strings ("50%", "500px") are passed through.
+    const normalizeToCss = (w: string | number): string => {
+        if (typeof w === 'number') return `${w}px`
+        if (/^\d+(\.\d+)?$/.test(w)) return `${w}px`
+        return w
+    }
 
     // In presentation mode, apply --slide-content-scale to pixel-based widths so
     // fixed images scale with the ± content-scale buttons.
@@ -222,23 +244,32 @@ export default function KImage({
         if (typeof activeWidth === 'string' && /^\d+(\.\d+)?px$/.test(activeWidth)) {
             return `calc(${activeWidth} * var(--slide-content-scale, 1))`
         }
+        // Plain numeric string (e.g. "400") — treat as px for scale calculation
+        if (typeof activeWidth === 'string' && /^\d+(\.\d+)?$/.test(activeWidth)) {
+            return `calc(${activeWidth}px * var(--slide-content-scale, 1))`
+        }
         return activeWidth
     })()
 
     return (
         <div className={`my-8 flex w-full ${alignmentStyles[align]} ${className || ''}`}>
-            <img
-                src={imageSrc}
-                alt={alt}
-                className="rounded-lg shadow-md h-auto transition-all duration-300"
-                style={{
-                    width: presentationStyleWidth
-                        ?? (activeWidth
-                            ? (typeof activeWidth === 'number' ? `${activeWidth}px` : activeWidth)
-                            : 'auto'),
-                    height: 'auto',
-                }}
-            />
+            <div className="flex flex-col">
+                <img
+                    src={imageSrc}
+                    alt={alt}
+                    className="rounded-lg shadow-md h-auto transition-all duration-300"
+                    style={{
+                        width: presentationStyleWidth
+                            ?? (activeWidth ? normalizeToCss(activeWidth) : 'auto'),
+                        height: 'auto',
+                    }}
+                />
+                {alt && (
+                    <figcaption className={`mt-1.5 text-xs text-muted-foreground italic ${captionTextAlign[align]}`}>
+                        {alt}
+                    </figcaption>
+                )}
+            </div>
         </div>
     )
 }

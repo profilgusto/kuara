@@ -44,7 +44,17 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
             const sections: HTMLElement[] = Array.from(root.querySelectorAll('section[data-id]'))
             setIds(sections.map(s => s.dataset.id || '').filter(Boolean))
 
-            // Restore from hash
+            // After a preview reload, PreviewRefreshScript saves the current slide ID to
+            // sessionStorage before window.location.reload(). We restore from there first
+            // because the URL hash may be overwritten by the show/hide effect before we read it.
+            const savedSlideId = sessionStorage.getItem('preview-slide-id')
+            if (savedSlideId) {
+                sessionStorage.removeItem('preview-slide-id')
+                const idx = sections.findIndex(s => s.dataset.id === savedSlideId)
+                if (idx >= 0) { setIndex(idx); return }
+            }
+
+            // Fall back to URL hash (e.g. normal page navigation)
             const hash = window.location.hash.replace(/^#/, '')
             if (hash) {
                 const idx = sections.findIndex(s => s.dataset.id === hash)
