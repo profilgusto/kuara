@@ -1,10 +1,23 @@
+# Development Docker Compose — Kuara Platform
+# Usage: docker compose up -d --build
+#
+# Differences from docker-compose.prod.yml (intentional):
+#   - Dockerfile target: dev  (hot-reload via next dev, no build step)
+#   - Source code mounted for live edits
+#   - Ports 3000 / 9000 / 9001 bound to 0.0.0.0 (localhost access)
+#   - No Nginx reverse proxy (connect directly to web:3000)
+#   - No migrate service (Payload uses push:true in dev)
+#   - No restart:always / resource limits (dev convenience)
+
 services:
+
+  # ── MinIO object storage ──────────────────────────────────────────────────────
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"   # S3 API (accessible from host for local dev)
-      - "9001:9001"   # MinIO console
+      - "9000:9000"   # S3 API  (http://localhost:9000)
+      - "9001:9001"   # Console (http://localhost:9001)
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kuara}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-kuara_dev_secret}
@@ -14,26 +27,33 @@ services:
       - kuara-net
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 15s
 
+  # ── MinIO bucket initialisation (runs once, then exits) ───────────────────────
   createbuckets:
-    image: minio/mc:latest
+    image: minio/minio:latest   # same image as minio — mc is guaranteed available
     depends_on:
       minio:
         condition: service_healthy
     networks:
       - kuara-net
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set minio http://minio:9000 $${MINIO_ROOT_USER:-kuara} $${MINIO_ROOT_PASSWORD:-kuara_dev_secret};
-      mc mb --ignore-existing minio/kuara-media;
-      mc anonymous set download minio/kuara-media;
-      echo 'Bucket kuara-media ready.';
-      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kuara}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-kuara_dev_secret}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set minio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+        mc mb --ignore-existing minio/kuara-media &&
+        mc anonymous set download minio/kuara-media &&
+        echo 'Bucket kuara-media ready.'
     restart: "no"
 
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     volumes:
@@ -45,28 +65,30 @@ services:
     networks:
       - kuara-net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U kuara" ]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U kuara -d kuara"]
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
+  # ── Next.js + Payload CMS ─────────────────────────────────────────────────────
   web:
     build:
       context: ./app
       dockerfile: Dockerfile
-      target: dev
+      target: dev   # hot-reload via next dev; Payload uses push:true for schema sync
     ports:
       - "3000:3000"
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql://kuara:${POSTGRES_PASSWORD}@postgres:5432/kuara
-      - PAYLOAD_SECRET=${PAYLOAD_SECRET}
-      - NEXT_PUBLIC_SERVER_URL=http://localhost:3000
-      - S3_ENDPOINT=http://minio:9000
-      - S3_BUCKET=kuara-media
-      - S3_ACCESS_KEY=${MINIO_ROOT_USER:-kuara}
-      - S3_SECRET_KEY=${MINIO_ROOT_PASSWORD:-kuara_dev_secret}
+      DATABASE_URL: postgresql://kuara:${POSTGRES_PASSWORD}@postgres:5432/kuara
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: kuara-media
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-kuara}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-kuara_dev_secret}
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,17 +96,20 @@ services:
         condition: service_completed_successfully
     networks:
       - kuara-net
-    restart: unless-stopped
     volumes:
       # Mount source for hot-reload during development
       - ./app:/app
       - /app/node_modules
       - /app/.next
 
+# ── Named volumes ─────────────────────────────────────────────────────────────
 volumes:
   kuara-pgdata:
+    driver: local
   kuara-minio-data:
+    driver: local
 
-
+# ── Networks ──────────────────────────────────────────────────────────────────
 networks:
   kuara-net:
+    driver: bridge

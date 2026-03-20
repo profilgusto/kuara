@@ -17,7 +17,7 @@ services:
     volumes:
       - kuara-minio-data:/data
     networks:
-      - kuara-internal
+      - kuara-net
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 10s
@@ -36,22 +36,23 @@ services:
 
   # ── MinIO bucket initialisation (runs once, then exits) ───────────────────────
   createbuckets:
-    image: minio/mc:latest
+    image: minio/minio:latest   # same image as minio — mc is guaranteed available
     depends_on:
       minio:
         condition: service_healthy
     networks:
-      - kuara-internal
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set minio http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
-      mc mb --ignore-existing minio/kuara-media;
-      mc anonymous set download minio/kuara-media;
-      echo 'Bucket kuara-media ready.';
-      "
+      - kuara-net
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set minio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+        mc mb --ignore-existing minio/kuara-media &&
+        mc anonymous set download minio/kuara-media &&
+        echo 'Bucket kuara-media ready.'
     restart: "no"
 
   # ── PostgreSQL ───────────────────────────────────────────────────────────────
@@ -65,7 +66,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: kuara
     networks:
-      - kuara-internal
+      - kuara-net
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U kuara -d kuara" ]
       interval: 10s
@@ -107,7 +108,7 @@ services:
       createbuckets:
         condition: service_completed_successfully
     networks:
-      - kuara-internal
+      - kuara-net
     restart: "no"
 
   # ── Next.js + Payload CMS ────────────────────────────────────────────────────
@@ -136,7 +137,7 @@ services:
       createbuckets:
         condition: service_completed_successfully
     networks:
-      - kuara-internal
+      - kuara-net
     deploy:
       resources:
         limits:
@@ -159,7 +160,7 @@ services:
     depends_on:
       - web
     networks:
-      - kuara-internal
+      - kuara-net
     deploy:
       resources:
         limits:
@@ -179,6 +180,6 @@ volumes:
 
 # ── Networks ─────────────────────────────────────────────────────────────────
 networks:
-  kuara-internal:
+  kuara-net:
     driver: bridge
     internal: false # web needs outbound for Payload telemetry / npm (build only)
