@@ -1,6 +1,7 @@
 import { buildConfig } from 'payload'
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { s3Storage } from '@payloadcms/storage-s3'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -30,6 +31,27 @@ export default buildConfig({
     typescript: {
         outputFile: path.resolve(dirname, 'payload-types.ts'),
     },
+    plugins: [
+        s3Storage({
+            collections: {
+                media: {
+                    // Keep URLs on your own domain — Nginx proxies /media/ → MinIO
+                    generateFileURL: ({ filename }) =>
+                        `${process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'}/media/${filename}`,
+                },
+            },
+            bucket: process.env.S3_BUCKET || 'kuara-media',
+            config: {
+                endpoint: process.env.S3_ENDPOINT || 'http://minio:9000',
+                credentials: {
+                    accessKeyId: process.env.S3_ACCESS_KEY || '',
+                    secretAccessKey: process.env.S3_SECRET_KEY || '',
+                },
+                region: 'us-east-1',
+                forcePathStyle: true, // required for MinIO path-style URLs
+            },
+        }),
+    ],
     db: postgresAdapter({
         // push:true is convenient in dev (auto-syncs schema on startup).
         // In production (NODE_ENV=production) it is disabled — use explicit

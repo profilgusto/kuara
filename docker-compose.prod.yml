@@ -6,6 +6,54 @@
 
 services:
 
+  # ── MinIO object storage ──────────────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - kuara-minio-data:/data
+    networks:
+      - kuara-internal
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── MinIO bucket initialisation (runs once, then exits) ───────────────────────
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - kuara-internal
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set minio http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
+      mc mb --ignore-existing minio/kuara-media;
+      mc anonymous set download minio/kuara-media;
+      echo 'Bucket kuara-media ready.';
+      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    restart: "no"
+
   # ── PostgreSQL ───────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
@@ -49,9 +97,15 @@ services:
       DATABASE_URL: postgresql://kuara:${POSTGRES_PASSWORD}@postgres:5432/kuara
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: kuara-media
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
     networks:
       - kuara-internal
     restart: "no"
@@ -70,16 +124,19 @@ services:
       DATABASE_URL: postgresql://kuara:${POSTGRES_PASSWORD}@postgres:5432/kuara
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: kuara-media
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      createbuckets:
+        condition: service_completed_successfully
     networks:
       - kuara-internal
-    volumes:
-      # Persist Payload media uploads across container rebuilds
-      - kuara-media:/app/public/media
     deploy:
       resources:
         limits:
@@ -117,7 +174,7 @@ services:
 volumes:
   kuara-pgdata:
     driver: local
-  kuara-media:
+  kuara-minio-data:
     driver: local
 
 # ── Networks ─────────────────────────────────────────────────────────────────
