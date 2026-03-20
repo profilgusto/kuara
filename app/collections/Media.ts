@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 export const Media: CollectionConfig = {
     slug: 'media',
+    folders: true,
     upload: {
         mimeTypes: [
             'image/*',
@@ -14,11 +15,13 @@ export const Media: CollectionConfig = {
     },
     admin: {
         useAsTitle: 'alt',
-        defaultColumns: ['alt', 'category', 'filename', 'mimeType', 'filesize'],
-        listSearchableFields: ['alt', 'category', 'filename'],
+        defaultColumns: ['alt', 'filename', 'mimeType', 'filesize'],
+        listSearchableFields: ['alt', 'filename'],
+        components: {
+            beforeListTable: ['@/admin/components/BackfillUsedInButton'],
+        },
     },
     access: {
-        // Public read
         read: () => true,
         create: ({ req: { user } }) =>
             user?.role === 'admin' || user?.role === 'professor',
@@ -36,13 +39,15 @@ export const Media: CollectionConfig = {
             },
         },
         {
-            name: 'category',
-            type: 'text',
+            name: 'usedIn',
+            type: 'relationship',
+            relationTo: ['modules', 'posts'] as const,
+            hasMany: true,
             admin: {
-                description: 'Categorize this media (e.g., Module 1, Post X, etc.)',
+                readOnly: true,
                 position: 'sidebar',
+                description: 'Auto-detected: content that references this file',
             },
-            index: true,
         },
     ],
 }

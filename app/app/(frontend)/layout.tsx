@@ -25,13 +25,13 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kuara | Biofloresta – Tecnologia Ambiental de Alto Impacto",
+  title: "Kuara | Saber irradia de dentro",
   description:
-    "Centro de pesquisa aplicada em ecossistemas, sensoriamento ambiental e tecnologia sustentável de alta precisão.",
-  keywords: ["biofloresta", "pesquisa ambiental", "sensores", "tecnologia", "ecossistema"],
+    "Conteúdo das disciplinas de Engenharia Mecatrônica e tantas outras coisas...",
+  keywords: ["kuara", "conteúdo de disciplina", "engenharia mecatrônica", "robótica", "sistemas supervisórios"],
   openGraph: {
-    title: "Kuara | Biofloresta",
-    description: "Laboratório vivo dentro de uma universidade moderna.",
+    title: "Kuara | Saber irradia de dentro",
+    description: "Conteúdo das disciplinas de Engenharia Mecatrônica e tantas outras coisas...",
     type: "website",
   },
 };

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
-import { Moon, Sun, Menu, Leaf } from "lucide-react";
+import { Moon, Sun, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Sheet,
@@ -44,9 +44,13 @@ export function Navbar() {
                     className="flex items-center gap-2 group"
                     aria-label="Kuara Biofloresta"
                 >
-                    <Leaf
-                        size={20}
-                        className="text-primary-DEFAULT group-hover:text-primary-hover transition-colors duration-240"
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src="/icon.svg"
+                        alt="Kuara logo"
+                        width={24}
+                        height={24}
+                        className="transition-opacity duration-240 group-hover:opacity-80"
                     />
                     <span className="font-serif font-semibold text-lg tracking-tight text-foreground">
                         Bio<span className="text-primary-DEFAULT">floresta</span>

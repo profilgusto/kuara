@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { syncPostMediaRefs, cleanPostMediaRefs } from '@/hooks/syncMediaUsedIn'
 
 export const Posts: CollectionConfig = {
     slug: 'posts',
@@ -18,6 +19,10 @@ export const Posts: CollectionConfig = {
         update: ({ req: { user } }) =>
             user?.role === 'admin' || user?.role === 'professor',
         delete: ({ req: { user } }) => user?.role === 'admin',
+    },
+    hooks: {
+        afterChange: [syncPostMediaRefs],
+        afterDelete: [cleanPostMediaRefs],
     },
     fields: [
         {

@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { syncModuleMediaRefs, cleanModuleMediaRefs } from '@/hooks/syncMediaUsedIn'
 
 export const Modules: CollectionConfig = {
     slug: 'modules',
@@ -32,6 +33,10 @@ export const Modules: CollectionConfig = {
         update: ({ req: { user } }) =>
             user?.role === 'admin' || user?.role === 'professor',
         delete: ({ req: { user } }) => user?.role === 'admin',
+    },
+    hooks: {
+        afterChange: [syncModuleMediaRefs],
+        afterDelete: [cleanModuleMediaRefs],
     },
     versions: {
         drafts: {

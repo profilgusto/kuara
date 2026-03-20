@@ -5,6 +5,20 @@ export const Courses: CollectionConfig = {
     admin: {
         useAsTitle: 'title',
         defaultColumns: ['title', 'code', 'instructor', 'visibility'],
+        components: {
+            views: {
+                edit: {
+                    reorderModules: {
+                        Component: '@/admin/views/ModuleReorderView',
+                        path: '/reorder-modules',
+                        tab: {
+                            label: 'Ordenar Módulos',
+                            href: '/reorder-modules',
+                        },
+                    },
+                },
+            },
+        },
     },
     access: {
         // Public read - anyone can see courses

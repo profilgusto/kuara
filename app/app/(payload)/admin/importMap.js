@@ -1,3 +1,4 @@
+import { default as default_aabdb40b6c0ca016311c39ef98b65f1c } from '@/admin/views/ModuleReorderView'
 import { default as default_a394cf3bb6107d91a310bd3d4a0b01a0 } from '@/admin/components/MonacoMDXField'
 import { default as default_1de2e4b9883e0c13c552cfc8d5bd502f } from '@/admin/components/CustomPublishButton'
 import { default as default_fd3f0ff9d6d59846e58e9b9678ee8433 } from '@/admin/components/SaveDraftButton'
@@ -24,10 +25,15 @@ import { StrikethroughFeatureClient as StrikethroughFeatureClient_e70f5e05f09f93
 import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { default as default_9a678daa6c9fc208e13fb60118648fde } from '@/admin/components/BackfillUsedInButton'
+import { FolderTypeField as FolderTypeField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 export const importMap = {
+  "@/admin/views/ModuleReorderView#default": default_aabdb40b6c0ca016311c39ef98b65f1c,
   "@/admin/components/MonacoMDXField#default": default_a394cf3bb6107d91a310bd3d4a0b01a0,
   "@/admin/components/CustomPublishButton#default": default_1de2e4b9883e0c13c552cfc8d5bd502f,
   "@/admin/components/SaveDraftButton#default": default_fd3f0ff9d6d59846e58e9b9678ee8433,
@@ -54,6 +60,10 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#UnderlineFeatureClient": UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "@payloadcms/next/rsc#FolderTableCell": FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@/admin/components/BackfillUsedInButton#default": default_9a678daa6c9fc208e13fb60118648fde,
+  "@payloadcms/next/client#FolderTypeField": FolderTypeField_2b8867833a34864a02ddf429b0728a40,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

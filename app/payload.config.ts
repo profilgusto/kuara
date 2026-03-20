@@ -36,8 +36,7 @@ export default buildConfig({
             collections: {
                 media: {
                     // Keep URLs on your own domain — Nginx proxies /media/ → MinIO
-                    generateFileURL: ({ filename }) =>
-                        `${process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'}/media/${filename}`,
+                    generateFileURL: ({ filename }) => `/media/${filename}`,
                 },
             },
             bucket: process.env.S3_BUCKET || 'kuara-media',
