@@ -244,30 +244,22 @@
   visibility: visible;
 }
 
-/* Equation reference highlight animation */
-@keyframes eq-highlight {
-  0%   { box-shadow: 0 0 0 0 rgba(63, 175, 92, 0);    background-color: transparent; }
-  15%  { box-shadow: 0 0 0 10px rgba(63, 175, 92, 0.3); background-color: rgba(63, 175, 92, 0.07); }
-  75%  { box-shadow: 0 0 0 10px rgba(63, 175, 92, 0.3); background-color: rgba(63, 175, 92, 0.07); }
-  100% { box-shadow: 0 0 0 0 rgba(63, 175, 92, 0);    background-color: transparent; }
+/* Shared highlight animation — primary green glow, no fill */
+@keyframes ref-highlight {
+  0%   { box-shadow: 0 0 0 0   rgba(63, 175, 92, 0); }
+  15%  { box-shadow: 0 0 0 10px rgba(63, 175, 92, 0.35); }
+  75%  { box-shadow: 0 0 0 10px rgba(63, 175, 92, 0.35); }
+  100% { box-shadow: 0 0 0 0   rgba(63, 175, 92, 0); }
 }
 
 mjx-container.eq-highlight-active {
   border-radius: 6px;
-  animation: eq-highlight 1.8s ease-in-out forwards;
-}
-
-/* Figure reference highlight animation — uses secondary (teal) color */
-@keyframes fig-highlight {
-  0%   { box-shadow: 0 0 0 0 rgba(47, 168, 184, 0);     background-color: transparent; }
-  15%  { box-shadow: 0 0 0 12px rgba(47, 168, 184, 0.25); background-color: rgba(47, 168, 184, 0.06); }
-  75%  { box-shadow: 0 0 0 12px rgba(47, 168, 184, 0.25); background-color: rgba(47, 168, 184, 0.06); }
-  100% { box-shadow: 0 0 0 0 rgba(47, 168, 184, 0);     background-color: transparent; }
+  animation: ref-highlight 1s ease-in-out forwards;
 }
 
 .fig-highlight-active {
   border-radius: 8px;
-  animation: fig-highlight 1.8s ease-in-out forwards;
+  animation: ref-highlight 1s ease-in-out forwards;
 }
 
 /* ─── MDX Heading Hierarchy ────────────────────────────────────── */

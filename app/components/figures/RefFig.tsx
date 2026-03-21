@@ -14,7 +14,7 @@
 import { useContext, useState } from "react";
 import * as Popover from "@radix-ui/react-popover";
 import { Image as ImageIcon } from "lucide-react";
-import { FiguresContext } from "./FiguresContext";
+import { FiguresContext, type FigureMetadata } from "./FiguresContext";
 
 interface RefFigProps {
   label: string;
@@ -22,6 +22,10 @@ interface RefFigProps {
 
 export default function RefFig({ label }: RefFigProps) {
   const [open, setOpen] = useState(false);
+  // Metadata is read lazily on hover (not at render time) because KImage
+  // registers it in a useEffect into a useRef — no re-render is triggered.
+  // By hover time, KImage has already mounted and the ref is populated.
+  const [meta, setMeta] = useState<FigureMetadata | undefined>(undefined);
   const ctx = useContext(FiguresContext);
 
   // Graceful degradation: no provider or unknown label
@@ -58,16 +62,20 @@ export default function RefFig({ label }: RefFigProps) {
     );
   };
 
-  // Metadata is registered by KImage on mount — safe to read at hover time
-  const meta = ctx.getMetadata(label);
-  const hasPreview = !!meta;
+  const handleMouseEnter = () => {
+    const m = ctx.getMetadata(label);
+    if (m) {
+      setMeta(m);
+      setOpen(true);
+    }
+  };
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <button
           type="button"
-          onMouseEnter={() => hasPreview && setOpen(true)}
+          onMouseEnter={handleMouseEnter}
           onMouseLeave={() => setOpen(false)}
           onClick={handleClick}
           className="inline cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
@@ -77,7 +85,7 @@ export default function RefFig({ label }: RefFigProps) {
         </button>
       </Popover.Trigger>
 
-      {hasPreview && (
+      {meta && (
         <Popover.Portal>
           <Popover.Content
             side="top"
