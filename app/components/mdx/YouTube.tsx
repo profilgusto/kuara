@@ -56,24 +56,42 @@ export default function YouTube({
   if (start && Number.isFinite(start) && start > 0)
     params.set("start", String(start));
   const src = `https://www.youtube.com/embed/${vid}?${params.toString()}`;
+  const videoUrl = `https://www.youtube.com/watch?v=${vid}`;
+
   return (
     <div
       className={[
-        "my-8 mx-auto w-full max-w-4xl aspect-video relative",
+        "my-8 mx-auto w-full max-w-4xl",
         className,
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      <iframe
-        src={src}
-        title={title || "YouTube video"}
-        className="absolute inset-0 w-full h-full rounded-lg shadow-sm"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
-        loading="lazy"
-        referrerPolicy="strict-origin-when-cross-origin"
-      />
+      {/* Screen: embedded player */}
+      <div className="aspect-video relative print:hidden">
+        <iframe
+          src={src}
+          title={title || "YouTube video"}
+          className="absolute inset-0 w-full h-full rounded-lg shadow-sm"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+
+      {/* Print: plain link */}
+      <div className="hidden print:flex items-start gap-3 p-3 border border-border rounded-lg">
+        <span className="text-sm font-medium shrink-0">▶ Vídeo:</span>
+        <div className="min-w-0">
+          <a href={videoUrl} className="text-sm break-all">
+            {title || videoUrl}
+          </a>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Disponível interativamente na versão web.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

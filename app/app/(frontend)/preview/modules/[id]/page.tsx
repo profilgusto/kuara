@@ -5,6 +5,7 @@ import { compileMdx, extractHeadings } from "@/lib/mdx-pipeline";
 import { getMdxComponents } from "@/lib/mdx-components";
 import { ModulePageClient } from "@/components/mdx/ModulePageClient";
 import { PreviewRefreshScript } from "./PreviewRefreshScript";
+import { extractSlideCoverProps } from "@/lib/slides";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +49,7 @@ export default async function ModulePreviewPage({
 
   // Extract headings from raw MDX
   const headings = hasContent ? extractHeadings(moduleDoc.content) : [];
+  const slideCover = hasContent ? extractSlideCoverProps(moduleDoc.content) : null;
 
   // Compile MDX content
   let content = null;
@@ -85,7 +87,12 @@ export default async function ModulePreviewPage({
         )}
 
         {/* Module content */}
-        <ModulePageClient title={moduleDoc.title || "Novo Módulo"}>
+        <ModulePageClient
+          title={moduleDoc.title || "Novo Módulo"}
+          headings={headings}
+          courseTitle={courseTitle}
+          slideCover={slideCover}
+        >
           {content ? (
             <article className="prose prose-neutral dark:prose-invert max-w-none">
               {content}

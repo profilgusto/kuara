@@ -10,6 +10,7 @@ import { extractCiteLabels, fetchAndFormatReferences } from "@/lib/citations";
 import type { CitationStyle } from "@/lib/citation-shared";
 import { extractFigureLabels } from "@/lib/figures";
 import { FiguresProvider } from "@/components/figures/FiguresProvider";
+import { extractSlideCoverProps } from "@/lib/slides";
 
 import { draftMode } from "next/headers";
 
@@ -50,6 +51,10 @@ export default async function ModulePage({
   const figureOrder = moduleData.content
     ? extractFigureLabels(moduleData.content)
     : [];
+  // ── Slide cover ────────────────────────────────────────────────────────
+  const slideCover = moduleData.content
+    ? extractSlideCoverProps(moduleData.content)
+    : null;
   // ──────────────────────────────────────────────────────────────────────
 
   let content = null;
@@ -73,7 +78,12 @@ export default async function ModulePage({
         style={citationStyle}
       >
         <FiguresProvider figureOrder={figureOrder}>
-          <ModulePageClient title={moduleData.title}>
+          <ModulePageClient
+            title={moduleData.title}
+            headings={headings}
+            courseTitle={courseTitle}
+            slideCover={slideCover}
+          >
             {content ? (
               <>
                 <article className="prose prose-neutral dark:prose-invert max-w-none">

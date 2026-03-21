@@ -70,7 +70,23 @@ export default function PDF({
         .join(" ")}
       style={styleVars}
     >
-      <PDFViewer url={url} title={cleanTitle || undefined} />
+      {/* Screen: full interactive viewer */}
+      <div className="print:hidden">
+        <PDFViewer url={url} title={cleanTitle || undefined} />
+      </div>
+
+      {/* Print: plain link */}
+      <div className="hidden print:flex items-start gap-3 p-3 border border-border rounded-lg">
+        <span className="text-sm font-medium shrink-0">📄 PDF:</span>
+        <div className="min-w-0">
+          <a href={url} className="text-sm break-all">
+            {cleanTitle || url}
+          </a>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Visualizável interativamente na versão web.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
