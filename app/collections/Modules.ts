@@ -3,6 +3,7 @@ import { syncModuleMediaRefs, cleanModuleMediaRefs } from '@/hooks/syncMediaUsed
 
 export const Modules: CollectionConfig = {
     slug: 'modules',
+    folders: true,
     admin: {
         useAsTitle: 'title',
         defaultColumns: ['title', 'type', 'course', 'order', '_status'],

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { CourseDetail, CourseModule } from '@/lib/payload-content'
+import { CourseDetail } from '@/lib/payload-content'
 import { Heading } from '@/lib/mdx-pipeline'
 import { BookOpen, FlaskConical, ClipboardCheck, FileText } from 'lucide-react'
 
@@ -48,17 +48,11 @@ export function CourseSidebar({ course, currentModuleSlug, headings = [], onLink
         return () => observer.disconnect()
     }, [headings])
 
-    // Group modules
-    const grouped = course.modules.reduce((acc, mod) => {
-        if (!acc[mod.type]) acc[mod.type] = []
-        acc[mod.type].push(mod)
-        return acc
-    }, {} as Record<string, CourseModule[]>)
-
-    const typeOrder = ['modulo-teorico', 'modulo-pratico', 'atividade-avaliativa', 'recurso']
+    // Sort all modules by absolute order
+    const sortedModules = [...course.modules].sort((a, b) => a.order - b.order)
 
     return (
-        <nav className="p-4 space-y-6 text-sm overflow-y-auto overscroll-contain h-full">
+        <nav className="p-4 space-y-4 text-sm overflow-y-auto overscroll-contain h-full">
             <div className="mb-2">
                 <Link
                     href={`/disciplinas/${course.slug}`}
@@ -71,70 +65,57 @@ export function CourseSidebar({ course, currentModuleSlug, headings = [], onLink
                 </Link>
             </div>
 
-            {typeOrder.map((type) => {
-                const mods = grouped[type]
-                if (!mods?.length) return null
-                const cfg = typeConfig[type]
-                const Icon = cfg.icon
+            <div className="space-y-1">
+                {sortedModules.map((m, idx) => {
+                    const href = `/disciplinas/${course.slug}/${m.slug}`
+                    const isActive = pathname === href
+                    const isCurrentModule = currentModuleSlug === m.slug
+                    const cfg = typeConfig[m.type]
+                    const Icon = cfg.icon
 
-                return (
-                    <div key={type} className="space-y-2">
-                        <div className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground/70 flex items-center gap-1.5 mb-2">
-                            <Icon className="h-3.5 w-3.5" />
-                            {cfg.label}
+                    return (
+                        <div key={m.id}>
+                            <Link
+                                href={href}
+                                onClick={onLinkClick}
+                                className={`flex items-baseline gap-2 py-1 transition-colors hover:text-primary ${isActive ? 'font-medium text-primary' : 'text-muted-foreground'}`}
+                            >
+                                <Icon className={`h-3.5 w-3.5 shrink-0 self-center ${isActive ? 'text-primary' : ''}`} />
+                                <span className="shrink-0 tabular-nums">{idx + 1}.</span>
+                                <span>{m.title}</span>
+                            </Link>
+
+                            {/* Show headings if this is the currently active module */}
+                            {isCurrentModule && headings.length > 0 && (
+                                <ul className="ml-6 mt-2 mb-2 space-y-2 border-l-2 border-muted pl-3 text-[13px]">
+                                    {headings.map((h) => {
+                                        const isHeadingActive = activeHeading === h.id
+                                        return (
+                                            <li key={h.id}>
+                                                <a
+                                                    href={`#${h.id}`}
+                                                    className={`block transition-colors line-clamp-2 ${isHeadingActive
+                                                            ? 'font-medium text-primary'
+                                                            : 'text-muted-foreground hover:text-foreground'
+                                                        }`}
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth' })
+                                                        history.pushState(null, '', `#${h.id}`)
+                                                        onLinkClick?.()
+                                                    }}
+                                                >
+                                                    {h.text}
+                                                </a>
+                                            </li>
+                                        )
+                                    })}
+                                </ul>
+                            )}
                         </div>
-
-                        <div className="space-y-1">
-                            {mods.map((m) => {
-                                const href = `/disciplinas/${course.slug}/${m.slug}`
-                                const isActive = pathname === href
-                                const isCurrentModule = currentModuleSlug === m.slug
-
-                                return (
-                                    <div key={m.id}>
-                                        <Link
-                                            href={href}
-                                            onClick={onLinkClick}
-                                            className={`block py-1 transition-colors hover:text-primary ${isActive ? 'font-medium text-primary' : 'text-muted-foreground'
-                                                }`}
-                                        >
-                                            {m.number ? `${m.number}. ` : ''}{m.title}
-                                        </Link>
-
-                                        {/* Show headings if this is the currently active module */}
-                                        {isCurrentModule && headings.length > 0 && (
-                                            <ul className="ml-4 mt-2 mb-2 space-y-2 border-l-2 border-muted pl-3 text-[13px]">
-                                                {headings.map((h) => {
-                                                    const isHeadingActive = activeHeading === h.id
-                                                    return (
-                                                        <li key={h.id}>
-                                                            <a
-                                                                href={`#${h.id}`}
-                                                                className={`block transition-colors line-clamp-2 ${isHeadingActive
-                                                                        ? 'font-medium text-primary'
-                                                                        : 'text-muted-foreground hover:text-foreground'
-                                                                    }`}
-                                                                onClick={(e) => {
-                                                                    e.preventDefault()
-                                                                    document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth' })
-                                                                    history.pushState(null, '', `#${h.id}`)
-                                                                    onLinkClick?.()
-                                                                }}
-                                                            >
-                                                                {h.text}
-                                                            </a>
-                                                        </li>
-                                                    )
-                                                })}
-                                            </ul>
-                                        )}
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </div>
-                )
-            })}
+                    )
+                })}
+            </div>
         </nav>
     )
 }

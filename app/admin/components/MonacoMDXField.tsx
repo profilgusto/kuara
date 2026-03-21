@@ -4,7 +4,7 @@ import React, { useCallback, useRef } from 'react'
 import { useField } from '@payloadcms/ui'
 import Editor, { type Monaco } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
-import { Heading1, Heading2, Heading3, Link as LinkIcon, Minus, Image as ImageIcon, Video, FileText, ArrowDownToLine, Bold, Italic, Strikethrough, Code, Code2, Presentation, Columns2, Lightbulb, ExternalLink as ExternalLinkIcon, List, Quote, Maximize, CheckSquare, Table, Sigma, Pi, Hash, TextCursorInput } from 'lucide-react'
+import { Heading1, Heading2, Heading3, Link as LinkIcon, Minus, Image as ImageIcon, Video, FileText, ArrowDownToLine, Bold, Italic, Strikethrough, Code, Code2, Presentation, Columns2, Lightbulb, ExternalLink as ExternalLinkIcon, List, Quote, Maximize, CheckSquare, Table, Sigma, Pi, Hash, TextCursorInput, AlignLeft, Monitor, CornerDownRight } from 'lucide-react'
 
 // Assuming Button component is available or imported from a UI library like shadcn/ui
 // If not, you'd need to define it or import it. For this task, I'll assume it's available.
@@ -207,16 +207,23 @@ const SNIPPETS: Snippet[] = [
     },
     {
         label: 'Apenas Texto',
-        icon: '📝', // No direct Lucide icon for this, keeping string
+        icon: AlignLeft,
         template: '<TextOnly>\n${1:Este conteúdo aparece apenas na leitura (não nos slides)}\n</TextOnly>\n',
         description: 'Conteúdo oculto na visualização de slides',
         category: 'presentation',
     },
     {
         label: 'Apenas Slides',
-        icon: '📊', // No direct Lucide icon for this, keeping string
+        icon: Monitor,
         template: '<PresentOnly>\n${1:Este conteúdo aparece apenas nos slides (não na leitura)}\n</PresentOnly>\n',
         description: 'Conteúdo oculto na visualização de texto corrido',
+        category: 'presentation',
+    },
+    {
+        label: 'Manter no Slide',
+        icon: CornerDownRight,
+        template: '<SkipBreak />\n',
+        description: 'Impede que o próximo H1/H2/H3 crie um novo slide (cabeçalho permanece no slide atual)',
         category: 'presentation',
     },
 ]

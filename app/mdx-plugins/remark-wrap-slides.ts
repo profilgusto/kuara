@@ -48,12 +48,28 @@ const remarkWrapSlides: Plugin = () => {
             return false
         }
 
+        function isSkipBreakComponent(n: Node): boolean {
+            return n.type === 'mdxJsxFlowElement' && n.name === 'SkipBreak'
+        }
+
+        let skipNextBreak = false
+
         for (const n of kids) {
+            // SkipBreak: consume it, set flag, and skip adding it to content
+            if (isSkipBreakComponent(n)) {
+                skipNextBreak = true
+                continue
+            }
+
             // Check if this node triggers a slide break
             let shouldBreak = false
 
             if (n.type === 'heading' && (n.depth === 1 || n.depth === 2 || n.depth === 3)) {
-                shouldBreak = true
+                if (skipNextBreak) {
+                    skipNextBreak = false
+                } else {
+                    shouldBreak = true
+                }
             } else if (isSlideBreakComponent(n)) {
                 shouldBreak = true
             } else if (n.type === 'mdxJsxFlowElement' && n.name === 'Slide') {

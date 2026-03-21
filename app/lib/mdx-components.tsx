@@ -7,6 +7,7 @@
  */
 import Slide from '@/components/mdx/Slide'
 import SlideBreak from '@/components/mdx/SlideBreak'
+import SkipBreak from '@/components/mdx/SkipBreak'
 import SlideCover from '@/components/mdx/SlideCover'
 import SlideSecondColumnContent from '@/components/mdx/SlideSecondColumnContent'
 import SlideDeck from '@/components/mdx/SlideDeck'
@@ -30,6 +31,7 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
         // Presentation components
         Slide,
         SlideBreak,
+        SkipBreak,
         SlideCover,
         SlideSecondColumnContent,
         SlideDeck,

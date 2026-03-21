@@ -3,6 +3,8 @@ import { Fraunces, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Footer } from "@/components/layout/footer";
+import { SiteNav } from "@/components/layout/SiteNav";
+import { NavProvider } from "@/components/layout/NavContext";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -60,8 +62,11 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <NavProvider>
+            <SiteNav />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </NavProvider>
         </ThemeProvider>
       </body>
     </html>
