@@ -214,6 +214,19 @@
   opacity: 1 !important;
 }
 
+/* Equation reference highlight animation */
+@keyframes eq-highlight {
+  0%   { box-shadow: 0 0 0 0 rgba(63, 175, 92, 0);    background-color: transparent; }
+  15%  { box-shadow: 0 0 0 10px rgba(63, 175, 92, 0.3); background-color: rgba(63, 175, 92, 0.07); }
+  75%  { box-shadow: 0 0 0 10px rgba(63, 175, 92, 0.3); background-color: rgba(63, 175, 92, 0.07); }
+  100% { box-shadow: 0 0 0 0 rgba(63, 175, 92, 0);    background-color: transparent; }
+}
+
+mjx-container.eq-highlight-active {
+  border-radius: 6px;
+  animation: eq-highlight 1.8s ease-in-out forwards;
+}
+
 /* ─── MDX Heading Hierarchy ────────────────────────────────────── */
 /* Module Title (outside .prose) is the top-level title.
    H1 = section, H2 = subsection, H3 = sub-subsection, etc. */

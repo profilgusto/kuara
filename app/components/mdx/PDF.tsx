@@ -1,5 +1,18 @@
 'use client'
 import React from 'react'
+import dynamic from 'next/dynamic'
+import { Loader2 } from 'lucide-react'
+
+// react-pdf is only bundled + loaded when this component is actually rendered
+const PDFViewer = dynamic(() => import('./PDFViewer'), {
+    ssr: false,
+    loading: () => (
+        <div className="flex items-center justify-center gap-3 min-h-[55vh] rounded-lg border border-border bg-card text-muted-foreground">
+            <Loader2 size={22} className="animate-spin text-primary" />
+            <span className="text-sm">Carregando visualizador…</span>
+        </div>
+    ),
+})
 
 type Props = {
     src?: string
@@ -10,7 +23,9 @@ type Props = {
 }
 
 export default function PDF({ src, url: urlProp, title, className, style }: Props) {
-    const url = typeof urlProp === 'string' ? urlProp : (typeof src === 'string' ? src : '')
+    const url =
+        typeof urlProp === 'string' ? urlProp : typeof src === 'string' ? src : ''
+
     // Parse width controls from title: wsm=N wlg=N or size=SM,LG
     let wsm: number | undefined
     let wlg: number | undefined
@@ -28,18 +43,24 @@ export default function PDF({ src, url: urlProp, title, className, style }: Prop
         }
     }
 
+    // Strip width flags from the title before passing it as the download filename
+    const cleanTitle = title
+        ?.replace(/(?:^|\s)(?:wsm|wlg)=\d{1,3}(?=\s|$)/gi, '')
+        .replace(/(?:^|\s)size=\d{1,3}\s*,\s*\d{1,3}(?=\s|$)/gi, '')
+        .trim()
+
     const styleVars: React.CSSProperties = { ...style }
-    if (typeof wsm === 'number') (styleVars as any)['--mdx-pdf-wsm'] = `${wsm}vw`
-    if (typeof wlg === 'number') (styleVars as any)['--mdx-pdf-wlg'] = `${wlg}vw`
+    if (typeof wsm === 'number') (styleVars as Record<string, string>)['--mdx-pdf-wsm'] = `${wsm}vw`
+    if (typeof wlg === 'number') (styleVars as Record<string, string>)['--mdx-pdf-wlg'] = `${wlg}vw`
 
     return (
-        <div className={['mdx-pdf-container block mx-auto my-8', className].filter(Boolean).join(' ')} style={styleVars}>
-            <div className="relative border rounded-lg overflow-hidden bg-secondary/30">
-                <iframe
-                    src={url}
-                    className="mdx-pdf-frame block w-full min-h-[60vh] bg-background"
-                />
-            </div>
+        <div
+            className={['mdx-pdf-container block mx-auto my-8', className]
+                .filter(Boolean)
+                .join(' ')}
+            style={styleVars}
+        >
+            <PDFViewer url={url} title={cleanTitle || undefined} />
         </div>
     )
 }

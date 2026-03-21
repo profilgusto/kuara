@@ -7,6 +7,60 @@ import { CourseDetail } from '@/lib/payload-content'
 import { Heading } from '@/lib/mdx-pipeline'
 import { useNav } from '@/components/layout/NavContext'
 
+function useEqrefScroll() {
+    useEffect(() => {
+        function handleClick(e: MouseEvent) {
+            // Walk up from the click target to find a link
+            const link = (e.target as Element).closest<Element>('a')
+            if (!link) return
+
+            // Support both plain href and xlink:href (SVG 1.1)
+            const rawHref =
+                link.getAttribute('href') ?? link.getAttributeNS('http://www.w3.org/1999/xlink', 'href')
+            if (!rawHref) return
+            // href may be a full URL (when baseURL is set) or just "#fragment"
+            const hashIndex = rawHref.indexOf('#')
+            if (hashIndex === -1) return
+            const href = rawHref.slice(hashIndex) // normalise to "#..."
+            if (!href.startsWith('#mjx-eqn')) return
+
+            e.preventDefault()
+
+            // MathJax URL-encodes the ID in the href (e.g. %3A for colons),
+            // but the actual element id attribute is unencoded.
+            const rawId = decodeURIComponent(href.slice(1))
+            // getElementById handles colons in IDs; fallback to attribute selector
+            const idEl =
+                document.getElementById(rawId) ??
+                document.querySelector<HTMLElement>(`[id="${CSS.escape(rawId)}"]`)
+            if (!idEl) return
+
+            // The id may be on an inner <g> inside the SVG; use the enclosing
+            // mjx-container for correct bounding rect and highlight target.
+            const target: HTMLElement =
+                (idEl.closest('mjx-container') as HTMLElement | null) ?? idEl
+
+            const rect = target.getBoundingClientRect()
+            const scrollTop =
+                window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2
+            window.scrollTo({ top: scrollTop, behavior: 'smooth' })
+
+            // Restart the animation (force reflow between class removal and re-add)
+            target.classList.remove('eq-highlight-active')
+            void target.offsetWidth
+            target.classList.add('eq-highlight-active')
+            target.addEventListener(
+                'animationend',
+                () => target.classList.remove('eq-highlight-active'),
+                { once: true },
+            )
+        }
+
+        document.addEventListener('click', handleClick)
+        return () => document.removeEventListener('click', handleClick)
+    }, [])
+}
+
 interface ModuleLayoutProps {
     course: CourseDetail
     currentModuleSlug: string
@@ -27,6 +81,8 @@ export function ModuleLayout({
     children,
 }: ModuleLayoutProps) {
     const { sidebarOpen, setSidebarOpen, setHasSidebar, setBreadcrumbs } = useNav()
+
+    useEqrefScroll()
 
     useEffect(() => {
         setBreadcrumbs([

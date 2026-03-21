@@ -49,6 +49,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Ensure the PDF.js worker is in public/ (in case it wasn't committed)
+RUN cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs
+
 # Enable standalone output
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production

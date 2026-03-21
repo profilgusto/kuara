@@ -78,7 +78,7 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
         return () => window.removeEventListener('keydown', onKey)
     }, [mode, isFullscreen, ids.length])
 
-    // Show/hide slides based on index, reset zoom on slide change
+    // Show/hide slides: cross-fade via opacity, all slides stacked absolutely
     useEffect(() => {
         if (mode !== 'apresentacao') return
         const root = containerRef.current
@@ -86,7 +86,12 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
         const sections: HTMLElement[] = Array.from(root.querySelectorAll('section[data-id]'))
         sections.forEach((el, idx) => {
             const show = idx === index
-            el.style.display = show ? '' : 'none'
+            el.style.position = 'absolute'
+            el.style.inset = '0'
+            el.style.overflowY = 'auto'
+            el.style.transition = 'opacity 280ms ease-in-out'
+            el.style.opacity = show ? '1' : '0'
+            el.style.pointerEvents = show ? '' : 'none'
             el.setAttribute('aria-hidden', show ? 'false' : 'true')
         })
         const activeSection = sections[index]
@@ -100,11 +105,11 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
                 url.hash = id
                 window.history.replaceState({}, '', url.toString())
             }
+            // Scroll active slide back to top
+            activeSection.scrollTop = 0
         }
         // Reset zoom/pan on slide change
         applyTransform(() => ({ zoom: 1, panX: 0, panY: 0 }))
-        // Scroll the inner slide container back to top
-        if (root) root.scrollTop = 0
         try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch { window.scrollTo(0, 0) }
     }, [index, mode, ids.length])
 
@@ -321,7 +326,7 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
                         cursor: isZoomed ? 'grab' : undefined,
                     }}
                 >
-                    <div ref={containerRef} className="absolute inset-0 overflow-y-auto">
+                    <div ref={containerRef} className="absolute inset-0">
                         {children}
                     </div>
                 </div>
