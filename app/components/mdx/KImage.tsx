@@ -1,11 +1,30 @@
 "use client";
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect, useCallback, useContext } from "react";
 import { useViewMode } from "./useViewMode";
+import { FiguresContext } from "@/components/figures/FiguresContext";
 
 interface KImageProps {
   url?: string;
   src?: string;
+  /**
+   * Accessibility alt text for screen readers.
+   * Backward-compat: if neither `caption` nor `label` are set,
+   * `alt` is also displayed as the visible caption.
+   */
   alt?: string;
+  /**
+   * Visible caption text displayed below the image.
+   * Takes priority over `alt` for display purposes.
+   * When combined with `label`, renders as "Fig. N — caption".
+   */
+  caption?: string;
+  /**
+   * Unique label for this figure. When set:
+   *  - The figure is numbered ("Fig. N") in document order.
+   *  - An `id="fig-{label}"` anchor is added for cross-references.
+   *  - <RefFig label="..." /> can link to this figure inline.
+   */
+  label?: string;
   width?: string | number;
   widthPresentation?: string | number | "auto";
   // We keep height on the interface so existing MDX won't throw TS errors if they pass it,
@@ -20,6 +39,8 @@ export default function KImage({
   url,
   src,
   alt = "",
+  caption,
+  label,
   width,
   widthPresentation,
   align = "center",
@@ -27,6 +48,27 @@ export default function KImage({
 }: KImageProps) {
   const mode = useViewMode();
   const imageSrc = url || src;
+
+  // ── Figure numbering (optional — degrades gracefully without FiguresProvider) ──
+  const figuresCtx = useContext(FiguresContext);
+  const figNum = label && figuresCtx ? figuresCtx.indexOfLabel(label) : -1;
+
+  // Register src + caption in context so RefFig can show a hover preview
+  const registerMetadata = figuresCtx?.registerMetadata;
+  useEffect(() => {
+    if (!label || !registerMetadata) return;
+    registerMetadata(label, {
+      src: imageSrc ?? "",
+      captionText: caption ?? "",
+    });
+  }, [label, imageSrc, caption, registerMetadata]);
+
+  // ── Caption display logic ──────────────────────────────────────────────────
+  // `alt` is strictly for screen readers (<img alt={alt}>), never shown visually.
+  // Only `caption` drives the visible figcaption.
+  const displayCaption = caption ?? "";
+  const hasFigNum = figNum > 0;
+  const showFigcaption = hasFigNum || !!displayCaption;
   const wrapperRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   // Safe initial state: constrain to container width to avoid overflow before first measurement
@@ -201,8 +243,10 @@ export default function KImage({
   if (isAutoMode) {
     return (
       <div
+        id={label ? `fig-${label}` : undefined}
         ref={wrapperRef}
         className={`mt-2 mb-0 flex w-full ${alignmentStyles[align]} ${className || ""}`}
+        style={{ scrollMarginTop: "5rem" }}
       >
         <div className="flex flex-col">
           <img
@@ -212,11 +256,17 @@ export default function KImage({
             className="rounded-lg shadow-md block"
             style={autoStyle}
           />
-          {alt && (
+          {showFigcaption && (
             <figcaption
               className={`mt-1.5 text-xs text-muted-foreground italic ${captionTextAlign[align]}`}
             >
-              {alt}
+              {hasFigNum && (
+                <span className="font-semibold not-italic text-foreground/70">
+                  Fig. {figNum}
+                </span>
+              )}
+              {hasFigNum && displayCaption && " \u2014 "}
+              {displayCaption}
             </figcaption>
           )}
         </div>
@@ -262,7 +312,9 @@ export default function KImage({
 
   return (
     <div
+      id={label ? `fig-${label}` : undefined}
       className={`my-8 flex w-full ${alignmentStyles[align]} ${className || ""}`}
+      style={{ scrollMarginTop: "5rem" }}
     >
       <div className="flex flex-col">
         <img
@@ -276,11 +328,17 @@ export default function KImage({
             height: "auto",
           }}
         />
-        {alt && (
+        {showFigcaption && (
           <figcaption
             className={`mt-1.5 text-xs text-muted-foreground italic ${captionTextAlign[align]}`}
           >
-            {alt}
+            {hasFigNum && (
+              <span className="font-semibold not-italic text-foreground/70">
+                Fig. {figNum}
+              </span>
+            )}
+            {hasFigNum && displayCaption && " \u2014 "}
+            {displayCaption}
           </figcaption>
         )}
       </div>

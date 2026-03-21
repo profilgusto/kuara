@@ -167,11 +167,11 @@ export default function Cite({ label, labels }: CiteProps) {
           aria-label={`Ver referência: ${keys.join(", ")}`}
         >
           {numeric ? (
-            <span className="text-primary text-xs font-medium align-super hover:underline underline-offset-2 transition-colors">
+            <span className="text-muted-foreground text-xs font-medium align-super hover:text-foreground underline-offset-2 transition-colors">
               {inlineDisplay}
             </span>
           ) : (
-            <span className="text-secondary text-sm hover:underline underline-offset-2 transition-colors cursor-pointer">
+            <span className="text-muted-foreground text-sm hover:text-foreground underline-offset-2 transition-colors cursor-pointer">
               {inlineDisplay}
             </span>
           )}
@@ -187,8 +187,8 @@ export default function Cite({ label, labels }: CiteProps) {
           collisionPadding={16}
           className={[
             // Biofloresta glass-card — matches navbar/sidebar blur style
-            "z-50 rounded-xl border border-border/40 shadow-xl",
-            "bg-background/80 backdrop-blur-md",
+            "z-50 rounded-xl border border-border/40 shadow-lg",
+            "bg-background/60 backdrop-blur-md",
             "p-4",
             // Enter animation
             "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",

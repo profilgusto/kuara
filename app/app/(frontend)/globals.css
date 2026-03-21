@@ -117,6 +117,16 @@
     @apply tracking-wide;
     font-family: var(--font-ibm-plex-mono), Menlo, monospace;
   }
+
+  a {
+    color: hsl(var(--muted-foreground));
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  a:hover {
+    color: hsl(var(--foreground));
+  }
 }
 
 @layer utilities {
@@ -163,6 +173,18 @@
 /* Highlight.js Theme for CodeBlocks */
 @import 'highlight.js/styles/atom-one-dark.css';
 
+/* Override Tailwind Typography prose link defaults */
+.prose a {
+  color: hsl(var(--muted-foreground)) !important;
+  text-decoration: none !important;
+  font-weight: inherit !important;
+  transition: color 0.2s ease !important;
+}
+
+.prose a:hover {
+  color: hsl(var(--foreground)) !important;
+}
+
 /* Fix inline MathJax SVG rendering inside Tailwind Typography (.prose) */
 /* This targets both the container and any potential wrapper elements */
 .prose mjx-container:not([display="true"]) {
@@ -196,22 +218,18 @@
   width: 100% !important;
 }
 
-/* Style MathJax equation reference links (SVG anchor tags) to override Tailwind */
-.prose mjx-container a,
+/* Style MathJax equation reference links — color is handled globally; only SVG fill overrides needed */
+.prose mjx-container a {
+  fill: hsl(var(--muted-foreground)) !important;
+  transition: color 0.2s ease, fill 0.2s ease !important;
+}
+
 .prose mjx-container a use {
-  color: inherit !important;
   fill: currentColor !important;
 }
 
-.prose mjx-container a {
-  text-decoration: none !important;
-  font-weight: inherit !important;
-  opacity: 0.7 !important;
-  transition: opacity 0.2s ease !important;
-}
-
 .prose mjx-container a:hover {
-  opacity: 1 !important;
+  fill: hsl(var(--foreground)) !important;
 }
 
 /* Equation reference popover */
@@ -237,6 +255,19 @@
 mjx-container.eq-highlight-active {
   border-radius: 6px;
   animation: eq-highlight 1.8s ease-in-out forwards;
+}
+
+/* Figure reference highlight animation — uses secondary (teal) color */
+@keyframes fig-highlight {
+  0%   { box-shadow: 0 0 0 0 rgba(47, 168, 184, 0);     background-color: transparent; }
+  15%  { box-shadow: 0 0 0 12px rgba(47, 168, 184, 0.25); background-color: rgba(47, 168, 184, 0.06); }
+  75%  { box-shadow: 0 0 0 12px rgba(47, 168, 184, 0.25); background-color: rgba(47, 168, 184, 0.06); }
+  100% { box-shadow: 0 0 0 0 rgba(47, 168, 184, 0);     background-color: transparent; }
+}
+
+.fig-highlight-active {
+  border-radius: 8px;
+  animation: fig-highlight 1.8s ease-in-out forwards;
 }
 
 /* ─── MDX Heading Hierarchy ────────────────────────────────────── */

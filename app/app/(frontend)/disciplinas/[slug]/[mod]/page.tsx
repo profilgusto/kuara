@@ -8,6 +8,8 @@ import { ReferencesProvider } from "@/components/citations/ReferencesProvider";
 import ReferencesSection from "@/components/citations/ReferencesSection";
 import { extractCiteLabels, fetchAndFormatReferences } from "@/lib/citations";
 import type { CitationStyle } from "@/lib/citation-shared";
+import { extractFigureLabels } from "@/lib/figures";
+import { FiguresProvider } from "@/components/figures/FiguresProvider";
 
 import { draftMode } from "next/headers";
 
@@ -44,6 +46,10 @@ export default async function ModulePage({
     citationStyle,
     isDraftMode,
   );
+  // ── Figures ────────────────────────────────────────────────────────────
+  const figureOrder = moduleData.content
+    ? extractFigureLabels(moduleData.content)
+    : [];
   // ──────────────────────────────────────────────────────────────────────
 
   let content = null;
@@ -66,22 +72,24 @@ export default async function ModulePage({
         citationOrder={citationOrder}
         style={citationStyle}
       >
-        <ModulePageClient title={moduleData.title}>
-          {content ? (
-            <>
-              <article className="prose prose-neutral dark:prose-invert max-w-none">
-                {content}
-              </article>
-              {citationOrder.length > 0 && <ReferencesSection />}
-            </>
-          ) : (
-            <div className="text-center py-12 border border-dashed rounded-xl">
-              <p className="text-muted-foreground">
-                Este módulo ainda não possui conteúdo.
-              </p>
-            </div>
-          )}
-        </ModulePageClient>
+        <FiguresProvider figureOrder={figureOrder}>
+          <ModulePageClient title={moduleData.title}>
+            {content ? (
+              <>
+                <article className="prose prose-neutral dark:prose-invert max-w-none">
+                  {content}
+                </article>
+                {citationOrder.length > 0 && <ReferencesSection />}
+              </>
+            ) : (
+              <div className="text-center py-12 border border-dashed rounded-xl">
+                <p className="text-muted-foreground">
+                  Este módulo ainda não possui conteúdo.
+                </p>
+              </div>
+            )}
+          </ModulePageClient>
+        </FiguresProvider>
       </ReferencesProvider>
     </ModuleLayout>
   );

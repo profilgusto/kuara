@@ -20,6 +20,7 @@ import ExternalLink from "@/components/mdx/ExternalLink";
 import Download from "@/components/mdx/Download";
 import CodeBlock from "@/components/mdx/CodeBlock";
 import Cite from "@/components/citations/Cite";
+import RefFig from "@/components/figures/RefFig";
 import type { ComponentType } from "react";
 
 /**
@@ -49,6 +50,9 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
 
     // Citation
     Cite,
+
+    // Figure cross-reference
+    RefFig,
 
     // Code block override
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

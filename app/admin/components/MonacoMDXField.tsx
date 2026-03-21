@@ -11,6 +11,8 @@ import {
   Link as LinkIcon,
   Minus,
   Image as ImageIcon,
+  ImagePlus,
+  Link2,
   Video,
   FileText,
   ArrowDownToLine,
@@ -52,7 +54,7 @@ interface Snippet {
   template: string;
   description: string;
   /** category for grouping in the toolbar */
-  category: "structure" | "media" | "presentation" | "content" | "citations";
+  category: "structure" | "media" | "presentation" | "content" | "citations" | "figures";
 }
 
 const SNIPPETS: Snippet[] = [
@@ -198,9 +200,26 @@ const SNIPPETS: Snippet[] = [
     label: "Imagem",
     icon: ImageIcon,
     template:
-      '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  width="${2:400}"\n  widthPresentation="${3:auto}"\n  align="${4:|center,left,right|}"\n  alt="${5:descrição da imagem}"\n/>\n',
-    description: "Imagem customizada com controle de tamanho e alinhamento",
+      '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  alt="${2:descrição para leitores de tela}"\n  width="${3:400}"\n  widthPresentation="${4:auto}"\n  align="${5:|center,left,right|}"\n/>\n',
+    description: "Imagem simples sem numeração (alt é só para leitores de tela)",
     category: "media",
+  },
+
+  // ── Figures (numbered) ──
+  {
+    label: "Figura Numerada",
+    icon: ImagePlus,
+    template:
+      '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  label="${2:fig-identificador}"\n  caption="${3:Legenda da figura}"\n  alt="${4:descrição para leitores de tela}"\n  width="${5:400}"\n  widthPresentation="${6:auto}"\n  align="${7:|center,left,right|}"\n/>\n',
+    description: 'Figura com numeração automática "Fig. N" e legenda. Requer label único para referências.',
+    category: "figures",
+  },
+  {
+    label: "Ref. Figura",
+    icon: Link2,
+    template: '<RefFig label="${1:fig-identificador}" />',
+    description: 'Link inline "Fig. N" que rola até a figura e mostra preview ao hover.',
+    category: "figures",
   },
   {
     label: "YouTube",
@@ -300,6 +319,7 @@ const CATEGORY_LABELS: Record<Snippet["category"], string> = {
   structure: "Estrutura",
   content: "Conteúdo",
   media: "Mídia",
+  figures: "Figuras",
   citations: "Citações",
   presentation: "Apresentação",
 };
@@ -308,6 +328,7 @@ const CATEGORY_ORDER: Snippet["category"][] = [
   "structure",
   "content",
   "media",
+  "figures",
   "citations",
   "presentation",
 ];
