@@ -2,7 +2,8 @@
 
 import { useState, useEffect, ReactNode } from 'react'
 import Link from 'next/link'
-import { PanelLeftOpen, PanelLeftClose, Leaf, Sun, Moon } from 'lucide-react'
+import Image from 'next/image'
+import { PanelRightOpen, PanelRightClose, Sun, Moon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { CourseSidebar } from './CourseSidebar'
@@ -28,8 +29,7 @@ export function ModuleLayout({
     moduleTitle,
     children,
 }: ModuleLayoutProps) {
-    const [desktopOpen, setDesktopOpen] = useState(true)
-    const [mobileOpen, setMobileOpen] = useState(false)
+    const [sidebarOpen, setSidebarOpen] = useState(false)
     const { theme, setTheme } = useTheme()
     const [mounted, setMounted] = useState(false)
 
@@ -48,39 +48,14 @@ export function ModuleLayout({
         <div className="flex flex-col min-h-[calc(100vh-4rem)]">
             {/* Sticky top header bar */}
             <div className="sticky top-0 z-30 px-3 pt-3 pb-2">
-                <nav className="flex items-center gap-2 px-3 py-2 rounded-xl bg-background/70 backdrop-blur-md border border-border/40 text-sm text-muted-foreground shadow-sm">
-                    {/* Mobile toggle */}
-                    <button
-                        onClick={() => setMobileOpen((v) => !v)}
-                        aria-label={mobileOpen ? 'Ocultar menu' : 'Mostrar menu'}
-                        className="flex md:hidden items-center justify-center h-6 w-6 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
-                    >
-                        {mobileOpen ? (
-                            <PanelLeftClose className="h-4 w-4" />
-                        ) : (
-                            <PanelLeftOpen className="h-4 w-4" />
-                        )}
-                    </button>
-                    {/* Desktop toggle */}
-                    <button
-                        onClick={() => setDesktopOpen((v) => !v)}
-                        aria-label={desktopOpen ? 'Ocultar sidebar' : 'Mostrar sidebar'}
-                        className="hidden md:flex items-center justify-center h-6 w-6 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
-                    >
-                        {desktopOpen ? (
-                            <PanelLeftClose className="h-4 w-4" />
-                        ) : (
-                            <PanelLeftOpen className="h-4 w-4" />
-                        )}
-                    </button>
-
+                <nav className="flex items-center gap-2 px-3 py-2 rounded-xl bg-background/60 backdrop-blur border border-border/40 text-sm text-muted-foreground shadow-lg">
                     {/* Kuara logo */}
                     <Link
                         href="/disciplinas"
                         className="flex items-center gap-1.5 text-foreground hover:text-primary transition-colors shrink-0"
                     >
-                        <Leaf className="h-3.5 w-3.5 text-primary" />
-                        <span className="font-serif font-semibold text-sm">Kuara</span>
+                        <Image src="/icon.svg" alt="Kuara logo" width={32} height={32} />
+                        <span className="font-serif font-semibold text-base">Kuara</span>
                     </Link>
 
                     <span className="text-border shrink-0">/</span>
@@ -95,8 +70,8 @@ export function ModuleLayout({
                     <span className="shrink-0">/</span>
                     <span className="text-foreground font-medium truncate">{moduleTitle}</span>
 
-                    {/* Theme toggle — pushed to the far right */}
-                    <div className="ml-auto shrink-0">
+                    {/* Right side: theme toggle + sidebar toggle */}
+                    <div className="ml-auto flex items-center gap-1 shrink-0">
                         {mounted && (
                             <button
                                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -106,38 +81,37 @@ export function ModuleLayout({
                                 {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
                             </button>
                         )}
+                        <button
+                            onClick={() => setSidebarOpen((v) => !v)}
+                            aria-label={sidebarOpen ? 'Ocultar menu' : 'Mostrar menu'}
+                            className="flex items-center justify-center h-6 w-6 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                        >
+                            {sidebarOpen ? (
+                                <PanelRightClose className="h-4 w-4" />
+                            ) : (
+                                <PanelRightOpen className="h-4 w-4" />
+                            )}
+                        </button>
                     </div>
                 </nav>
             </div>
 
-            {/* Body: sidebar + content */}
+            {/* Body */}
             <div className="flex flex-row flex-1">
-                {/* Mobile overlay sidebar */}
-                {mobileOpen && (
-                    <div
-                        className="fixed inset-0 z-40 md:hidden"
-                        onClick={() => setMobileOpen(false)}
-                    >
-                        <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
-                        <aside
-                            className="absolute top-0 left-0 h-full w-72 border-r bg-background shadow-xl"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <ScrollArea className="h-full">
-                                {sidebarContent(() => setMobileOpen(false))}
-                            </ScrollArea>
-                        </aside>
-                    </div>
-                )}
+                {/* Backdrop */}
+                <div
+                    className={`fixed inset-0 z-40 transition-opacity duration-300 ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                    onClick={() => setSidebarOpen(false)}
+                >
+                    <div className="absolute inset-0" />
+                </div>
 
-                {/* Desktop sidebar (in-flow, pushes content) */}
+                {/* Sidebar panel — same style as header, floats over content */}
                 <aside
-                    className={`hidden md:block border-r bg-muted/20 shrink-0 sticky top-[3.25rem] self-start h-[calc(100vh-3.25rem)] transition-all duration-300 ease-in-out overflow-hidden ${
-                        desktopOpen ? 'w-72' : 'w-0 border-r-0'
-                    }`}
+                    className={`fixed top-[4.5rem] right-3 bottom-3 z-50 w-72 rounded-xl bg-background/60 backdrop-blur border border-border/40 shadow-lg transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : 'translate-x-[calc(100%+12px)]'}`}
                 >
                     <ScrollArea className="h-full">
-                        {sidebarContent()}
+                        {sidebarContent(() => setSidebarOpen(false))}
                     </ScrollArea>
                 </aside>
 

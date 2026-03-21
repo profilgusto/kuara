@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 import { Moon, Sun, Menu } from "lucide-react";
@@ -44,8 +45,7 @@ export function Navbar() {
                     className="flex items-center gap-2 group"
                     aria-label="Kuara Biofloresta"
                 >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                         src="/icon.svg"
                         alt="Kuara logo"
                         width={24}

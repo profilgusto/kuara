@@ -29,6 +29,12 @@ export const metadata: Metadata = {
   description:
     "Conteúdo das disciplinas de Engenharia Mecatrônica e tantas outras coisas...",
   keywords: ["kuara", "conteúdo de disciplina", "engenharia mecatrônica", "robótica", "sistemas supervisórios"],
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico" },
+    ],
+  },
   openGraph: {
     title: "Kuara | Saber irradia de dentro",
     description: "Conteúdo das disciplinas de Engenharia Mecatrônica e tantas outras coisas...",

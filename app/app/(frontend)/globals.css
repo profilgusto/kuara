@@ -217,6 +217,13 @@
 /* ─── MDX Heading Hierarchy ────────────────────────────────────── */
 /* Module Title (outside .prose) is the top-level title.
    H1 = section, H2 = subsection, H3 = sub-subsection, etc. */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  scroll-margin-top: 5rem; /* offset for sticky navbar (~72px) */
+}
+
 .prose h1 {
   font-size: 1.75em;
   font-weight: 600;
