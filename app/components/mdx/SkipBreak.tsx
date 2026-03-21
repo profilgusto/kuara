@@ -13,5 +13,5 @@
  *   ### This heading stays in the same slide
  */
 export default function SkipBreak() {
-    return null
+  return null;
 }

@@ -11,6 +11,14 @@ const nextConfig = {
     // react-pdf ships ESM-only; include it in Next.js's SWC transform pass.
     transpilePackages: ['react-pdf'],
 
+    // citation-js packages use dynamic requires — keep them as Node.js externals
+    // so Next.js does not attempt to bundle them for the client.
+    serverExternalPackages: [
+        '@citation-js/core',
+        '@citation-js/plugin-bibtex',
+        '@citation-js/plugin-csl',
+    ],
+
     webpack: (config) => {
         // pdfjs-dist tries to import 'canvas' in Node environments — alias it away
         config.resolve.alias.canvas = false

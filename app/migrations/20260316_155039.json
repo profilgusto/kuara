@@ -74,12 +74,8 @@
           "name": "users_sessions_parent_id_fk",
           "tableFrom": "users_sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "_parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["_parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -382,12 +378,8 @@
           "name": "courses_instructor_id_users_id_fk",
           "tableFrom": "courses",
           "tableTo": "users",
-          "columnsFrom": [
-            "instructor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["instructor_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -543,12 +535,8 @@
           "name": "modules_course_id_courses_id_fk",
           "tableFrom": "modules",
           "tableTo": "courses",
-          "columnsFrom": [
-            "course_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["course_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -809,12 +797,8 @@
           "name": "_modules_v_parent_id_modules_id_fk",
           "tableFrom": "_modules_v",
           "tableTo": "modules",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -822,12 +806,8 @@
           "name": "_modules_v_version_course_id_courses_id_fk",
           "tableFrom": "_modules_v",
           "tableTo": "courses",
-          "columnsFrom": [
-            "version_course_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["version_course_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -937,12 +917,8 @@
           "name": "offers_logs_performed_by_id_users_id_fk",
           "tableFrom": "offers_logs",
           "tableTo": "users",
-          "columnsFrom": [
-            "performed_by_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["performed_by_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -950,12 +926,8 @@
           "name": "offers_logs_parent_id_fk",
           "tableFrom": "offers_logs",
           "tableTo": "offers",
-          "columnsFrom": [
-            "_parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["_parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1105,12 +1077,8 @@
           "name": "offers_course_id_courses_id_fk",
           "tableFrom": "offers",
           "tableTo": "courses",
-          "columnsFrom": [
-            "course_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["course_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1118,12 +1086,8 @@
           "name": "offers_instructor_id_users_id_fk",
           "tableFrom": "offers",
           "tableTo": "users",
-          "columnsFrom": [
-            "instructor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["instructor_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1131,12 +1095,8 @@
           "name": "offers_current_module_id_modules_id_fk",
           "tableFrom": "offers",
           "tableTo": "modules",
-          "columnsFrom": [
-            "current_module_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["current_module_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1249,12 +1209,8 @@
           "name": "offers_rels_parent_fk",
           "tableFrom": "offers_rels",
           "tableTo": "offers",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1262,12 +1218,8 @@
           "name": "offers_rels_users_fk",
           "tableFrom": "offers_rels",
           "tableTo": "users",
-          "columnsFrom": [
-            "users_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["users_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1408,12 +1360,8 @@
           "name": "posts_offer_id_offers_id_fk",
           "tableFrom": "posts",
           "tableTo": "offers",
-          "columnsFrom": [
-            "offer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["offer_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1700,12 +1648,8 @@
           "name": "activities_offer_id_offers_id_fk",
           "tableFrom": "activities",
           "tableTo": "offers",
-          "columnsFrom": [
-            "offer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["offer_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1805,12 +1749,8 @@
           "name": "student_groups_offer_id_offers_id_fk",
           "tableFrom": "student_groups",
           "tableTo": "offers",
-          "columnsFrom": [
-            "offer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["offer_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1923,12 +1863,8 @@
           "name": "student_groups_rels_parent_fk",
           "tableFrom": "student_groups_rels",
           "tableTo": "student_groups",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1936,12 +1872,8 @@
           "name": "student_groups_rels_users_fk",
           "tableFrom": "student_groups_rels",
           "tableTo": "users",
-          "columnsFrom": [
-            "users_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["users_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2111,12 +2043,8 @@
           "name": "scores_offer_id_offers_id_fk",
           "tableFrom": "scores",
           "tableTo": "offers",
-          "columnsFrom": [
-            "offer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["offer_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2124,12 +2052,8 @@
           "name": "scores_activity_id_activities_id_fk",
           "tableFrom": "scores",
           "tableTo": "activities",
-          "columnsFrom": [
-            "activity_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["activity_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2137,12 +2061,8 @@
           "name": "scores_student_id_users_id_fk",
           "tableFrom": "scores",
           "tableTo": "users",
-          "columnsFrom": [
-            "student_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["student_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2150,12 +2070,8 @@
           "name": "scores_group_id_student_groups_id_fk",
           "tableFrom": "scores",
           "tableTo": "student_groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2568,12 +2484,8 @@
           "name": "payload_locked_documents_rels_parent_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "payload_locked_documents",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2581,12 +2493,8 @@
           "name": "payload_locked_documents_rels_users_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "users",
-          "columnsFrom": [
-            "users_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["users_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2594,12 +2502,8 @@
           "name": "payload_locked_documents_rels_courses_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "courses",
-          "columnsFrom": [
-            "courses_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["courses_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2607,12 +2511,8 @@
           "name": "payload_locked_documents_rels_modules_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "modules",
-          "columnsFrom": [
-            "modules_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["modules_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2620,12 +2520,8 @@
           "name": "payload_locked_documents_rels_offers_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "offers",
-          "columnsFrom": [
-            "offers_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["offers_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2633,12 +2529,8 @@
           "name": "payload_locked_documents_rels_posts_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "posts",
-          "columnsFrom": [
-            "posts_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["posts_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2646,12 +2538,8 @@
           "name": "payload_locked_documents_rels_media_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "media",
-          "columnsFrom": [
-            "media_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["media_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2659,12 +2547,8 @@
           "name": "payload_locked_documents_rels_activities_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "activities",
-          "columnsFrom": [
-            "activities_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["activities_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2672,12 +2556,8 @@
           "name": "payload_locked_documents_rels_student_groups_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "student_groups",
-          "columnsFrom": [
-            "student_groups_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["student_groups_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2685,12 +2565,8 @@
           "name": "payload_locked_documents_rels_scores_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "scores",
-          "columnsFrom": [
-            "scores_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["scores_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2894,12 +2770,8 @@
           "name": "payload_preferences_rels_parent_fk",
           "tableFrom": "payload_preferences_rels",
           "tableTo": "payload_preferences",
-          "columnsFrom": [
-            "parent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2907,12 +2779,8 @@
           "name": "payload_preferences_rels_users_fk",
           "tableFrom": "payload_preferences_rels",
           "tableTo": "users",
-          "columnsFrom": [
-            "users_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["users_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3004,11 +2872,7 @@
     "public.enum_users_role": {
       "name": "enum_users_role",
       "schema": "public",
-      "values": [
-        "admin",
-        "professor",
-        "student"
-      ]
+      "values": ["admin", "professor", "student"]
     },
     "public.enum_modules_type": {
       "name": "enum_modules_type",
@@ -3023,10 +2887,7 @@
     "public.enum_modules_status": {
       "name": "enum_modules_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "published"
-      ]
+      "values": ["draft", "published"]
     },
     "public.enum__modules_v_version_type": {
       "name": "enum__modules_v_version_type",
@@ -3041,42 +2902,27 @@
     "public.enum__modules_v_version_status": {
       "name": "enum__modules_v_version_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "published"
-      ]
+      "values": ["draft", "published"]
     },
     "public.enum_offers_status": {
       "name": "enum_offers_status",
       "schema": "public",
-      "values": [
-        "active",
-        "archived"
-      ]
+      "values": ["active", "archived"]
     },
     "public.enum_posts_status": {
       "name": "enum_posts_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "published"
-      ]
+      "values": ["draft", "published"]
     },
     "public.enum_activities_type": {
       "name": "enum_activities_type",
       "schema": "public",
-      "values": [
-        "individual",
-        "group"
-      ]
+      "values": ["individual", "group"]
     },
     "public.enum_scores_entity_type": {
       "name": "enum_scores_entity_type",
       "schema": "public",
-      "values": [
-        "student",
-        "group"
-      ]
+      "values": ["student", "group"]
     }
   },
   "schemas": {},

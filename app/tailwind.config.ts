@@ -77,9 +77,18 @@ const config: Config = {
         mono: ["IBM Plex Mono", "Menlo", "monospace"],
       },
       fontSize: {
-        "display-xl": ["4.5rem", { lineHeight: "1.05", letterSpacing: "-0.03em", fontWeight: "600" }],
-        "display-lg": ["3.5rem", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "600" }],
-        "display-md": ["2.5rem", { lineHeight: "1.15", letterSpacing: "-0.015em", fontWeight: "600" }],
+        "display-xl": [
+          "4.5rem",
+          { lineHeight: "1.05", letterSpacing: "-0.03em", fontWeight: "600" },
+        ],
+        "display-lg": [
+          "3.5rem",
+          { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "600" },
+        ],
+        "display-md": [
+          "2.5rem",
+          { lineHeight: "1.15", letterSpacing: "-0.015em", fontWeight: "600" },
+        ],
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -132,10 +141,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [
-    require("tailwindcss-animate"),
-    require("@tailwindcss/typography")
-  ],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 };
 
 export default config;

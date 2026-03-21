@@ -1,15 +1,15 @@
-'use client'
+"use client";
 
-import { createContext, useContext } from 'react'
+import { createContext, useContext } from "react";
 
 interface ModuleContextType {
-    title: string
+  title: string;
 }
 
 export const ModuleContext = createContext<ModuleContextType>({
-    title: ''
-})
+  title: "",
+});
 
 export function useModuleContext() {
-    return useContext(ModuleContext)
+  return useContext(ModuleContext);
 }

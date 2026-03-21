@@ -5,21 +5,22 @@
  * Fixes the Telaclass duplication problem where component overrides
  * were defined in 3 separate places.
  */
-import Slide from '@/components/mdx/Slide'
-import SlideBreak from '@/components/mdx/SlideBreak'
-import SkipBreak from '@/components/mdx/SkipBreak'
-import SlideCover from '@/components/mdx/SlideCover'
-import SlideSecondColumnContent from '@/components/mdx/SlideSecondColumnContent'
-import SlideDeck from '@/components/mdx/SlideDeck'
-import { PresentOnly, TextOnly } from '@/components/mdx/Only'
-import Callout from '@/components/mdx/Callout'
-import YouTube from '@/components/mdx/YouTube'
-import PDF from '@/components/mdx/PDF'
-import KImage from '@/components/mdx/KImage'
-import ExternalLink from '@/components/mdx/ExternalLink'
-import Download from '@/components/mdx/Download'
-import CodeBlock from '@/components/mdx/CodeBlock'
-import type { ComponentType } from 'react'
+import Slide from "@/components/mdx/Slide";
+import SlideBreak from "@/components/mdx/SlideBreak";
+import SkipBreak from "@/components/mdx/SkipBreak";
+import SlideCover from "@/components/mdx/SlideCover";
+import SlideSecondColumnContent from "@/components/mdx/SlideSecondColumnContent";
+import SlideDeck from "@/components/mdx/SlideDeck";
+import { PresentOnly, TextOnly } from "@/components/mdx/Only";
+import Callout from "@/components/mdx/Callout";
+import YouTube from "@/components/mdx/YouTube";
+import PDF from "@/components/mdx/PDF";
+import KImage from "@/components/mdx/KImage";
+import ExternalLink from "@/components/mdx/ExternalLink";
+import Download from "@/components/mdx/Download";
+import CodeBlock from "@/components/mdx/CodeBlock";
+import Cite from "@/components/citations/Cite";
+import type { ComponentType } from "react";
 
 /**
  * Returns the full MDX component map.
@@ -27,38 +28,41 @@ import type { ComponentType } from 'react'
  * available in MDX content.
  */
 export function getMdxComponents(): Record<string, ComponentType<any>> {
-    return {
-        // Presentation components
-        Slide,
-        SlideBreak,
-        SkipBreak,
-        SlideCover,
-        SlideSecondColumnContent,
-        SlideDeck,
-        PresentOnly,
-        TextOnly,
+  return {
+    // Presentation components
+    Slide,
+    SlideBreak,
+    SkipBreak,
+    SlideCover,
+    SlideSecondColumnContent,
+    SlideDeck,
+    PresentOnly,
+    TextOnly,
 
-        // Content components
-        Callout,
-        YouTube,
-        PDF,
-        KImage,
-        ExternalLink,
-        Download,
+    // Content components
+    Callout,
+    YouTube,
+    PDF,
+    KImage,
+    ExternalLink,
+    Download,
 
-        // Code block override
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        pre: (props: any) => {
-            const child = props.children
-            if (child?.type === 'code') {
-                return (
-                    <CodeBlock
-                        code={child.props.children}
-                        className={child.props.className}
-                    />
-                )
-            }
-            return <pre {...props} />
-        },
-    }
+    // Citation
+    Cite,
+
+    // Code block override
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    pre: (props: any) => {
+      const child = props.children;
+      if (child?.type === "code") {
+        return (
+          <CodeBlock
+            code={child.props.children}
+            className={child.props.className}
+          />
+        );
+      }
+      return <pre {...props} />;
+    },
+  };
 }
