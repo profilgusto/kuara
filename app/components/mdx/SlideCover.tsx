@@ -61,7 +61,7 @@ export default function SlideCover({
       {/* Content Layer */}
       <div
         className="relative z-20 w-full h-full flex flex-col items-center justify-center p-12 text-center"
-        style={{ color: backgroundImage ? "white" : "inherit" }}
+        style={{ color: "white" }}
       >
         {logoImage && (
           <div className="absolute top-8 right-8">
@@ -75,12 +75,12 @@ export default function SlideCover({
         )}
 
         <div className="flex flex-col justify-center items-center flex-1 w-full max-w-4xl">
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-4 drop-shadow-md">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-4 drop-shadow-md !text-white">
             {displayTitle}
           </h1>
 
           {subtitle && (
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-medium opacity-90 drop-shadow-md">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-medium opacity-90 drop-shadow-md !text-white">
               {subtitle}
             </h2>
           )}
@@ -89,12 +89,12 @@ export default function SlideCover({
         {(author || date) && (
           <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center justify-end space-y-1">
             {author && (
-              <p className="text-lg font-medium opacity-80 uppercase tracking-widest">
+              <p className="text-lg font-medium opacity-80 uppercase tracking-widest !text-white">
                 {author}
               </p>
             )}
             {date && (
-              <p className="text-base opacity-75 tracking-wider">{date}</p>
+              <p className="text-base opacity-75 tracking-wider !text-white">{date}</p>
             )}
           </div>
         )}

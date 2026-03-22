@@ -24,11 +24,13 @@ export function ModulePageClient({
   return (
     <ModuleContext.Provider value={{ title }}>
       {/* ── Print-only: Cover page ──────────────────────────────────────── */}
-      {/* No h-screen — content is naturally sized, break-after-page forces
-          the TOC onto the next page. Vertical padding creates breathing room. */}
-      <div className="hidden print:flex print:flex-col print:items-center print:justify-center print:text-center print:break-after-page print:break-inside-avoid print:py-32">
+      {/* break-inside-avoid intentionally omitted: when images are present the
+          cover can exceed one A4 page, causing Chrome to emit a blank page 1
+          before moving the element. Instead we size elements to fit within
+          ~970px (A4 with 2cm margins) and rely solely on break-after-page. */}
+      <div className="hidden print:flex print:flex-col print:items-center print:justify-center print:text-center print:break-after-page print:py-12">
         {/* Platform badge */}
-        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-14">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-8">
           Kuara · Material de Estudo
         </p>
 
@@ -38,7 +40,10 @@ export function ModulePageClient({
           <img
             src={slideCover.logoImage}
             alt="Logo"
-            className="max-h-20 w-auto object-contain mb-10"
+            className="max-h-16 w-auto object-contain mb-6"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
           />
         )}
 
@@ -48,35 +53,38 @@ export function ModulePageClient({
           <img
             src={slideCover.backgroundImage}
             alt="Capa"
-            className="max-h-52 max-w-xs object-cover mb-12 rounded-xl"
+            className="max-h-36 max-w-xs object-cover mb-8 rounded-xl"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
           />
         )}
 
         {/* Course name */}
-        <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground mb-5">
+        <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground mb-3">
           {courseTitle}
         </p>
 
         {/* Top separator */}
-        <div className="w-12 h-[2px] bg-primary mb-8" />
+        <div className="w-12 h-[2px] bg-primary mb-5" />
 
         {/* Module title */}
-        <h1 className="text-5xl font-bold tracking-tight leading-tight mb-3 max-w-xl">
+        <h1 className="text-4xl font-bold tracking-tight leading-tight mb-2 max-w-xl">
           {slideCover?.title || title}
         </h1>
 
         {/* Subtitle from SlideCover */}
         {slideCover?.subtitle && (
-          <p className="text-xl text-muted-foreground mt-1 max-w-lg font-medium">
+          <p className="text-lg text-muted-foreground mt-1 max-w-lg font-medium">
             {slideCover.subtitle}
           </p>
         )}
 
         {/* Bottom separator */}
-        <div className="w-12 h-[2px] bg-border mt-10 mb-8" />
+        <div className="w-12 h-[2px] bg-border mt-6 mb-5" />
 
         {/* Metadata */}
-        <div className="text-sm text-muted-foreground space-y-1.5">
+        <div className="text-sm text-muted-foreground space-y-1">
           {slideCover?.author && (
             <p className="font-medium text-foreground">{slideCover.author}</p>
           )}
