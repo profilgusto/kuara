@@ -81,23 +81,43 @@ log "Now at commit: $(git rev-parse --short HEAD) — $(git log -1 --pretty=%s)"
 # ── Step 2: Traefik infrastructure ───────────────────────────────────────────
 step "Setting up Traefik infrastructure"
 
-# Let docker compose create the traefik-net network — do NOT create it manually
-# with `docker network create` as that produces an unlabelled network that compose
-# will reject with "incorrect label" errors.
-#
-# One-time migration: older deployments ran Traefik under the 'kuara' project
-# (kuara-traefik-1). The compose file now uses `name: traefik` so the container
-# lives in its own project and is never removed by `--remove-orphans` in the
-# app compose. Stop the old container if present so the new project can start.
-if docker ps --filter "name=kuara-traefik-1" --filter "status=running" -q 2>/dev/null | grep -q .; then
-    log "Migrating Traefik from 'kuara' project to 'traefik' project …"
-    docker stop kuara-traefik-1 2>/dev/null || true
-    docker rm   kuara-traefik-1 2>/dev/null || true
-    docker compose -f "$COMPOSE_TRAEFIK" up -d
-    log "Traefik migrated and running under 'traefik' project."
-elif docker compose -f "$COMPOSE_TRAEFIK" ps --status running 2>/dev/null | grep -q "traefik"; then
+# If the new traefik project is already running correctly, nothing to do.
+if docker compose -f "$COMPOSE_TRAEFIK" ps --status running 2>/dev/null | grep -q "traefik"; then
     log "Traefik is already running — skipping."
 else
+    # ── Clean up any stale state that would block Traefik from starting ────────
+    #
+    # Case 1: A container (old Traefik from any project) is still holding
+    #         ports 80 or 443. Stop and remove it so the bind succeeds.
+    for port in 80 443; do
+        old_id=$(docker ps --filter "publish=${port}" -q 2>/dev/null | head -1)
+        if [[ -n "$old_id" ]]; then
+            old_name=$(docker inspect --format '{{.Name}}' "$old_id" | tr -d '/')
+            log "Port ${port} is held by container '${old_name}' — stopping it …"
+            docker stop "$old_id" 2>/dev/null || true
+            docker rm   "$old_id" 2>/dev/null || true
+        fi
+    done
+
+    # Case 2: traefik-net exists but was NOT created by the 'traefik' compose
+    #         project (e.g. created by an old docker-compose.prod.traefik.yml or
+    #         a manual `docker network create`). Docker Compose will refuse to
+    #         start with "network exists but was not created for project" unless
+    #         we remove the unlabelled network first.
+    if docker network inspect traefik-net &>/dev/null; then
+        net_project=$(docker network inspect traefik-net \
+            --format '{{index .Labels "com.docker.compose.project"}}' 2>/dev/null)
+        if [[ "$net_project" != "traefik" ]]; then
+            log "traefik-net exists with wrong/missing project label — removing …"
+            # Disconnect any lingering containers before removal
+            docker network inspect traefik-net \
+                --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null \
+                | tr ' ' '\n' | grep -v '^$' \
+                | xargs -r -I{} docker network disconnect -f traefik-net {} 2>/dev/null || true
+            docker network rm traefik-net 2>/dev/null || true
+        fi
+    fi
+
     log "Starting Traefik …"
     docker compose -f "$COMPOSE_TRAEFIK" up -d
     log "Traefik is up."
