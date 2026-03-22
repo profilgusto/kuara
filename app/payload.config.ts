@@ -19,12 +19,10 @@ import { References } from "./collections/References";
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
-// Fail fast in production if a required secret is missing
-if (process.env.NODE_ENV === "production" && !process.env.PAYLOAD_SECRET) {
-  throw new Error(
-    "PAYLOAD_SECRET environment variable must be set in production",
-  );
-}
+// Note: PAYLOAD_SECRET is validated at deploy time by scripts/deploy.sh.
+// Do NOT add a module-level guard here — payload.config.ts is imported during
+// `next build` (NODE_ENV=production) before runtime secrets are available,
+// and a top-level throw would break static page collection.
 
 export default buildConfig({
   admin: {
