@@ -45,9 +45,11 @@ export async function POST(request: NextRequest) {
   }
 
   // Build a map: mediaId -> refs[]
+  // Payload IDs are string | number depending on the adapter (PostgreSQL = number,
+  // but the type is declared as string | number, so we match it here).
   const usedInMap = new Map<
-    number,
-    Array<{ relationTo: "modules" | "posts"; value: number }>
+    string | number,
+    Array<{ relationTo: "modules" | "posts"; value: string | number }>
   >();
 
   const allMedia = await payload.find({
