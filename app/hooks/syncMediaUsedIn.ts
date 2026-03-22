@@ -138,7 +138,7 @@ async function updateMediaUsedIn(
 async function resolveMediaIdByFilename(
   payload: Payload,
   filename: string,
-): Promise<number | undefined> {
+): Promise<number | string | undefined> {
   const result = await payload.find({
     collection: "media",
     where: { filename: { equals: filename } },
