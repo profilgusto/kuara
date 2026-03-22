@@ -1,8 +1,14 @@
-# Production Docker Compose — Kuara Platform
-# Usage: docker compose -f docker-compose.prod.yml up -d --build
+# Production Docker Compose — Kuara Platform (Traefik edition)
 #
-# Assumes cloudflared tunnel terminates TLS and connects to Nginx on 127.0.0.1:80.
-# Do NOT expose port 80 to 0.0.0.0 on the host — Nginx is internal-only.
+# Prerequisites:
+#   1. Start Traefik first (separate compose):
+#        docker compose -f docker-compose.traefik.yml up -d
+#   2. Then start the app:
+#        docker compose -f docker-compose.prod.traefik.yml up -d --build
+#
+# Environment variables: .env.prod
+#   Required: POSTGRES_PASSWORD, PAYLOAD_SECRET, NEXT_PUBLIC_SERVER_URL,
+#             MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, TRAEFIK_DOMAIN
 
 services:
 
@@ -36,7 +42,7 @@ services:
 
   # ── MinIO bucket initialisation (runs once, then exits) ───────────────────────
   createbuckets:
-    image: minio/minio:latest   # same image as minio — mc is guaranteed available
+    image: minio/minio:latest
     depends_on:
       minio:
         condition: service_healthy
@@ -55,7 +61,7 @@ services:
         echo 'Bucket kuara-media ready.'
     restart: "no"
 
-  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  # ── PostgreSQL ────────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     restart: always
@@ -68,7 +74,7 @@ services:
     networks:
       - kuara-net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U kuara -d kuara" ]
+      test: ["CMD-SHELL", "pg_isready -U kuara -d kuara"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -84,8 +90,6 @@ services:
         max-file: "3"
 
   # ── Database migrations ───────────────────────────────────────────────────────
-  # Runs `npx payload migrate`, applies all pending migrations, then exits.
-  # Web will not start unless this service exits with code 0.
   migrate:
     build:
       context: ./app
@@ -110,16 +114,21 @@ services:
     networks:
       - kuara-net
     restart: "no"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ── Next.js + Payload CMS ────────────────────────────────────────────────────
   web:
     build:
       context: ./app
       dockerfile: Dockerfile
-      target: runner # Uses the production-optimised multi-stage stage
+      target: runner
     restart: always
     env_file:
-      - .env.prod # All secrets live here — never commit this file
+      - .env.prod
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://kuara:${POSTGRES_PASSWORD}@postgres:5432/kuara
@@ -138,6 +147,7 @@ services:
         condition: service_completed_successfully
     networks:
       - kuara-net
+      - traefik-net    # joins the shared Traefik network for routing
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
       interval: 30s
@@ -153,39 +163,45 @@ services:
       options:
         max-size: "20m"
         max-file: "5"
+    labels:
+      # ── Tell Traefik to route this container ──────────────────────────────
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-net"
 
-  # ── Nginx reverse proxy ──────────────────────────────────────────────────────
-  # Bound ONLY to 127.0.0.1 — cloudflared connects here, internet cannot.
-  nginx:
-    image: nginx:1.27-alpine
-    restart: always
-    ports:
-      - "127.0.0.1:80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - web
-    networks:
-      - kuara-net
-    deploy:
-      resources:
-        limits:
-          memory: 64m
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "3"
+      # ── Main app router (HTTPS) ───────────────────────────────────────────
+      - "traefik.http.routers.kuara.rule=Host(`${TRAEFIK_DOMAIN}`)"
+      - "traefik.http.routers.kuara.entrypoints=websecure"
+      - "traefik.http.routers.kuara.tls=true"
+      - "traefik.http.routers.kuara.tls.certresolver=letsencrypt"
+      - "traefik.http.services.kuara.loadbalancer.server.port=3000"
+      # Health check so Traefik only routes to a healthy container
+      - "traefik.http.services.kuara.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.kuara.loadbalancer.healthcheck.interval=30s"
 
-# ── Named volumes ────────────────────────────────────────────────────────────
+      # ── Security middleware ────────────────────────────────────────────────
+      - "traefik.http.middlewares.kuara-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.kuara-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.kuara-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.kuara-headers.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.kuara-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.kuara-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.kuara-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
+      - "traefik.http.middlewares.kuara-headers.headers.permissionsPolicy=camera=(), microphone=(), geolocation=()"
+      - "traefik.http.middlewares.kuara-headers.headers.customResponseHeaders.X-Permitted-Cross-Domain-Policies=none"
+      - "traefik.http.middlewares.kuara-headers.headers.contentSecurityPolicy=default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+      - "traefik.http.routers.kuara.middlewares=kuara-headers"
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
 volumes:
   kuara-pgdata:
     driver: local
   kuara-minio-data:
     driver: local
 
-# ── Networks ─────────────────────────────────────────────────────────────────
+# ── Networks ──────────────────────────────────────────────────────────────────
 networks:
   kuara-net:
     driver: bridge
-    internal: false # web needs outbound for Payload telemetry / npm (build only)
+  traefik-net:
+    external: true   # created by docker-compose.traefik.yml
+    name: traefik-net

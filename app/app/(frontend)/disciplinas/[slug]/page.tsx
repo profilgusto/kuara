@@ -1,8 +1,33 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCourse } from "@/lib/payload-content";
 import { BookOpen } from "lucide-react";
 import { CourseModuleList } from "@/components/disciplinas/CourseModuleList";
 import { SetNavBreadcrumb } from "@/components/layout/NavContext";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const course = await getCourse(slug);
+  if (!course) return {};
+
+  const description =
+    course.summary ??
+    `Disciplina ${course.code} disponível na plataforma Kuara.`;
+
+  return {
+    title: `${course.title} | Kuara`,
+    description,
+    openGraph: {
+      title: course.title,
+      description,
+      type: "website",
+    },
+  };
+}
 
 export default async function CourseHomePage({
   params,

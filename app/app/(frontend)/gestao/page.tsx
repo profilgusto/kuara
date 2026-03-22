@@ -16,7 +16,7 @@ export default async function GestaoPage() {
   if (!user) redirect("/login?redirect=/gestao");
   if (user.role !== "admin" && user.role !== "professor") redirect("/aluno");
 
-  const offers = await listProfessorOffers(user.id, user.role);
+  const offers = await listProfessorOffers(String(user.id), user.role);
 
   const activeOffers = offers.filter((o: any) => o.status === "active");
   const archivedOffers = offers.filter((o: any) => o.status === "archived");

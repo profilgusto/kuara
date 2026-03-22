@@ -46,6 +46,7 @@ export function GroupBuilderClient({
   const [groups, setGroups] = useState(initialGroups);
   const [activeStudent, setActiveStudent] = useState<Student | null>(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [newGroupName, setNewGroupName] = useState("");
 
   const sensors = useSensors(
@@ -115,6 +116,7 @@ export function GroupBuilderClient({
   async function createGroup() {
     if (!newGroupName.trim()) return;
     setSaving(true);
+    setError(null);
     try {
       const res = await fetch("/api/student-groups", {
         method: "POST",
@@ -133,9 +135,11 @@ export function GroupBuilderClient({
           { id: data.doc.id, name: data.doc.name, students: [] },
         ]);
         setNewGroupName("");
+      } else {
+        setError("Não foi possível criar o grupo. Tente novamente.");
       }
-    } catch (err) {
-      console.error("Failed to create group:", err);
+    } catch {
+      setError("Erro de conexão ao criar o grupo.");
     } finally {
       setSaving(false);
     }
@@ -150,20 +154,23 @@ export function GroupBuilderClient({
 
     // Delete from API
     try {
-      await fetch(`/api/student-groups/${groupId}`, {
+      const res = await fetch(`/api/student-groups/${groupId}`, {
         method: "DELETE",
         credentials: "include",
       });
-    } catch (err) {
-      console.error("Failed to delete group:", err);
+      if (!res.ok) {
+        setError("Erro ao excluir o grupo no servidor.");
+      }
+    } catch {
+      setError("Erro de conexão ao excluir o grupo.");
     }
   }
 
   async function saveAllGroups() {
     setSaving(true);
+    setError(null);
     try {
-      // Update each group's students in Payload
-      await Promise.all(
+      const results = await Promise.allSettled(
         groups.map((g) =>
           fetch(`/api/student-groups/${g.id}`, {
             method: "PATCH",
@@ -173,15 +180,32 @@ export function GroupBuilderClient({
           }),
         ),
       );
-      router.refresh();
-    } catch (err) {
-      console.error("Failed to save groups:", err);
+      const failed = results.filter((r) => r.status === "rejected").length;
+      if (failed > 0) {
+        setError(`${failed} grupo(s) não puderam ser salvos. Tente novamente.`);
+      } else {
+        router.refresh();
+      }
+    } catch {
+      setError("Erro de conexão ao salvar os grupos.");
     } finally {
       setSaving(false);
     }
   }
 
   return (
+    <>
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-destructive/10 text-destructive text-sm border border-destructive/20 flex items-center justify-between gap-2">
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="text-xs underline shrink-0"
+          >
+            Fechar
+          </button>
+        </div>
+      )}
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
@@ -286,6 +310,7 @@ export function GroupBuilderClient({
         ) : null}
       </DragOverlay>
     </DndContext>
+    </>
   );
 }
 

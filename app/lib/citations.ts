@@ -134,6 +134,21 @@ function buildDisplayData(data: CslData): {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// HTML sanitization (defense-in-depth for Citation-JS output)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Strips potentially dangerous constructs from Citation-JS HTML output.
+ * Defense-in-depth: data is admin-controlled BibTeX, but we sanitize anyway.
+ */
+function sanitizeCitationHtml(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*')/gi, "")
+    .replace(/javascript\s*:/gi, "");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Format a single reference
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -173,11 +188,13 @@ export async function formatReference(opts: {
   const template = CSL_TEMPLATE[opts.style];
   let bibliographyHtml = "";
   try {
-    bibliographyHtml = cite.format("bibliography", {
-      format: "html",
-      template,
-      lang: "en-US",
-    }) as string;
+    bibliographyHtml = sanitizeCitationHtml(
+      cite.format("bibliography", {
+        format: "html",
+        template,
+        lang: "en-US",
+      }) as string,
+    );
   } catch {
     bibliographyHtml = `<span>${title} (${year})</span>`;
   }

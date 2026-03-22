@@ -34,8 +34,9 @@ export default async function OfferDashboardPage({
   if (!offer) notFound();
 
   const courseObj = typeof offer.course === "object" ? offer.course : null;
-  const courseId =
-    courseObj?.id || (typeof offer.course === "string" ? offer.course : "");
+  const courseId = String(
+    courseObj?.id ?? (typeof offer.course === "string" ? offer.course : ""),
+  );
   const courseTitle = courseObj?.title || "Disciplina";
   const courseCode = courseObj?.code || "";
 
@@ -49,10 +50,12 @@ export default async function OfferDashboardPage({
     ? offer.students.map((s: any) => (typeof s === "object" ? s : { id: s }))
     : [];
 
-  const currentModuleId =
+  const rawCurrentModule =
     typeof offer.currentModule === "object"
       ? offer.currentModule?.id
-      : offer.currentModule || null;
+      : offer.currentModule ?? null;
+  const currentModuleId: string | null =
+    rawCurrentModule != null ? String(rawCurrentModule) : null;
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl">

@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+/* Fonts are loaded via next/font/google in layout.tsx (self-hosted, no render-blocking request) */
 
 @layer base {
 
@@ -380,12 +380,18 @@ mjx-container.eq-highlight-active {
 
 /* Scale up base paragraph and list text.
    Uses `em` so values scale relative to the section's font-size,
-   which is driven by --slide-content-scale for the ±scale buttons. */
+   which is driven by --slide-content-scale for the ±scale buttons.
+   NOTE: `li` must NOT get font-size here — it is a child of `ul`/`ol`
+   which already have 1.4em, so adding 1.4em on `li` too would compound
+   to 1.96em (too large). Only set line-height on li. */
 .presentation-deck[data-fullscreen="true"] .prose p,
 .presentation-deck[data-fullscreen="true"] .prose ul,
-.presentation-deck[data-fullscreen="true"] .prose ol,
-.presentation-deck[data-fullscreen="true"] .prose li {
+.presentation-deck[data-fullscreen="true"] .prose ol {
   font-size: 1.4em;
+  line-height: 1.65;
+}
+
+.presentation-deck[data-fullscreen="true"] .prose li {
   line-height: 1.65;
 }
 
@@ -413,12 +419,12 @@ mjx-container.eq-highlight-active {
 
 /* Code blocks & inline code */
 .presentation-deck[data-fullscreen="true"] .prose pre {
-  font-size: 1.25em;
+  font-size: 1em;
   padding: 1.5rem;
 }
 
 .presentation-deck[data-fullscreen="true"] .prose code {
-  font-size: 1.25em;
+  font-size: 1em;
 }
 
 /* Blockquotes */
@@ -427,17 +433,37 @@ mjx-container.eq-highlight-active {
   padding-left: 1.5rem;
 }
 
-/* Tables */
-.presentation-deck[data-fullscreen="true"] .prose table,
-.presentation-deck[data-fullscreen="true"] .prose th,
-.presentation-deck[data-fullscreen="true"] .prose td {
+/* Tables — only set font-size on the table element itself; th/td inherit
+   so they don't compound the em and become 1.96em. */
+.presentation-deck[data-fullscreen="true"] .prose table {
   font-size: 1.4em;
 }
 
-/* Math Equations — the 1.96em multiplier applies on top of the section's
-   scaled font-size, so equations scale correctly with --slide-content-scale. */
+/* Math Equations — scale to match body text (1.4em) with a modest premium
+   for display prominence. Body text is at 1.4em, so 1.5em keeps equations
+   only ~7% larger — visually harmonious without dwarfing surrounding text. */
 .presentation-deck[data-fullscreen="true"] .prose mjx-container[display="true"] {
-  font-size: 1.96em !important;
+  font-size: 1.5em !important;
+}
+
+/* References slide in fullscreen — the section uses hardcoded Tailwind
+   text-* classes that don't inherit from the em-scaled prose overrides.
+   Override them here so references scale proportionally with other slides. */
+.presentation-deck[data-fullscreen="true"] section[data-id="referencias"] h2 {
+  font-size: 2.8em;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-bottom: 1.2rem;
+}
+
+.presentation-deck[data-fullscreen="true"] section[data-id="referencias"] .text-sm {
+  font-size: 1.3em;
+  line-height: 1.65;
+}
+
+.presentation-deck[data-fullscreen="true"] section[data-id="referencias"] .text-xs {
+  font-size: 1.1em;
+  line-height: 1.5;
 }
 
 /* Fix any overflowing issue on fullscreen mode container */
@@ -478,35 +504,18 @@ mjx-container.eq-highlight-active {
     margin: 2cm 2.5cm;
   }
 
-  /* Force light mode CSS variables */
-  :root {
-    --background: 120 14% 95%;
-    --foreground: 160 30% 8%;
-    --card: 120 14% 92%;
-    --card-foreground: 160 30% 8%;
-    --popover: 120 14% 92%;
-    --popover-foreground: 160 30% 8%;
-    --primary: 137 48% 46%;
-    --primary-foreground: 160 30% 6%;
-    --secondary: 188 60% 45%;
-    --secondary-foreground: 160 30% 6%;
-    --muted: 120 14% 88%;
-    --muted-foreground: 160 12% 36%;
-    --accent: 155 18% 42%;
-    --accent-foreground: 160 30% 8%;
-    --border: 120 10% 83%;
-    --input: 120 14% 85%;
-    --ring: 137 48% 46%;
-  }
+  /* PrintButton's beforeprint handler adds .light to <html>, which activates
+     the light-mode CSS variable set. The rules below are a safety net for
+     properties set directly rather than via CSS variables. */
 
   /* Kill animated background */
   body::before {
     display: none !important;
   }
 
+  html,
   body {
     background: white !important;
-    color: hsl(160 30% 8%) !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

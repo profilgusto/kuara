@@ -98,7 +98,7 @@ export default async function StudentOfferPage({
     let total = 0;
     let hasScores = false;
     for (const act of activities) {
-      const pct = getStudentScore(act.id, act.type);
+      const pct = getStudentScore(String(act.id), act.type);
       if (pct !== null) {
         total += (pct / 100) * act.weight;
         hasScores = true;

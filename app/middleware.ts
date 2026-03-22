@@ -4,31 +4,76 @@ import { NextRequest, NextResponse } from "next/server";
  * Next.js Middleware — protects /aluno and /gestao routes.
  *
  * Uses Payload's JWT cookie (`payload-token`) to verify authentication.
- * If the cookie is missing, the user is redirected to /login.
+ * If the cookie is missing or invalid, the user is redirected to /login.
  *
- * NOTE: We do NOT verify the JWT signature here (that would need the secret
- * in edge runtime). Instead, we simply check for the presence of the cookie
- * and decode its payload to check the role. The actual security enforcement
- * happens server-side when the page fetches data via Payload's Local API,
- * which validates the token fully.
+ * JWT signature is verified using the Web Crypto API (available in Edge Runtime),
+ * so both authenticity and role are checked before granting access.
  */
-export function middleware(request: NextRequest) {
+
+/**
+ * Verifies a JWT's HMAC-SHA256 signature and returns its decoded payload.
+ * Throws if the token is malformed or the signature is invalid.
+ */
+async function verifyJWT(token: string): Promise<Record<string, unknown>> {
+  const secret = process.env.PAYLOAD_SECRET;
+  if (!secret) throw new Error("PAYLOAD_SECRET not configured");
+
+  const parts = token.split(".");
+  if (parts.length !== 3) throw new Error("Malformed JWT");
+
+  const [headerB64, payloadB64, signatureB64] = parts;
+
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+
+  // Base64url → Uint8Array
+  const signatureStr = atob(
+    signatureB64.replace(/-/g, "+").replace(/_/g, "/"),
+  );
+  const signature = new Uint8Array(signatureStr.length);
+  for (let i = 0; i < signatureStr.length; i++) {
+    signature[i] = signatureStr.charCodeAt(i);
+  }
+
+  const data = encoder.encode(`${headerB64}.${payloadB64}`);
+  const valid = await crypto.subtle.verify("HMAC", key, signature, data);
+  if (!valid) throw new Error("Invalid JWT signature");
+
+  const payloadStr = atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"));
+  return JSON.parse(payloadStr) as Record<string, unknown>;
+}
+
+/**
+ * Ensures the redirect target is a safe relative path.
+ * Prevents open-redirect attacks via crafted ?redirect= values.
+ */
+function sanitizeRedirect(pathname: string): string {
+  // Must start with / but not // (protocol-relative URL)
+  if (!pathname.startsWith("/") || pathname.startsWith("//")) {
+    return "/";
+  }
+  return pathname;
+}
+
+export async function middleware(request: NextRequest) {
   const token = request.cookies.get("payload-token")?.value;
   const { pathname } = request.nextUrl;
 
-  // If accessing a protected route without a token, redirect to login
+  // No token → redirect to login
   if (!token) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
+    loginUrl.searchParams.set("redirect", sanitizeRedirect(pathname));
     return NextResponse.redirect(loginUrl);
   }
 
-  // Decode JWT payload (base64) to check role — no verification needed here
   try {
-    const payloadPart = token.split(".")[1];
-    const decoded = JSON.parse(
-      Buffer.from(payloadPart, "base64").toString("utf-8"),
-    );
+    const decoded = await verifyJWT(token);
 
     // /gestao routes require professor or admin role
     if (pathname.startsWith("/gestao")) {
@@ -37,12 +82,11 @@ export function middleware(request: NextRequest) {
       }
     }
 
-    // /aluno routes require student (or any authenticated user)
-    // No additional role check needed — any logged-in user can access /aluno
+    // /aluno — any authenticated user is allowed
   } catch {
-    // If token decoding fails, redirect to login
+    // Invalid or tampered token → redirect to login
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
+    loginUrl.searchParams.set("redirect", sanitizeRedirect(pathname));
     return NextResponse.redirect(loginUrl);
   }
 

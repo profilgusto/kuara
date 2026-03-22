@@ -60,6 +60,14 @@ export async function POST(request: NextRequest) {
     usedInMap.set(m.id, []);
   }
 
+  // Build an in-memory filename → media doc map to avoid N+1 queries
+  const filenameToMedia = new Map<string, (typeof allMedia.docs)[0]>();
+  for (const m of allMedia.docs) {
+    if (m.filename) {
+      filenameToMedia.set(m.filename, m);
+    }
+  }
+
   // --- Scan modules (latest draft or published) ---
   const allModules = await payload.find({
     collection: "modules",
@@ -71,14 +79,8 @@ export async function POST(request: NextRequest) {
   for (const mod of allModules.docs) {
     const filenames = extractMDXFilenames(mod.content as string | undefined);
     for (const filename of filenames) {
-      const result = await payload.find({
-        collection: "media",
-        where: { filename: { equals: filename } },
-        depth: 0,
-        limit: 1,
-        overrideAccess: true,
-      });
-      const media = result.docs[0];
+      // In-memory lookup — no extra DB query per filename
+      const media = filenameToMedia.get(filename);
       if (!media) continue;
       const refs = usedInMap.get(media.id) ?? [];
       if (!refs.some((r) => r.relationTo === "modules" && r.value === mod.id)) {

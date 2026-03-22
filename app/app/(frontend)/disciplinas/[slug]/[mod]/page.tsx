@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCourse, getModule } from "@/lib/payload-content";
 import { compileMdx, extractHeadings } from "@/lib/mdx-pipeline";
@@ -16,6 +17,30 @@ import { draftMode } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string; mod: string }>;
+}): Promise<Metadata> {
+  const { slug, mod } = await params;
+  const result = await getModule(slug, mod, false);
+  if (!result) return {};
+
+  const { module: moduleData, courseTitle } = result;
+  const title = `${moduleData.title} — ${courseTitle} | Kuara`;
+  const description = `Módulo "${moduleData.title}" da disciplina ${courseTitle} na plataforma Kuara.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: `${moduleData.title} — ${courseTitle}`,
+      description,
+      type: "article",
+    },
+  };
+}
+
 export default async function ModulePage({
   params,
 }: {
@@ -24,10 +49,20 @@ export default async function ModulePage({
   const { slug, mod } = await params;
   const { isEnabled: isDraftMode } = await draftMode();
 
-  const [course, result] = await Promise.all([
+  const [courseSettled, moduleSettled] = await Promise.allSettled([
     getCourse(slug, isDraftMode),
     getModule(slug, mod, isDraftMode),
   ]);
+
+  if (
+    courseSettled.status === "rejected" ||
+    moduleSettled.status === "rejected"
+  ) {
+    throw new Error("Failed to load module content");
+  }
+
+  const course = courseSettled.value;
+  const result = moduleSettled.value;
 
   if (!course || !result) notFound();
 

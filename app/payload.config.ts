@@ -19,6 +19,13 @@ import { References } from "./collections/References.ts";
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
+// Fail fast in production if a required secret is missing
+if (process.env.NODE_ENV === "production" && !process.env.PAYLOAD_SECRET) {
+  throw new Error(
+    "PAYLOAD_SECRET environment variable must be set in production",
+  );
+}
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -71,6 +78,9 @@ export default buildConfig({
     migrationDir: path.resolve(dirname, "migrations"),
     pool: {
       connectionString: process.env.DATABASE_URL || "",
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
     },
   }),
 });

@@ -67,6 +67,7 @@ export function GradingClient({
   const [scores, setScores] = useState(initialScores);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Activity creation form
   const [newAcronym, setNewAcronym] = useState("");
@@ -196,6 +197,7 @@ export function GradingClient({
   async function createActivity() {
     if (!newAcronym.trim() || !newDesc.trim() || !newWeight) return;
     setSaving(true);
+    setError(null);
     try {
       const res = await fetch("/api/activities", {
         method: "POST",
@@ -226,9 +228,11 @@ export function GradingClient({
         setNewAcronym("");
         setNewDesc("");
         setNewWeight("");
+      } else {
+        setError("Não foi possível criar a atividade. Tente novamente.");
       }
-    } catch (err) {
-      console.error("Failed to create activity:", err);
+    } catch {
+      setError("Erro de conexão ao criar a atividade.");
     } finally {
       setSaving(false);
     }
@@ -238,23 +242,25 @@ export function GradingClient({
     setActivities((prev) => prev.filter((a) => a.id !== actId));
     setScores((prev) => prev.filter((s) => s.activityId !== actId));
     try {
-      await fetch(`/api/activities/${actId}`, {
+      const res = await fetch(`/api/activities/${actId}`, {
         method: "DELETE",
         credentials: "include",
       });
-    } catch (err) {
-      console.error("Failed to delete activity:", err);
+      if (!res.ok) {
+        setError("Erro ao excluir a atividade no servidor.");
+      }
+    } catch {
+      setError("Erro de conexão ao excluir a atividade.");
     }
   }
 
   async function saveAllScores() {
     setSaving(true);
+    setError(null);
     try {
-      // Upsert each score
-      for (const score of scores) {
+      const requests = scores.map((score) => {
         if (score.id.startsWith("new-")) {
-          // Create
-          await fetch("/api/scores", {
+          return fetch("/api/scores", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -267,19 +273,23 @@ export function GradingClient({
               percentage: score.percentage,
             }),
           });
-        } else {
-          // Update
-          await fetch(`/api/scores/${score.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ percentage: score.percentage }),
-          });
         }
+        return fetch(`/api/scores/${score.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ percentage: score.percentage }),
+        });
+      });
+      const results = await Promise.allSettled(requests);
+      const failed = results.filter((r) => r.status === "rejected").length;
+      if (failed > 0) {
+        setError(`${failed} nota(s) não puderam ser salvas. Tente novamente.`);
+      } else {
+        router.refresh();
       }
-      router.refresh();
-    } catch (err) {
-      console.error("Failed to save scores:", err);
+    } catch {
+      setError("Erro de conexão ao salvar as notas.");
     } finally {
       setSaving(false);
     }
@@ -287,6 +297,17 @@ export function GradingClient({
 
   return (
     <div className="space-y-8">
+      {error && (
+        <div className="px-4 py-3 rounded-lg bg-destructive/10 text-destructive text-sm border border-destructive/20 flex items-center justify-between gap-2">
+          <span>{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="text-xs underline shrink-0"
+          >
+            Fechar
+          </button>
+        </div>
+      )}
       {/* Activity Configuration */}
       <section>
         <h2 className="text-base font-semibold mb-4">Atividades & Pesos</h2>
