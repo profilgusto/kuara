@@ -2,7 +2,7 @@ import type { CollectionConfig } from "payload";
 import {
   syncModuleMediaRefs,
   cleanModuleMediaRefs,
-} from "@/hooks/syncMediaUsedIn";
+} from "../hooks/syncMediaUsedIn.ts";
 
 export const Modules: CollectionConfig = {
   slug: "modules",
