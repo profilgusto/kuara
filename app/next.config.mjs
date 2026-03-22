@@ -8,6 +8,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const nextConfig = {
     output: "standalone",
 
+    // ESLint is run separately via `npm run lint` (Phase 1 validation).
+    // Skipping it here prevents any lint warning from blocking a production build.
+    eslint: { ignoreDuringBuilds: true },
+
     // react-pdf ships ESM-only; include it in Next.js's SWC transform pass.
     transpilePackages: ['react-pdf'],
 
@@ -37,8 +41,9 @@ const nextConfig = {
         return config
     },
 
-    // Proxy /media/* → MinIO so media URLs work without Nginx (dev) and as a
-    // fallback in production (Nginx intercepts first, so this never fires there).
+    // Proxy /media/* → MinIO so media URLs work in dev and production.
+    // Traefik passes all traffic through to the web service, so Next.js
+    // handles this rewrite directly in production.
     async rewrites() {
         const s3Endpoint = process.env.S3_ENDPOINT || 'http://minio:9000'
         const s3Bucket = process.env.S3_BUCKET || 'kuara-media'
