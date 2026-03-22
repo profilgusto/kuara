@@ -6,6 +6,12 @@
 # This creates the shared `traefik-net` network that the app compose joins.
 # Traefik watches Docker labels for routing configuration.
 #
+# The explicit `name: traefik` keeps Traefik in its own project so that
+# `docker compose -f docker-compose.prod.yml up --remove-orphans` does NOT
+# consider kuara-traefik-* an orphan and stop it.
+
+name: traefik
+#
 # TLS options:
 #   A) Let's Encrypt (default below) — Traefik handles certificates automatically.
 #   B) Cloudflare Tunnel — disable ports 80/443, use cloudflared instead.

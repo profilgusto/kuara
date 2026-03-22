@@ -58,7 +58,8 @@ log "Now at commit: $(git rev-parse --short HEAD) — $(git log -1 --pretty=%s)"
 
 # ── Step 2: Build updated images ─────────────────────────────────────────────
 step "Building updated application images"
-docker compose -f "$COMPOSE_APP" build --pull migrate web
+docker builder prune -f
+docker compose -f "$COMPOSE_APP" build --pull --no-cache migrate web
 log "Images built."
 
 # ── Step 3: Run database migrations ──────────────────────────────────────────

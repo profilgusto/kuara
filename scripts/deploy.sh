@@ -84,7 +84,18 @@ step "Setting up Traefik infrastructure"
 # Let docker compose create the traefik-net network — do NOT create it manually
 # with `docker network create` as that produces an unlabelled network that compose
 # will reject with "incorrect label" errors.
-if docker compose -f "$COMPOSE_TRAEFIK" ps --status running 2>/dev/null | grep -q "traefik"; then
+#
+# One-time migration: older deployments ran Traefik under the 'kuara' project
+# (kuara-traefik-1). The compose file now uses `name: traefik` so the container
+# lives in its own project and is never removed by `--remove-orphans` in the
+# app compose. Stop the old container if present so the new project can start.
+if docker ps --filter "name=kuara-traefik-1" --filter "status=running" -q 2>/dev/null | grep -q .; then
+    log "Migrating Traefik from 'kuara' project to 'traefik' project …"
+    docker stop kuara-traefik-1 2>/dev/null || true
+    docker rm   kuara-traefik-1 2>/dev/null || true
+    docker compose -f "$COMPOSE_TRAEFIK" up -d
+    log "Traefik migrated and running under 'traefik' project."
+elif docker compose -f "$COMPOSE_TRAEFIK" ps --status running 2>/dev/null | grep -q "traefik"; then
     log "Traefik is already running — skipping."
 else
     log "Starting Traefik …"
@@ -94,7 +105,8 @@ fi
 
 # ── Step 3: Build application images ─────────────────────────────────────────
 step "Building application images (migrator + runner)"
-docker compose -f "$COMPOSE_APP" build --pull migrate web
+docker builder prune -f
+docker compose -f "$COMPOSE_APP" build --pull --no-cache migrate web
 log "Images built successfully."
 
 # ── Step 4: Start infrastructure services ────────────────────────────────────

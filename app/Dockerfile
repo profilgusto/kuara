@@ -11,6 +11,15 @@ RUN npm ci --legacy-peer-deps
 # ─── Stage: migrator (runs Payload DB migrations in production) ───────────────
 # Has full source + node_modules so `npx payload migrate` can run.
 # NODE_ENV=production disables push:true, enabling the migration runner.
+#
+# Why we pre-compile to .mjs:
+#   Node.js 22.12+ allows require() of ESM modules synchronously, but throws
+#   ERR_REQUIRE_ASYNC_MODULE when the ESM graph cannot be evaluated synchronously.
+#   tsx loads payload.config.ts as CJS (no "type":"module" in package.json),
+#   converting `import` → `require()`. Those require() calls hit ESM-only
+#   @payloadcms/* packages, triggering the synchronous ESM path which fails.
+#   Compiling to .mjs first lets Node.js load the config as native ESM via
+#   dynamic import(), completely bypassing the CJS/require() path.
 FROM node:22-alpine AS migrator
 WORKDIR /app
 
@@ -21,6 +30,19 @@ COPY . .
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Pre-compile payload.config.ts → payload.config.mjs (ESM, external packages)
+# Collections are bundled inline; @payloadcms/* and other node_modules stay as
+# ESM import declarations so Node.js loads them natively without require().
+RUN node_modules/.bin/esbuild payload.config.ts \
+      --bundle \
+      --packages=external \
+      --format=esm \
+      --platform=node \
+      --outfile=payload.config.mjs
+
+# Tell Payload CLI to load the pre-compiled ESM config instead of the .ts file
+ENV PAYLOAD_CONFIG_PATH=./payload.config.mjs
 
 CMD ["npx", "payload", "migrate"]
 
