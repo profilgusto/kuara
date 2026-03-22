@@ -5,16 +5,16 @@ import { s3Storage } from "@payloadcms/storage-s3";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { Users } from "./collections/Users";
-import { Courses } from "./collections/Courses";
-import { Modules } from "./collections/Modules";
-import { Offers } from "./collections/Offers";
-import { Posts } from "./collections/Posts";
-import { Media } from "./collections/Media";
-import { Activities } from "./collections/Activities";
-import { StudentGroups } from "./collections/StudentGroups";
-import { Scores } from "./collections/Scores";
-import { References } from "./collections/References";
+import { Users } from "./collections/Users.ts";
+import { Courses } from "./collections/Courses.ts";
+import { Modules } from "./collections/Modules.ts";
+import { Offers } from "./collections/Offers.ts";
+import { Posts } from "./collections/Posts.ts";
+import { Media } from "./collections/Media.ts";
+import { Activities } from "./collections/Activities.ts";
+import { StudentGroups } from "./collections/StudentGroups.ts";
+import { Scores } from "./collections/Scores.ts";
+import { References } from "./collections/References.ts";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
