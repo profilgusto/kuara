@@ -81,13 +81,9 @@ log "Now at commit: $(git rev-parse --short HEAD) — $(git log -1 --pretty=%s)"
 # ── Step 2: Traefik infrastructure ───────────────────────────────────────────
 step "Setting up Traefik infrastructure"
 
-# Ensure the shared network exists (Traefik compose creates it, but be safe)
-if ! docker network ls --format '{{.Name}}' | grep -qx 'traefik-net'; then
-    log "Creating traefik-net network …"
-    docker network create traefik-net
-fi
-
-# Start Traefik only if it is not already running
+# Let docker compose create the traefik-net network — do NOT create it manually
+# with `docker network create` as that produces an unlabelled network that compose
+# will reject with "incorrect label" errors.
 if docker compose -f "$COMPOSE_TRAEFIK" ps --status running 2>/dev/null | grep -q "traefik"; then
     log "Traefik is already running — skipping."
 else
