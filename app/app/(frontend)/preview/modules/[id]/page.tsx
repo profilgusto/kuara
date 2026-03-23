@@ -4,6 +4,11 @@ import configPromise from "@payload-config";
 import { compileMdx, extractHeadings } from "@/lib/mdx-pipeline";
 import { getMdxComponents } from "@/lib/mdx-components";
 import { ModulePageClient } from "@/components/mdx/ModulePageClient";
+import { ReferencesProvider } from "@/components/citations/ReferencesProvider";
+import { FiguresProvider } from "@/components/figures/FiguresProvider";
+import { extractCiteLabels, fetchAndFormatReferences } from "@/lib/citations";
+import { extractFigureLabels } from "@/lib/figures";
+import type { CitationStyle } from "@/lib/citation-shared";
 import { PreviewRefreshScript } from "./PreviewRefreshScript";
 import { extractSlideCoverProps } from "@/lib/slides";
 
@@ -51,6 +56,12 @@ export default async function ModulePreviewPage({
   const headings = hasContent ? extractHeadings(moduleDoc.content) : [];
   const slideCover = hasContent ? extractSlideCoverProps(moduleDoc.content) : null;
 
+  // Citations and figures
+  const citationStyle: CitationStyle = (moduleDoc.citationStyle as CitationStyle) ?? "authoryear";
+  const citationOrder = hasContent ? extractCiteLabels(moduleDoc.content) : [];
+  const figureOrder = hasContent ? extractFigureLabels(moduleDoc.content) : [];
+  const references = await fetchAndFormatReferences(citationOrder, citationStyle, true);
+
   // Compile MDX content
   let content = null;
   if (hasContent) {
@@ -87,26 +98,34 @@ export default async function ModulePreviewPage({
         )}
 
         {/* Module content */}
-        <ModulePageClient
-          title={moduleDoc.title || "Novo Módulo"}
-          headings={headings}
-          courseTitle={courseTitle}
-          slideCover={slideCover}
+        <ReferencesProvider
+          references={references}
+          citationOrder={citationOrder}
+          style={citationStyle}
         >
-          {content ? (
-            <article className="prose prose-neutral dark:prose-invert max-w-none">
-              {content}
-            </article>
-          ) : (
-            <div className="text-center py-12 border border-dashed rounded-xl">
-              <p className="text-muted-foreground">
-                {hasContent
-                  ? "Erro ao compilar o conteúdo MDX."
-                  : "Este módulo ainda não possui conteúdo. Escreva algo no campo Content e salve (Cmd+S)."}
-              </p>
-            </div>
-          )}
-        </ModulePageClient>
+          <FiguresProvider figureOrder={figureOrder}>
+            <ModulePageClient
+              title={moduleDoc.title || "Novo Módulo"}
+              headings={headings}
+              courseTitle={courseTitle}
+              slideCover={slideCover}
+            >
+              {content ? (
+                <article className="prose prose-neutral dark:prose-invert max-w-none">
+                  {content}
+                </article>
+              ) : (
+                <div className="text-center py-12 border border-dashed rounded-xl">
+                  <p className="text-muted-foreground">
+                    {hasContent
+                      ? "Erro ao compilar o conteúdo MDX."
+                      : "Este módulo ainda não possui conteúdo. Escreva algo no campo Content e salve (Cmd+S)."}
+                  </p>
+                </div>
+              )}
+            </ModulePageClient>
+          </FiguresProvider>
+        </ReferencesProvider>
       </main>
     </div>
   );

@@ -74,9 +74,10 @@ export async function getCourse(
   draft: boolean = false,
 ): Promise<CourseDetail | null> {
   const payload = await getPayload({ config: configPromise });
+  const decodedSlug = decodeURIComponent(slug);
   const courseResult = await payload.find({
     collection: "courses",
-    where: { slug: { equals: slug } },
+    where: { slug: { equals: decodedSlug } },
     limit: 1,
     draft,
   });
@@ -141,10 +142,14 @@ export async function getModule(
 } | null> {
   const payload = await getPayload({ config: configPromise });
 
+  // Next.js does not always decode dynamic route params — decode explicitly
+  const decodedCourseSlug = decodeURIComponent(courseSlug);
+  const decodedModuleSlug = decodeURIComponent(moduleSlug);
+
   // Find the course first
   const courseResult = await payload.find({
     collection: "courses",
-    where: { slug: { equals: courseSlug } },
+    where: { slug: { equals: decodedCourseSlug } },
     limit: 1,
     draft,
   });
@@ -156,7 +161,7 @@ export async function getModule(
     collection: "modules",
     where: {
       course: { equals: course.id },
-      slug: { equals: moduleSlug },
+      slug: { equals: decodedModuleSlug },
     },
     limit: 1,
     draft,
