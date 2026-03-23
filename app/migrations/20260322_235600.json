@@ -74,8 +74,12 @@
           "name": "users_sessions_parent_id_fk",
           "tableFrom": "users_sessions",
           "tableTo": "users",
-          "columnsFrom": ["_parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -378,8 +382,12 @@
           "name": "courses_instructor_id_users_id_fk",
           "tableFrom": "courses",
           "tableTo": "users",
-          "columnsFrom": ["instructor_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "instructor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -445,6 +453,20 @@
           "notNull": false,
           "default": true
         },
+        "citation_style": {
+          "name": "citation_style",
+          "type": "enum_modules_citation_style",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'authoryear'"
+        },
+        "folder_id": {
+          "name": "folder_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamp(3) with time zone",
@@ -474,6 +496,21 @@
           "columns": [
             {
               "expression": "course_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "modules_folder_idx": {
+          "name": "modules_folder_idx",
+          "columns": [
+            {
+              "expression": "folder_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -535,8 +572,25 @@
           "name": "modules_course_id_courses_id_fk",
           "tableFrom": "modules",
           "tableTo": "courses",
-          "columnsFrom": ["course_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "modules_folder_id_payload_folders_id_fk": {
+          "name": "modules_folder_id_payload_folders_id_fk",
+          "tableFrom": "modules",
+          "tableTo": "payload_folders",
+          "columnsFrom": [
+            "folder_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -608,6 +662,20 @@
           "notNull": false,
           "default": true
         },
+        "version_citation_style": {
+          "name": "version_citation_style",
+          "type": "enum__modules_v_version_citation_style",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'authoryear'"
+        },
+        "version_folder_id": {
+          "name": "version_folder_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "version_updated_at": {
           "name": "version_updated_at",
           "type": "timestamp(3) with time zone",
@@ -676,6 +744,21 @@
           "columns": [
             {
               "expression": "version_course_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "_modules_v_version_version_folder_idx": {
+          "name": "_modules_v_version_version_folder_idx",
+          "columns": [
+            {
+              "expression": "version_folder_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -797,8 +880,12 @@
           "name": "_modules_v_parent_id_modules_id_fk",
           "tableFrom": "_modules_v",
           "tableTo": "modules",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -806,8 +893,25 @@
           "name": "_modules_v_version_course_id_courses_id_fk",
           "tableFrom": "_modules_v",
           "tableTo": "courses",
-          "columnsFrom": ["version_course_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "version_course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "_modules_v_version_folder_id_payload_folders_id_fk": {
+          "name": "_modules_v_version_folder_id_payload_folders_id_fk",
+          "tableFrom": "_modules_v",
+          "tableTo": "payload_folders",
+          "columnsFrom": [
+            "version_folder_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -917,8 +1021,12 @@
           "name": "offers_logs_performed_by_id_users_id_fk",
           "tableFrom": "offers_logs",
           "tableTo": "users",
-          "columnsFrom": ["performed_by_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "performed_by_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -926,8 +1034,12 @@
           "name": "offers_logs_parent_id_fk",
           "tableFrom": "offers_logs",
           "tableTo": "offers",
-          "columnsFrom": ["_parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "_parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1077,8 +1189,12 @@
           "name": "offers_course_id_courses_id_fk",
           "tableFrom": "offers",
           "tableTo": "courses",
-          "columnsFrom": ["course_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1086,8 +1202,12 @@
           "name": "offers_instructor_id_users_id_fk",
           "tableFrom": "offers",
           "tableTo": "users",
-          "columnsFrom": ["instructor_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "instructor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1095,8 +1215,12 @@
           "name": "offers_current_module_id_modules_id_fk",
           "tableFrom": "offers",
           "tableTo": "modules",
-          "columnsFrom": ["current_module_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "current_module_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1209,8 +1333,12 @@
           "name": "offers_rels_parent_fk",
           "tableFrom": "offers_rels",
           "tableTo": "offers",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1218,8 +1346,12 @@
           "name": "offers_rels_users_fk",
           "tableFrom": "offers_rels",
           "tableTo": "users",
-          "columnsFrom": ["users_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "users_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1360,8 +1492,12 @@
           "name": "posts_offer_id_offers_id_fk",
           "tableFrom": "posts",
           "tableTo": "offers",
-          "columnsFrom": ["offer_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "offer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1388,9 +1524,9 @@
           "primaryKey": false,
           "notNull": false
         },
-        "category": {
-          "name": "category",
-          "type": "varchar",
+        "folder_id": {
+          "name": "folder_id",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
@@ -1464,11 +1600,11 @@
         }
       },
       "indexes": {
-        "media_category_idx": {
-          "name": "media_category_idx",
+        "media_folder_idx": {
+          "name": "media_folder_idx",
           "columns": [
             {
-              "expression": "category",
+              "expression": "folder_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1525,7 +1661,186 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "media_folder_id_payload_folders_id_fk": {
+          "name": "media_folder_id_payload_folders_id_fk",
+          "tableFrom": "media",
+          "tableTo": "payload_folders",
+          "columnsFrom": [
+            "folder_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.media_rels": {
+      "name": "media_rels",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modules_id": {
+          "name": "modules_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "posts_id": {
+          "name": "posts_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "media_rels_order_idx": {
+          "name": "media_rels_order_idx",
+          "columns": [
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "media_rels_parent_idx": {
+          "name": "media_rels_parent_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "media_rels_path_idx": {
+          "name": "media_rels_path_idx",
+          "columns": [
+            {
+              "expression": "path",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "media_rels_modules_id_idx": {
+          "name": "media_rels_modules_id_idx",
+          "columns": [
+            {
+              "expression": "modules_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "media_rels_posts_id_idx": {
+          "name": "media_rels_posts_id_idx",
+          "columns": [
+            {
+              "expression": "posts_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "media_rels_parent_fk": {
+          "name": "media_rels_parent_fk",
+          "tableFrom": "media_rels",
+          "tableTo": "media",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "media_rels_modules_fk": {
+          "name": "media_rels_modules_fk",
+          "tableFrom": "media_rels",
+          "tableTo": "modules",
+          "columnsFrom": [
+            "modules_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "media_rels_posts_fk": {
+          "name": "media_rels_posts_fk",
+          "tableFrom": "media_rels",
+          "tableTo": "posts",
+          "columnsFrom": [
+            "posts_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -1648,8 +1963,12 @@
           "name": "activities_offer_id_offers_id_fk",
           "tableFrom": "activities",
           "tableTo": "offers",
-          "columnsFrom": ["offer_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "offer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1749,8 +2068,12 @@
           "name": "student_groups_offer_id_offers_id_fk",
           "tableFrom": "student_groups",
           "tableTo": "offers",
-          "columnsFrom": ["offer_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "offer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1863,8 +2186,12 @@
           "name": "student_groups_rels_parent_fk",
           "tableFrom": "student_groups_rels",
           "tableTo": "student_groups",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1872,8 +2199,12 @@
           "name": "student_groups_rels_users_fk",
           "tableFrom": "student_groups_rels",
           "tableTo": "users",
-          "columnsFrom": ["users_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "users_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2043,8 +2374,12 @@
           "name": "scores_offer_id_offers_id_fk",
           "tableFrom": "scores",
           "tableTo": "offers",
-          "columnsFrom": ["offer_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "offer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2052,8 +2387,12 @@
           "name": "scores_activity_id_activities_id_fk",
           "tableFrom": "scores",
           "tableTo": "activities",
-          "columnsFrom": ["activity_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "activity_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2061,8 +2400,12 @@
           "name": "scores_student_id_users_id_fk",
           "tableFrom": "scores",
           "tableTo": "users",
-          "columnsFrom": ["student_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2070,8 +2413,150 @@
           "name": "scores_group_id_student_groups_id_fk",
           "tableFrom": "scores",
           "tableTo": "student_groups",
-          "columnsFrom": ["group_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.references": {
+      "name": "references",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "key": {
+          "name": "key",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bibtex": {
+          "name": "bibtex",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "doi": {
+          "name": "doi",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "external_url": {
+          "name": "external_url",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cover_art_id": {
+          "name": "cover_art_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "references_key_idx": {
+          "name": "references_key_idx",
+          "columns": [
+            {
+              "expression": "key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "references_cover_art_idx": {
+          "name": "references_cover_art_idx",
+          "columns": [
+            {
+              "expression": "cover_art_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "references_updated_at_idx": {
+          "name": "references_updated_at_idx",
+          "columns": [
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "references_created_at_idx": {
+          "name": "references_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "references_cover_art_id_media_id_fk": {
+          "name": "references_cover_art_id_media_id_fk",
+          "tableFrom": "references",
+          "tableTo": "media",
+          "columnsFrom": [
+            "cover_art_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -2123,6 +2608,209 @@
         }
       },
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.payload_folders_folder_type": {
+      "name": "payload_folders_folder_type",
+      "schema": "",
+      "columns": {
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "enum_payload_folders_folder_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "payload_folders_folder_type_order_idx": {
+          "name": "payload_folders_folder_type_order_idx",
+          "columns": [
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payload_folders_folder_type_parent_idx": {
+          "name": "payload_folders_folder_type_parent_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "payload_folders_folder_type_parent_fk": {
+          "name": "payload_folders_folder_type_parent_fk",
+          "tableFrom": "payload_folders_folder_type",
+          "tableTo": "payload_folders",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.payload_folders": {
+      "name": "payload_folders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "folder_id": {
+          "name": "folder_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "payload_folders_name_idx": {
+          "name": "payload_folders_name_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payload_folders_folder_idx": {
+          "name": "payload_folders_folder_idx",
+          "columns": [
+            {
+              "expression": "folder_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payload_folders_updated_at_idx": {
+          "name": "payload_folders_updated_at_idx",
+          "columns": [
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payload_folders_created_at_idx": {
+          "name": "payload_folders_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "payload_folders_folder_id_payload_folders_id_fk": {
+          "name": "payload_folders_folder_id_payload_folders_id_fk",
+          "tableFrom": "payload_folders",
+          "tableTo": "payload_folders",
+          "columnsFrom": [
+            "folder_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -2292,6 +2980,18 @@
         },
         "scores_id": {
           "name": "scores_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "references_id": {
+          "name": "references_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payload_folders_id": {
+          "name": "payload_folders_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -2477,6 +3177,36 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "payload_locked_documents_rels_references_id_idx": {
+          "name": "payload_locked_documents_rels_references_id_idx",
+          "columns": [
+            {
+              "expression": "references_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payload_locked_documents_rels_payload_folders_id_idx": {
+          "name": "payload_locked_documents_rels_payload_folders_id_idx",
+          "columns": [
+            {
+              "expression": "payload_folders_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -2484,8 +3214,12 @@
           "name": "payload_locked_documents_rels_parent_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "payload_locked_documents",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2493,8 +3227,12 @@
           "name": "payload_locked_documents_rels_users_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "users",
-          "columnsFrom": ["users_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "users_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2502,8 +3240,12 @@
           "name": "payload_locked_documents_rels_courses_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "courses",
-          "columnsFrom": ["courses_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "courses_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2511,8 +3253,12 @@
           "name": "payload_locked_documents_rels_modules_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "modules",
-          "columnsFrom": ["modules_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "modules_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2520,8 +3266,12 @@
           "name": "payload_locked_documents_rels_offers_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "offers",
-          "columnsFrom": ["offers_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "offers_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2529,8 +3279,12 @@
           "name": "payload_locked_documents_rels_posts_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "posts",
-          "columnsFrom": ["posts_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "posts_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2538,8 +3292,12 @@
           "name": "payload_locked_documents_rels_media_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "media",
-          "columnsFrom": ["media_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "media_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2547,8 +3305,12 @@
           "name": "payload_locked_documents_rels_activities_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "activities",
-          "columnsFrom": ["activities_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "activities_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2556,8 +3318,12 @@
           "name": "payload_locked_documents_rels_student_groups_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "student_groups",
-          "columnsFrom": ["student_groups_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "student_groups_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2565,8 +3331,38 @@
           "name": "payload_locked_documents_rels_scores_fk",
           "tableFrom": "payload_locked_documents_rels",
           "tableTo": "scores",
-          "columnsFrom": ["scores_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "scores_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "payload_locked_documents_rels_references_fk": {
+          "name": "payload_locked_documents_rels_references_fk",
+          "tableFrom": "payload_locked_documents_rels",
+          "tableTo": "references",
+          "columnsFrom": [
+            "references_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "payload_locked_documents_rels_payload_folders_fk": {
+          "name": "payload_locked_documents_rels_payload_folders_fk",
+          "tableFrom": "payload_locked_documents_rels",
+          "tableTo": "payload_folders",
+          "columnsFrom": [
+            "payload_folders_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2770,8 +3566,12 @@
           "name": "payload_preferences_rels_parent_fk",
           "tableFrom": "payload_preferences_rels",
           "tableTo": "payload_preferences",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2779,8 +3579,12 @@
           "name": "payload_preferences_rels_users_fk",
           "tableFrom": "payload_preferences_rels",
           "tableTo": "users",
-          "columnsFrom": ["users_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "users_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2872,7 +3676,11 @@
     "public.enum_users_role": {
       "name": "enum_users_role",
       "schema": "public",
-      "values": ["admin", "professor", "student"]
+      "values": [
+        "admin",
+        "professor",
+        "student"
+      ]
     },
     "public.enum_modules_type": {
       "name": "enum_modules_type",
@@ -2884,10 +3692,25 @@
         "recurso"
       ]
     },
+    "public.enum_modules_citation_style": {
+      "name": "enum_modules_citation_style",
+      "schema": "public",
+      "values": [
+        "authoryear",
+        "apa",
+        "chicago",
+        "numeric",
+        "ieee",
+        "vancouver"
+      ]
+    },
     "public.enum_modules_status": {
       "name": "enum_modules_status",
       "schema": "public",
-      "values": ["draft", "published"]
+      "values": [
+        "draft",
+        "published"
+      ]
     },
     "public.enum__modules_v_version_type": {
       "name": "enum__modules_v_version_type",
@@ -2899,30 +3722,65 @@
         "recurso"
       ]
     },
+    "public.enum__modules_v_version_citation_style": {
+      "name": "enum__modules_v_version_citation_style",
+      "schema": "public",
+      "values": [
+        "authoryear",
+        "apa",
+        "chicago",
+        "numeric",
+        "ieee",
+        "vancouver"
+      ]
+    },
     "public.enum__modules_v_version_status": {
       "name": "enum__modules_v_version_status",
       "schema": "public",
-      "values": ["draft", "published"]
+      "values": [
+        "draft",
+        "published"
+      ]
     },
     "public.enum_offers_status": {
       "name": "enum_offers_status",
       "schema": "public",
-      "values": ["active", "archived"]
+      "values": [
+        "active",
+        "archived"
+      ]
     },
     "public.enum_posts_status": {
       "name": "enum_posts_status",
       "schema": "public",
-      "values": ["draft", "published"]
+      "values": [
+        "draft",
+        "published"
+      ]
     },
     "public.enum_activities_type": {
       "name": "enum_activities_type",
       "schema": "public",
-      "values": ["individual", "group"]
+      "values": [
+        "individual",
+        "group"
+      ]
     },
     "public.enum_scores_entity_type": {
       "name": "enum_scores_entity_type",
       "schema": "public",
-      "values": ["student", "group"]
+      "values": [
+        "student",
+        "group"
+      ]
+    },
+    "public.enum_payload_folders_folder_type": {
+      "name": "enum_payload_folders_folder_type",
+      "schema": "public",
+      "values": [
+        "modules",
+        "media"
+      ]
     }
   },
   "schemas": {},
@@ -2935,6 +3793,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "2c4785e7-aacd-433d-9ce7-6022ecdd4a5e",
+  "id": "0dd10e81-2dec-403c-bbfb-b3c82deec309",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }
