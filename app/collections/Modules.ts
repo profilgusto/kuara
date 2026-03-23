@@ -12,7 +12,7 @@ export const Modules: CollectionConfig = {
     defaultColumns: ["title", "type", "course", "order", "_status"],
     livePreview: {
       url: ({ data }) => {
-        return `http://localhost:3000/preview/modules/${data.id}`;
+        return `${process.env.NEXT_PUBLIC_SERVER_URL}/preview/modules/${data.id}`;
       },
     },
     components: {
