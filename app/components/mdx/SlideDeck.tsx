@@ -3,36 +3,105 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useViewMode } from "./useViewMode";
 import {
-  ArrowLeft,
-  ArrowRight,
+  ChevronFirst,
+  ChevronLeft,
+  ChevronRight,
   Maximize2,
   Minimize2,
   Minus,
+  Moon,
+  PanelRight,
   Plus,
+  Sun,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
+import type { Heading } from "@/lib/mdx-pipeline";
 
-export default function SlideDeck({ children }: { children: ReactNode }) {
+export default function SlideDeck({
+  children,
+  headings = [],
+}: {
+  children: ReactNode;
+  headings?: Heading[];
+}) {
   const mode = useViewMode();
+  const { theme, setTheme } = useTheme();
   const deckRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const outerAreaRef = useRef<HTMLDivElement | null>(null);
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() => {
+    // Read saved slide position synchronously at component creation.
+    // This runs before any effects and before the first render, so there are
+    // no timing races with the show/hide or collection effects.
+    if (typeof window === "undefined") return 0;
+    const storageKey = `slidedeck:slide:${window.location.pathname}`;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const { index: saved, savedAt } = JSON.parse(raw) as { index: number; savedAt: number };
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+        if (Date.now() - savedAt < ONE_DAY && saved > 0) return saved;
+        if (Date.now() - savedAt >= ONE_DAY) localStorage.removeItem(storageKey);
+      }
+    } catch { /* ignore */ }
+    return 0;
+  });
   const [ids, setIds] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [contentScale, setContentScale] = useState(1.0);
+  const [fsNavOpen, setFsNavOpen] = useState(false);
+  // heading.id → slide index (built after ids settle, requires DOM lookup)
+  const [headingSlideMap, setHeadingSlideMap] = useState<Map<string, number>>(new Map());
+  const [contentScale, setContentScale] = useState(() => {
+    if (typeof window === "undefined") return 1.0;
+    const saved = localStorage.getItem("slidedeck:contentScale");
+    const parsed = saved ? parseFloat(saved) : NaN;
+    return isNaN(parsed) ? 1.0 : Math.min(2.0, Math.max(0.5, parsed));
+  });
 
   const adjustContentScale = (delta: number) =>
-    setContentScale((s) =>
-      Math.min(2.0, Math.max(0.5, Math.round((s + delta) * 10) / 10)),
-    );
+    setContentScale((s) => {
+      const next = Math.min(2.0, Math.max(0.5, Math.round((s + delta) * 10) / 10));
+      localStorage.setItem("slidedeck:contentScale", String(next));
+      return next;
+    });
 
-  // Reset content scale when leaving fullscreen
+  // Keep a ref to the latest index so the unmount cleanup can always read it
+  const indexRef = useRef(index);
+  useEffect(() => { indexRef.current = index; }, [index]);
+
+  // Persist slide index to localStorage (expires after 24h).
+  // Two mechanisms:
+  //   1. On every index change (normal navigation within the page)
+  //   2. On unmount (catches within-app navigation where React may not have
+  //      flushed the per-change effect before the component unmounts)
   useEffect(() => {
-    if (!isFullscreen) setContentScale(1.0);
-  }, [isFullscreen]);
+    if (ids.length === 0) return;
+    const storageKey = `slidedeck:slide:${window.location.pathname}`;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ index, savedAt: Date.now() }));
+    } catch {
+      // ignore quota errors
+    }
+  }, [index, ids.length]);
+
+  useEffect(() => {
+    // Capture pathname at mount time — the URL may change before cleanup runs
+    const pathname = window.location.pathname;
+    return () => {
+      if (indexRef.current <= 0) return;
+      try {
+        localStorage.setItem(
+          `slidedeck:slide:${pathname}`,
+          JSON.stringify({ index: indexRef.current, savedAt: Date.now() }),
+        );
+      } catch {
+        // ignore quota errors
+      }
+    };
+  }, []);
 
   // Zoom/pan state kept in a ref for synchronous access inside event handlers
   const transformRef = useRef({ zoom: 1, panX: 0, panY: 0 });
@@ -51,6 +120,10 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
     if (mode !== "apresentacao") return;
     const root = containerRef.current;
     if (!root) return;
+
+    // Capture the hash NOW, synchronously, before the show/hide effect (which runs
+    // after this one in the same commit) overwrites window.location.hash to slide 0.
+    const initialHash = window.location.hash.replace(/^#/, "");
 
     // Wait a tick for DOM to be fully hydrated
     requestAnimationFrame(() => {
@@ -72,14 +145,36 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
         }
       }
 
-      // Fall back to URL hash (e.g. normal page navigation)
-      const hash = window.location.hash.replace(/^#/, "");
-      if (hash) {
-        const idx = sections.findIndex((s) => s.dataset.id === hash);
-        if (idx >= 0) setIndex(idx);
+      // Fall back to URL hash captured before show/hide could overwrite it
+      if (initialHash) {
+        const idx = sections.findIndex((s) => s.dataset.id === initialHash);
+        if (idx >= 0) {
+          setIndex(idx);
+          return;
+        }
       }
+
+      // localStorage restore is handled synchronously in the useState initializer;
+      // no async fallback needed here.
     });
   }, [mode, children]);
+
+  // Navigate to a specific slide via custom event (e.g. from sidebar)
+  useEffect(() => {
+    if (mode !== "apresentacao") return;
+    const handler = (e: Event) => {
+      const { id } = (e as CustomEvent<{ id: string }>).detail;
+      const root = containerRef.current;
+      if (!root) return;
+      const sections: HTMLElement[] = Array.from(
+        root.querySelectorAll("section[data-id]"),
+      );
+      const idx = sections.findIndex((s) => s.dataset.id === id);
+      if (idx >= 0) setIndex(idx);
+    };
+    window.addEventListener("slidedeck:goto", handler);
+    return () => window.removeEventListener("slidedeck:goto", handler);
+  }, [mode]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -242,10 +337,31 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    const handler = () => {
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      if (!fs) setFsNavOpen(false);
+    };
     document.addEventListener("fullscreenchange", handler);
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
+
+  // Build heading → slide index map after ids are collected
+  useEffect(() => {
+    if (ids.length === 0 || headings.length === 0) return;
+    const root = containerRef.current;
+    if (!root) return;
+    const map = new Map<string, number>();
+    headings.forEach((h) => {
+      const el = root.querySelector(`[id="${CSS.escape(h.id)}"]`);
+      const slideId = el?.closest("section[data-id]")?.getAttribute("data-id");
+      if (slideId) {
+        const idx = ids.indexOf(slideId);
+        if (idx >= 0) map.set(h.id, idx);
+      }
+    });
+    setHeadingSlideMap(map);
+  }, [ids, headings]);
 
   if (mode !== "apresentacao") {
     return <div ref={containerRef}>{children}</div>;
@@ -318,10 +434,20 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
             variant="ghost"
             size="icon"
             className="h-7 w-7"
+            onClick={() => setIndex(0)}
+            aria-label="Primeiro slide"
+          >
+            <ChevronFirst className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
             onClick={() => setIndex((i) => Math.max(i - 1, 0))}
             aria-label="Slide anterior"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" />
           </Button>
 
           <span className="text-xs font-medium opacity-70 tabular-nums w-14 text-center select-none">
@@ -337,7 +463,7 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
             }
             aria-label="Próximo slide"
           >
-            <ArrowRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4" />
           </Button>
 
           <Button
@@ -353,8 +479,75 @@ export default function SlideDeck({ children }: { children: ReactNode }) {
               <Maximize2 className="h-4 w-4" />
             )}
           </Button>
+
+          {isFullscreen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              aria-label="Alternar tema"
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+
+          {isFullscreen && headings.length > 0 && (
+            <>
+              <div className="w-px h-4 bg-border/60 mx-1 shrink-0" />
+              <Button
+                variant={fsNavOpen ? "secondary" : "ghost"}
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setFsNavOpen((v) => !v)}
+                aria-label="Navegação de seções"
+              >
+                <PanelRight className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Fullscreen section navigator */}
+      {isFullscreen && headings.length > 0 && (
+        <aside
+          className="absolute right-0 bottom-0 z-20 w-60 bg-background/90 backdrop-blur border-l border-border/40 overflow-y-auto transition-transform duration-300 ease-in-out"
+          aria-hidden={!fsNavOpen}
+          style={{
+            top: "calc(0.25rem + 2.5rem)",
+            transform: fsNavOpen ? "translateX(0)" : "translateX(100%)",
+            fontSize: "calc(1rem * var(--slide-content-scale, 1))",
+          }}
+        >
+          <ul className="p-3 space-y-1 text-sm">
+            {headings.map((h) => {
+              const slideIdx = headingSlideMap.get(h.id);
+              const isActive = slideIdx === index;
+              return (
+                <li key={h.id}>
+                  <button
+                    className={`w-full text-left px-2 py-1.5 rounded-md transition-colors line-clamp-2 ${
+                      isActive
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`}
+                    onClick={() => {
+                      if (slideIdx !== undefined) setIndex(slideIdx);
+                    }}
+                  >
+                    {h.text}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </aside>
+      )}
 
       <div
         ref={outerAreaRef}

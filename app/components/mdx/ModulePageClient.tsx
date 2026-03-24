@@ -2,6 +2,7 @@
 
 import React, { ReactNode } from "react";
 import { ModuleContext } from "./ModuleContext";
+import { QuestionCounterProvider } from "./QuestionCounterContext";
 import ViewToggle from "./ViewToggle";
 import SlideDeck from "./SlideDeck";
 import PrintButton from "./PrintButton";
@@ -139,7 +140,9 @@ export function ModulePageClient({
       </h1>
 
       {/* SlideDeck wrapper only affects rendering when mode='apresentacao' */}
-      <SlideDeck>{children}</SlideDeck>
+      <QuestionCounterProvider>
+        <SlideDeck headings={headings}>{children}</SlideDeck>
+      </QuestionCounterProvider>
     </ModuleContext.Provider>
   );
 }

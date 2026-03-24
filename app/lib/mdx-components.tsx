@@ -19,6 +19,9 @@ import KImage from "@/components/mdx/KImage";
 import ExternalLink from "@/components/mdx/ExternalLink";
 import Download from "@/components/mdx/Download";
 import CodeBlock from "@/components/mdx/CodeBlock";
+import Question, { Answer, Hint } from "@/components/mdx/Question";
+import Comment from "@/components/mdx/Comment";
+import Todo from "@/components/mdx/Todo";
 import Cite from "@/components/citations/Cite";
 import RefFig from "@/components/figures/RefFig";
 import type { ComponentType } from "react";
@@ -28,6 +31,7 @@ import type { ComponentType } from "react";
  * This is the single source of truth for all custom components
  * available in MDX content.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getMdxComponents(): Record<string, ComponentType<any>> {
   return {
     // Presentation components
@@ -41,6 +45,9 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
     TextOnly,
 
     // Content components
+    Question,
+    Answer,
+    Hint,
     Callout,
     YouTube,
     PDF,
@@ -48,11 +55,19 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
     ExternalLink,
     Download,
 
+    // Invisible author-only blocks
+    Comment,
+    Todo,
+
     // Citation
     Cite,
 
     // Figure cross-reference
     RefFig,
+
+    // Links always open in a new tab
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    a: (props: any) => <a {...props} target="_blank" rel="noopener noreferrer" />,
 
     // Code block override
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

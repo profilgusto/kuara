@@ -25,10 +25,20 @@ const dirname = path.dirname(filename);
 // and a top-level throw would break static page collection.
 
 export default buildConfig({
+  defaultMaxTextLength: 800000, // ~800 KB — allows large MDX module content (default is 40,000)
   admin: {
     user: Users.slug,
     importMap: {
       baseDir: path.resolve(dirname),
+    },
+    components: {
+      views: {
+        todos: {
+          Component: "@/admin/views/TodosView",
+          path: "/todos",
+        },
+      },
+      afterNavLinks: ["@/admin/components/TodosNavLink"],
     },
   },
   collections: [

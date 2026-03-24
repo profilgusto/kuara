@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { CourseDetail } from "@/lib/payload-content";
 import { Heading } from "@/lib/mdx-pipeline";
 import { BookOpen, FlaskConical, ClipboardCheck, FileText } from "lucide-react";
+import { useViewMode } from "./useViewMode";
 
 interface CourseSidebarProps {
   course: CourseDetail;
@@ -43,6 +44,7 @@ export function CourseSidebar({
   onLinkClick,
 }: CourseSidebarProps) {
   const pathname = usePathname();
+  const viewMode = useViewMode();
   const [activeHeading, setActiveHeading] = useState<string | null>(null);
 
   // Scroll spy for headings
@@ -123,10 +125,24 @@ export function CourseSidebar({
                           }`}
                           onClick={(e) => {
                             e.preventDefault();
-                            document
-                              .getElementById(h.id)
-                              ?.scrollIntoView({ behavior: "smooth" });
-                            history.pushState(null, "", `#${h.id}`);
+                            if (viewMode === "apresentacao") {
+                              const headingEl = document.getElementById(h.id);
+                              const slideId = headingEl
+                                ?.closest("section[data-id]")
+                                ?.getAttribute("data-id");
+                              if (slideId) {
+                                window.dispatchEvent(
+                                  new CustomEvent("slidedeck:goto", {
+                                    detail: { id: slideId },
+                                  }),
+                                );
+                              }
+                            } else {
+                              document
+                                .getElementById(h.id)
+                                ?.scrollIntoView({ behavior: "smooth" });
+                              history.pushState(null, "", `#${h.id}`);
+                            }
                             onLinkClick?.();
                           }}
                         >

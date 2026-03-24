@@ -69,7 +69,7 @@ const remarkWrapSlides: Plugin = () => {
 
       if (
         n.type === "heading" &&
-        (n.depth === 1 || n.depth === 2 || n.depth === 3)
+        (n.depth === 1 || n.depth === 2 || n.depth === 3 || n.depth === 4)
       ) {
         if (skipNextBreak) {
           skipNextBreak = false;
@@ -104,7 +104,8 @@ const remarkWrapSlides: Plugin = () => {
       const heading =
         seg.find((n: Node) => n.type === "heading" && n.depth === 1) ||
         seg.find((n: Node) => n.type === "heading" && n.depth === 2) ||
-        seg.find((n: Node) => n.type === "heading" && n.depth === 3);
+        seg.find((n: Node) => n.type === "heading" && n.depth === 3) ||
+        seg.find((n: Node) => n.type === "heading" && n.depth === 4);
 
       const text = heading
         ? toString(heading).trim()
@@ -130,7 +131,7 @@ const remarkWrapSlides: Plugin = () => {
           const prevHeading = segments[k].find(
             (n: Node) =>
               n.type === "heading" &&
-              (n.depth === 1 || n.depth === 2 || n.depth === 3),
+              (n.depth === 1 || n.depth === 2 || n.depth === 3 || n.depth === 4),
           );
           if (prevHeading) {
             titleText = toString(prevHeading).trim();

@@ -37,6 +37,13 @@ import {
   Monitor,
   CornerDownRight,
   BookMarked,
+  MessageSquareDashed,
+  ListTodo,
+  Dumbbell,
+  BookOpen,
+  Brain,
+  BookText,
+  Check,
 } from "lucide-react";
 
 // ── Snippet categories include 'citations' now ──
@@ -53,7 +60,7 @@ interface Snippet {
   template: string;
   description: string;
   /** category for grouping in the toolbar */
-  category: "structure" | "media" | "presentation" | "content" | "citations" | "figures";
+  category: "structure" | "media" | "presentation" | "content" | "citations" | "figures" | "questions" | "authoring";
 }
 
 const SNIPPETS: Snippet[] = [
@@ -302,6 +309,70 @@ const SNIPPETS: Snippet[] = [
       "Impede que o próximo H1/H2/H3 crie um novo slide (cabeçalho permanece no slide atual)",
     category: "presentation",
   },
+
+  // ── Questions ──
+  {
+    label: "Exercício",
+    icon: Dumbbell,
+    template:
+      '<Question type="exercise" title="${1:Título do exercício}" initialState="contracted">\n${2:Enunciado do exercício.}\n\n<Hint>\n${3:Uma dica para ajudar.}\n</Hint>\n\n<Answer>\n${4:Solução detalhada.}\n</Answer>\n</Question>\n',
+    description: "Bloco de exercício com dica e resposta recolhíveis",
+    category: "questions",
+  },
+  {
+    label: "Exemplo",
+    icon: BookOpen,
+    template:
+      '<Question type="example" title="${1:Título do exemplo}" initialState="expanded">\n${2:Descrição do exemplo.}\n\n<Answer>\n${3:Solução ou desenvolvimento.}\n</Answer>\n</Question>\n',
+    description: "Bloco de exemplo resolvido (resposta expandida por padrão)",
+    category: "questions",
+  },
+  {
+    label: "Problema",
+    icon: Brain,
+    template:
+      '<Question type="problem" title="${1:Título do problema}" initialState="contracted">\n${2:Enunciado do problema.}\n\n<Hint>\n${3:Uma dica para ajudar.}\n</Hint>\n\n<Answer>\n${4:Solução detalhada.}\n</Answer>\n</Question>\n',
+    description: "Bloco de problema com dica e solução recolhíveis",
+    category: "questions",
+  },
+  {
+    label: "Definição",
+    icon: BookText,
+    template:
+      '<Question type="definition" title="${1:Termo ou conceito}" initialState="expanded">\n${2:Definição formal do conceito.}\n</Question>\n',
+    description: "Bloco de definição (sem resposta, expandido por padrão)",
+    category: "questions",
+  },
+  {
+    label: "Resposta",
+    icon: Check,
+    template: "<Answer>\n${1:Resposta ou solução.}\n</Answer>\n",
+    description: "Seção de resposta dentro de um bloco Question",
+    category: "questions",
+  },
+  {
+    label: "Dica",
+    icon: Lightbulb,
+    template: "<Hint>\n${1:Dica para o aluno.}\n</Hint>\n",
+    description: "Seção de dica dentro de um bloco Question",
+    category: "questions",
+  },
+
+  // ── Authoring (invisible in output) ──
+  {
+    label: "Comentário",
+    icon: MessageSquareDashed,
+    template: "<Comment>\n${1:Nota do autor — não aparece no conteúdo publicado.}\n</Comment>\n",
+    description: "Bloco invisível para notas do autor (não renderizado no conteúdo final)",
+    category: "authoring",
+  },
+  {
+    label: "TODO",
+    icon: ListTodo,
+    template: "<Todo>\n${1:Descreva o que precisa ser feito aqui.}\n</Todo>\n",
+    description: "Pendência do autor — visível no painel /admin/todos, nunca no conteúdo final",
+    category: "authoring",
+  },
 ];
 
 const CATEGORY_LABELS: Record<Snippet["category"], string> = {
@@ -310,7 +381,9 @@ const CATEGORY_LABELS: Record<Snippet["category"], string> = {
   media: "Mídia",
   figures: "Figuras",
   citations: "Citações",
+  questions: "Questões",
   presentation: "Apresentação",
+  authoring: "Notas",
 };
 
 const CATEGORY_ORDER: Snippet["category"][] = [
@@ -319,7 +392,9 @@ const CATEGORY_ORDER: Snippet["category"][] = [
   "media",
   "figures",
   "citations",
+  "questions",
   "presentation",
+  "authoring",
 ];
 
 /* ──────────────────────────────────────

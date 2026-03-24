@@ -116,9 +116,9 @@ export default function KImage({
     if (!section || section.style.display === "none") return;
 
     // Walk up to find the nearest scroll container.
-    // In embedded mode: div.absolute.inset-0.overflow-y-auto inside SlideDeck.
+    // In embedded mode: the section itself has overflow-y:auto (set by SlideDeck).
     // In fullscreen mode: the presentation-deck div (overflow-y: auto via CSS).
-    let scrollEl: HTMLElement | null = section.parentElement;
+    let scrollEl: HTMLElement | null = section;
     while (scrollEl && scrollEl !== document.documentElement) {
       const cs = window.getComputedStyle(scrollEl);
       if (cs.overflowY === "auto" || cs.overflowY === "scroll") break;
