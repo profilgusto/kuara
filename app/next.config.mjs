@@ -41,6 +41,31 @@ const nextConfig = {
         return config
     },
 
+    // CSP headers — mirrors the Traefik middleware policy in docker-compose.prod.yml
+    // so violations surface in dev instead of only in production.
+    async headers() {
+        const csp = [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net",
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+            "img-src 'self' data: https: blob:",
+            "font-src 'self' data: https://cdn.jsdelivr.net",
+            "connect-src 'self' https://cdn.jsdelivr.net",
+            "worker-src blob:",
+            "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
+            "frame-ancestors 'self'",
+            "base-uri 'self'",
+            "form-action 'self'",
+        ].join('; ')
+
+        return [
+            {
+                source: '/(.*)',
+                headers: [{ key: 'Content-Security-Policy', value: csp }],
+            },
+        ]
+    },
+
     // Proxy /media/* → MinIO so media URLs work in dev and production.
     // Traefik passes all traffic through to the web service, so Next.js
     // handles this rewrite directly in production.

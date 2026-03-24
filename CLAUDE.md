@@ -22,7 +22,20 @@ Only after Phase 1 passes, run from root (`/`):
 - `docker-compose logs -f web` to monitor output.
 - *Strict Rule:* NUNCA rode `npm run dev` na máquina host. Use apenas o Docker Compose.
 
-## 2. Project Gotchas & Architecture Rules
+## 2. Schema Changes & Migrations (MANDATORY)
+
+Whenever you modify a Payload CMS Collection (add/remove/rename fields, change types), you **must** create a migration file before committing:
+
+```bash
+# From inside the running web container:
+docker compose exec web npx payload migrate:create
+```
+
+This generates a timestamped file in `app/migrations/`. Commit it alongside your collection change.
+
+**Why this matters:** Dev uses `push:true` (auto-syncs schema), but prod uses explicit migrations. If no migration file exists, the prod deploy will fail at the `migrate` service. The file is the bridge between dev convenience and prod correctness.
+
+## 3. Project Gotchas & Architecture Rules (read before writing code)
 - **Progressive Discovery:** Do not reinvent the wheel. Check existing KIs (Knowledge Items), `/components`, and `/collections` before proposing new ones.
 - **Database & CMS:** Any new data requirement MUST go through a Payload CMS Collection. Define it in `app/collections/`, then ensure `app/payload.config.ts` exports it.
 - **Styling:** We use Tailwind CSS via Shadcn UI patterns. Do not use plain CSS or styled-components.
@@ -31,7 +44,7 @@ Only after Phase 1 passes, run from root (`/`):
   - `app/app/`: Next.js frontend pages and API.
   - `app/mdx-plugins/`: Custom rehype/remark plugins.
 
-## 3. Verification Protocol (MANDATORY)
+## 4. Verification Protocol (MANDATORY)
 Execute this silently before returning control:
 1. Re-read the full original task specification.
 2. For each stated requirement: test it programmatically (Phase 1) or visually (Phase 2), confirm it works, and state the evidence.
