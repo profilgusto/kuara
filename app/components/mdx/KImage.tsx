@@ -241,6 +241,13 @@ export default function KImage({
   };
 
   if (isAutoMode) {
+    // Derive max-width for the figcaption from autoStyle so it never exceeds the image width.
+    // If the image is width-constrained (explicit px width), use that; otherwise fall back to maxWidth.
+    const figcaptionAutoMaxWidth =
+      autoStyle.width && autoStyle.width !== "auto"
+        ? autoStyle.width
+        : autoStyle.maxWidth;
+
     return (
       <div
         id={label ? `fig-${label}` : undefined}
@@ -248,7 +255,7 @@ export default function KImage({
         className={`mt-2 mb-0 flex w-full ${alignmentStyles[align]} ${className || ""}`}
         style={{ scrollMarginTop: "5rem" }}
       >
-        <div className="flex flex-col">
+        <div className="flex flex-col w-fit max-w-full">
           <img
             ref={imgRef}
             src={imageSrc}
@@ -259,6 +266,7 @@ export default function KImage({
           {showFigcaption && (
             <figcaption
               className={`mt-1.5 text-xs text-muted-foreground italic ${captionTextAlign[align]}`}
+              style={{ maxWidth: figcaptionAutoMaxWidth }}
             >
               {hasFigNum && (
                 <span className="font-semibold not-italic text-foreground/70">
@@ -310,27 +318,26 @@ export default function KImage({
     return activeWidth;
   })();
 
+  const imageWidthStyle =
+    presentationStyleWidth ?? (activeWidth ? normalizeToCss(activeWidth) : undefined);
+
   return (
     <div
       id={label ? `fig-${label}` : undefined}
       className={`my-8 flex w-full ${alignmentStyles[align]} ${className || ""}`}
       style={{ scrollMarginTop: "5rem" }}
     >
-      <div className="flex flex-col">
+      <div className="flex flex-col w-fit max-w-full">
         <img
           src={imageSrc}
           alt={alt}
           className="rounded-lg shadow-md h-auto transition-all duration-300"
-          style={{
-            width:
-              presentationStyleWidth ??
-              (activeWidth ? normalizeToCss(activeWidth) : "auto"),
-            height: "auto",
-          }}
+          style={{ width: imageWidthStyle ?? "auto", height: "auto" }}
         />
         {showFigcaption && (
           <figcaption
             className={`mt-1.5 text-xs text-muted-foreground italic ${captionTextAlign[align]}`}
+            style={{ maxWidth: imageWidthStyle }}
           >
             {hasFigNum && (
               <span className="font-semibold not-italic text-foreground/70">
