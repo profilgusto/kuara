@@ -10,7 +10,6 @@ import {
   Heading3,
   Link as LinkIcon,
   Minus,
-  Image as ImageIcon,
   ImagePlus,
   Link2,
   Video,
@@ -195,22 +194,12 @@ const SNIPPETS: Snippet[] = [
     category: "content",
   },
 
-  // ── Media ──
-  {
-    label: "Imagem",
-    icon: ImageIcon,
-    template:
-      '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  alt="${2:descrição para leitores de tela}"\n  width="${3:400}"\n  widthPresentation="${4:auto}"\n  align="${5:|center,left,right|}"\n/>\n',
-    description: "Imagem simples sem numeração (alt é só para leitores de tela)",
-    category: "media",
-  },
-
   // ── Figures (numbered) ──
   {
     label: "Figura Numerada",
     icon: ImagePlus,
     template:
-      '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  label="${2:fig-identificador}"\n  caption="${3:Legenda da figura}"\n  alt="${4:descrição para leitores de tela}"\n  width="${5:400}"\n  widthPresentation="${6:auto}"\n  align="${7:|center,left,right|}"\n/>\n',
+      '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  label="${2:fig-identificador}"\n  alt="${3:descrição para leitores de tela}"\n  width="${4:400}"\n  widthPresentation="${5:auto}"\n  align="${6:|center,left,right|}"\n>\n  ${7:Legenda da figura}\n</KImage>\n',
     description: 'Figura com numeração automática "Fig. N" e legenda. Requer label único para referências.',
     category: "figures",
   },

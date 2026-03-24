@@ -13,11 +13,16 @@ interface KImageProps {
    */
   alt?: string;
   /**
-   * Visible caption text displayed below the image.
-   * Takes priority over `alt` for display purposes.
+   * Plain-text caption. For rich captions (with <Cite /> etc.), use children instead.
    * When combined with `label`, renders as "Fig. N — caption".
    */
   caption?: string;
+  /**
+   * Rich caption content (JSX). Use instead of `caption` when you need inline
+   * components such as <Cite />. Works across the RSC→client boundary because
+   * children are composed, not serialized as props.
+   */
+  children?: React.ReactNode;
   /**
    * Unique label for this figure. When set:
    *  - The figure is numbered ("Fig. N") in document order.
@@ -40,6 +45,7 @@ export default function KImage({
   src,
   alt = "",
   caption,
+  children,
   label,
   width,
   widthPresentation,
@@ -59,14 +65,14 @@ export default function KImage({
     if (!label || !registerMetadata) return;
     registerMetadata(label, {
       src: imageSrc ?? "",
-      captionText: caption ?? "",
+      captionText: typeof caption === "string" ? caption : "",
     });
   }, [label, imageSrc, caption, registerMetadata]);
 
   // ── Caption display logic ──────────────────────────────────────────────────
   // `alt` is strictly for screen readers (<img alt={alt}>), never shown visually.
-  // Only `caption` drives the visible figcaption.
-  const displayCaption = caption ?? "";
+  // `children` takes priority for rich captions (JSX/Cite); `caption` for plain text.
+  const displayCaption = children ?? caption ?? "";
   const hasFigNum = figNum > 0;
   const showFigcaption = hasFigNum || !!displayCaption;
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -265,7 +271,7 @@ export default function KImage({
           />
           {showFigcaption && (
             <figcaption
-              className={`mt-1.5 text-xs text-muted-foreground italic ${captionTextAlign[align]}`}
+              className={`mt-1.5 text-xs text-muted-foreground italic [&_p]:inline [&_p]:m-0 ${captionTextAlign[align]}`}
               style={{ maxWidth: figcaptionAutoMaxWidth }}
             >
               {hasFigNum && (
@@ -336,7 +342,7 @@ export default function KImage({
         />
         {showFigcaption && (
           <figcaption
-            className={`mt-1.5 text-xs text-muted-foreground italic ${captionTextAlign[align]}`}
+            className={`mt-1.5 text-xs text-muted-foreground italic [&_p]:inline [&_p]:m-0 ${captionTextAlign[align]}`}
             style={{ maxWidth: imageWidthStyle }}
           >
             {hasFigNum && (
