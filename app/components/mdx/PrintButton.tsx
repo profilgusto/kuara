@@ -2,6 +2,7 @@
 
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useViewMode } from "./useViewMode";
 
 // Styles injected at print time to force light-mode rendering.
 // We use a dynamically inserted <style> tag rather than @media print in
@@ -39,6 +40,10 @@ const PRINT_STYLES = `
 `;
 
 export default function PrintButton() {
+  const mode = useViewMode();
+
+  if (mode === "apresentacao") return null;
+
   const handlePrint = () => {
     const html = document.documentElement;
     const body = document.body;
