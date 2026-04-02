@@ -247,17 +247,34 @@ export default function SlideDeck({
     let startX = 0;
     let startY = 0;
     let swiping = false;
+    let isHorizontalSwipe: boolean | null = null;
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       swiping = true;
+      isHorizontalSwipe = null;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!swiping || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      // Determine swipe direction once we have enough movement
+      if (isHorizontalSwipe === null && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+        isHorizontalSwipe = Math.abs(dx) > Math.abs(dy);
+      }
+      // Block native horizontal scroll/pan so the sidebar never becomes visible
+      if (isHorizontalSwipe) {
+        e.preventDefault();
+      }
     };
 
     const onTouchEnd = (e: TouchEvent) => {
       if (!swiping) return;
       swiping = false;
+      isHorizontalSwipe = null;
       const dx = (e.changedTouches[0]?.clientX || 0) - startX;
       const dy = (e.changedTouches[0]?.clientY || 0) - startY;
       if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
@@ -268,9 +285,12 @@ export default function SlideDeck({
     };
 
     el.addEventListener("touchstart", onTouchStart, { passive: true });
+    // non-passive so we can call preventDefault() and block horizontal native scroll
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
     el.addEventListener("touchend", onTouchEnd, { passive: true });
     return () => {
       el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
       el.removeEventListener("touchend", onTouchEnd);
     };
   }, [mode, ids.length]);
@@ -373,7 +393,7 @@ export default function SlideDeck({
   return (
     <div
       ref={deckRef}
-      className={`presentation-deck relative mx-auto w-full bg-background flex flex-col min-h-[500px] ${isFullscreen ? "h-screen" : "h-[600px]"}`}
+      className={`presentation-deck relative mx-auto w-full bg-background flex flex-col min-h-[500px] overflow-hidden ${isFullscreen ? "h-screen" : "h-[600px]"}`}
       data-fullscreen={isFullscreen}
       style={{ "--slide-content-scale": contentScale } as React.CSSProperties}
     >
