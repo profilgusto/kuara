@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useContext, useState, ReactNode } from "react";
-import { ChevronDown, ChevronRight, Lightbulb, BookOpen } from "lucide-react";
+import { ChevronDown, ChevronRight, Lightbulb, BookOpen, Pencil, FlaskConical, Target, BookMarked } from "lucide-react";
 import { useQuestionNumber } from "./QuestionCounterContext";
 
 export type QuestionType = "example" | "exercise" | "problem" | "definition";
@@ -26,6 +26,7 @@ interface HintProps {
 const typeConfig = {
   exercise: {
     label: "Exercício",
+    icon: Pencil,
     answerLabel: "Ver resposta",
     hideAnswerLabel: "Ocultar resposta",
     borderColor: "border-primary/40",
@@ -35,6 +36,7 @@ const typeConfig = {
   },
   example: {
     label: "Exemplo",
+    icon: FlaskConical,
     answerLabel: "Ver solução",
     hideAnswerLabel: "Ocultar solução",
     borderColor: "border-secondary/40",
@@ -44,6 +46,7 @@ const typeConfig = {
   },
   problem: {
     label: "Problema",
+    icon: Target,
     answerLabel: "Ver solução",
     hideAnswerLabel: "Ocultar solução",
     borderColor: "border-clay/40",
@@ -53,6 +56,7 @@ const typeConfig = {
   },
   definition: {
     label: "Definição",
+    icon: BookMarked,
     answerLabel: "Ver detalhes",
     hideAnswerLabel: "Ocultar detalhes",
     borderColor: "border-accent/40",
@@ -64,6 +68,7 @@ const typeConfig = {
   QuestionType,
   {
     label: string;
+    icon: typeof Pencil;
     answerLabel: string;
     hideAnswerLabel: string;
     borderColor: string;
@@ -98,12 +103,10 @@ const QuestionContext = createContext<QuestionContextValue | null>(null);
  * Renders as a full-width collapsible section at the bottom of the card.
  */
 export function Hint({ children }: HintProps) {
-  const ctx = useContext(QuestionContext);
   const [expanded, setExpanded] = useState(false);
-  const borderColor = ctx?.borderColor ?? "border-border/50";
 
   return (
-    <div className={`-mx-4 border-t ${borderColor} last:-mb-3`}>
+    <div className="-mx-4 border-t border-border/20 last:-mb-3">
       <button
         onClick={() => setExpanded((v) => !v)}
         className="w-full flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/20 transition-colors"
@@ -122,7 +125,7 @@ export function Hint({ children }: HintProps) {
         }`}
       >
         <div
-          className={`px-4 py-3 border-t ${borderColor} bg-muted/10 text-sm [&>p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit`}
+          className="px-4 py-3 bg-muted/10 text-sm [&>p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit"
         >
           {children}
         </div>
@@ -141,12 +144,11 @@ export function Answer({ children }: AnswerProps) {
   const [expanded, setExpanded] = useState(
     () => ctx?.initialAnswerState === "expanded",
   );
-  const borderColor = ctx?.borderColor ?? "border-border/50";
   const answerLabel = ctx?.answerLabel ?? "Ver resposta";
   const hideAnswerLabel = ctx?.hideAnswerLabel ?? "Ocultar resposta";
 
   return (
-    <div className={`-mx-4 border-t ${borderColor} last:-mb-3`}>
+    <div className="-mx-4 border-t border-border/20 last:-mb-3">
       <button
         onClick={() => setExpanded((v) => !v)}
         className="w-full flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/20 transition-colors"
@@ -165,7 +167,7 @@ export function Answer({ children }: AnswerProps) {
         }`}
       >
         <div
-          className={`px-4 py-3 border-t ${borderColor} bg-muted/10 text-sm [&>p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit`}
+          className="px-4 py-3 bg-muted/10 text-sm [&>p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit"
         >
           {children}
         </div>
@@ -217,13 +219,14 @@ export default function Question({
       }}
     >
       <div
-        className={`my-6 rounded-lg border ${config.borderColor} ${config.bgColor} overflow-hidden`}
+        className={`my-6 rounded-lg border-l-4 ${config.borderColor} ${config.bgColor} overflow-hidden`}
       >
         {/* ── Header ── */}
         <div
-          className={`px-4 py-2.5 ${config.headerBg} border-b ${config.borderColor}`}
+          className={`px-4 py-2.5 ${config.headerBg}`}
         >
           <div className="flex items-center gap-2">
+            <config.icon className={`h-4 w-4 flex-shrink-0 ${config.labelColor}`} />
             <span
               className={`text-xs font-semibold uppercase tracking-wider ${config.labelColor}`}
             >

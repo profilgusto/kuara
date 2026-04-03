@@ -25,6 +25,55 @@ const remarkWrapSlides: Plugin = () => {
 
     console.log("remarkWrapSlides running! Number of children:", kids.length);
 
+    // Hoist SlideBreak components out of wrapping JSX elements (e.g. PresentOnly, TextOnly)
+    // so that they become top-level children and trigger slide breaks normally.
+    function hoistSlideBreaks(nodes: Node[]): Node[] {
+      const result: Node[] = [];
+      for (const node of nodes) {
+        if (
+          node.type === "mdxJsxFlowElement" &&
+          node.name !== "SlideBreak" &&
+          node.name !== "Slide" &&
+          Array.isArray(node.children) &&
+          node.children.some(isSlideBreakComponent)
+        ) {
+          // Split node.children at each SlideBreak
+          const parts: Node[][] = [];
+          let current: Node[] = [];
+          for (const child of node.children as Node[]) {
+            if (isSlideBreakComponent(child)) {
+              parts.push(current);
+              current = [];
+            } else {
+              current.push(child);
+            }
+          }
+          parts.push(current);
+
+          for (let i = 0; i < parts.length; i++) {
+            // Insert the SlideBreak between parts (before non-first parts)
+            if (i > 0) {
+              result.push({
+                type: "mdxJsxFlowElement",
+                name: "SlideBreak",
+                attributes: [],
+                children: [],
+              });
+            }
+            // Only emit the wrapper if it has children
+            if (parts[i].length > 0) {
+              result.push({ ...node, children: parts[i] });
+            }
+          }
+        } else {
+          result.push(node);
+        }
+      }
+      return result;
+    }
+
+    root.children = hoistSlideBreaks(root.children);
+
     // Build segments
     const segments: Node[][] = [];
     let current: Node[] = [];
@@ -57,7 +106,7 @@ const remarkWrapSlides: Plugin = () => {
 
     let skipNextBreak = false;
 
-    for (const n of kids) {
+    for (const n of root.children) {
       // SkipBreak: consume it, set flag, and skip adding it to content
       if (isSkipBreakComponent(n)) {
         skipNextBreak = true;

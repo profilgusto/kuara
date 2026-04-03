@@ -9,8 +9,12 @@ import {
   Heading2,
   Heading3,
   Link as LinkIcon,
+  TowelRack,
   Minus,
   ImagePlus,
+  BookmarkPlus,
+  Bookmark,
+  Image,
   Link2,
   Video,
   FileText,
@@ -23,7 +27,9 @@ import {
   Presentation,
   Columns2,
   Lightbulb,
+  Wallpaper,
   ExternalLink as ExternalLinkIcon,
+  TableColumnsSplit,
   List,
   Quote,
   Maximize,
@@ -204,7 +210,7 @@ const SNIPPETS: Snippet[] = [
   // ── Figures (numbered) ──
   {
     label: "Figura Simples",
-    icon: ImagePlus,
+    icon: Image,
     template:
       '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  width="${2:400}"\n  widthPresentation="${3:auto}"\n/>\n',
     description: "Figura simples sem numeração nem legenda.",
@@ -253,7 +259,7 @@ const SNIPPETS: Snippet[] = [
   // ── Citations ──
   {
     label: "Citar",
-    icon: BookMarked,
+    icon: Bookmark,
     template: '<Cite label="${1:chave-bibtex}" />',
     description:
       "Citação simples. A chave deve existir na coleção References do Payload.",
@@ -261,7 +267,7 @@ const SNIPPETS: Snippet[] = [
   },
   {
     label: "Multi-Citar",
-    icon: BookMarked,
+    icon: BookmarkPlus,
     template: '<Cite labels={["${1:chave1}", "${2:chave2}"]} />',
     description:
       "Agrupa várias referências em uma única citação: [1,2] ou (Autor1, Ano; Autor2, Ano)",
@@ -271,7 +277,7 @@ const SNIPPETS: Snippet[] = [
   // ── Presentation (Slides) ──
   {
     label: "Capa",
-    icon: Maximize,
+    icon: Wallpaper,
     template:
       '<SlideCover\n  title="${1:Título Principal}"\n  subtitle="${2:Subtítulo de Apoio}"\n  author="${3:Nome do Autor}"\n  date="${4:Maio 2026}"\n  backgroundImage="${5:/api/media/file/background.png}"\n  backgroundMaskOpacity="${6:60%}"\n  backgroundMaskBlur="${7:2px}"\n  logoImage="${8:/api/media/file/logo.png}"\n/>\n\n',
     description: "Capa do slide (primeiro slide)",
@@ -279,10 +285,18 @@ const SNIPPETS: Snippet[] = [
   },
   {
     label: "Quebra de Slide",
-    icon: Presentation,
+    icon: TableColumnsSplit,
     template: "<SlideBreak />\n\n",
     description:
       "Força a quebra para um novo slide (H1, H2 e H3 também quebram automaticamente)",
+    category: "presentation",
+  },
+  {
+    label: "Manter no Slide",
+    icon: TowelRack,
+    template: "<SkipBreak />\n",
+    description:
+      "Impede que o próximo H1/H2/H3 crie um novo slide (cabeçalho permanece no slide atual)",
     category: "presentation",
   },
   {
@@ -309,22 +323,14 @@ const SNIPPETS: Snippet[] = [
     description: "Conteúdo oculto na visualização de texto corrido",
     category: "presentation",
   },
-  {
-    label: "Manter no Slide",
-    icon: CornerDownRight,
-    template: "<SkipBreak />\n",
-    description:
-      "Impede que o próximo H1/H2/H3 crie um novo slide (cabeçalho permanece no slide atual)",
-    category: "presentation",
-  },
 
   // ── Questions ──
   {
-    label: "Exercício",
-    icon: Dumbbell,
+    label: "Definição",
+    icon: BookText,
     template:
-      '<Question type="exercise" title="${1:Título do exercício}" initialState="contracted">\n${2:Enunciado do exercício.}\n\n<Hint>\n${3:Uma dica para ajudar.}\n</Hint>\n\n<Answer>\n${4:Solução detalhada.}\n</Answer>\n</Question>\n',
-    description: "Bloco de exercício com dica e resposta recolhíveis",
+      '<Question type="definition" title="${1:Termo ou conceito}" initialState="expanded">\n${2:Definição formal do conceito.}\n</Question>\n',
+    description: "Bloco de definição (sem resposta, expandido por padrão)",
     category: "questions",
   },
   {
@@ -336,19 +342,19 @@ const SNIPPETS: Snippet[] = [
     category: "questions",
   },
   {
-    label: "Problema",
-    icon: Brain,
+    label: "Exercício",
+    icon: Dumbbell,
     template:
-      '<Question type="problem" title="${1:Título do problema}" initialState="contracted">\n${2:Enunciado do problema.}\n\n<Hint>\n${3:Uma dica para ajudar.}\n</Hint>\n\n<Answer>\n${4:Solução detalhada.}\n</Answer>\n</Question>\n',
-    description: "Bloco de problema com dica e solução recolhíveis",
+      '<Question type="exercise" title="${1:Título do exercício}" initialState="contracted">\n${2:Enunciado do exercício.}\n<Hint>${3:Uma dica para ajudar.}</Hint>\n\n<Answer>${4:Solução detalhada.}</Answer>\n</Question>\n',
+    description: "Bloco de exercício com dica e resposta recolhíveis",
     category: "questions",
   },
   {
-    label: "Definição",
-    icon: BookText,
+    label: "Problema",
+    icon: Brain,
     template:
-      '<Question type="definition" title="${1:Termo ou conceito}" initialState="expanded">\n${2:Definição formal do conceito.}\n</Question>\n',
-    description: "Bloco de definição (sem resposta, expandido por padrão)",
+      '<Question type="problem" title="${1:Título do problema}" initialState="contracted">\n${2:Enunciado do problema.}\n<Hint>${3:Uma dica para ajudar.}</Hint>\n\n<Answer>${4:Solução detalhada.}</Answer>\n</Question>\n',
+    description: "Bloco de problema com dica e solução recolhíveis",
     category: "questions",
   },
   {
