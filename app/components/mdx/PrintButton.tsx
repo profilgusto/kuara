@@ -17,13 +17,18 @@ import { useViewMode } from "./useViewMode";
 // the dark margin area when printing from dark mode.
 const PRINT_STYLES = `
 @media print {
-  /* Color for text (body background handled via inline style in JS) */
+  /* Force white page — belt-and-suspenders alongside the inline setProperty calls.
+     color-scheme: light tells the browser's print engine to use a light canvas,
+     preventing the UA from rendering dark margins around the page content. */
   html, body {
+    background: white !important;
+    background-color: white !important;
+    color-scheme: light !important;
     color: hsl(160, 30%, 8%) !important;
   }
 
-  /* Kill dark animated gradient */
-  body::before { display: none !important; }
+  /* Kill dark animated gradient — display:none + content:none as belt-and-suspenders */
+  body::before { display: none !important; content: none !important; }
 
   /* Force every element inside body to use dark inherited text */
   body * { color: inherit !important; }
@@ -57,7 +62,9 @@ export default function PrintButton() {
     //    is the absolute highest author priority. Needed so the page margins and
     //    body area outside the content container aren't printed dark.
     html.style.setProperty("background", "white", "important");
+    html.style.setProperty("background-color", "white", "important");
     body.style.setProperty("background", "white", "important");
+    body.style.setProperty("background-color", "white", "important");
 
     // 3. Inject a last-in-document style tag for pseudo-element and color overrides.
     const styleTag = document.createElement("style");
@@ -65,20 +72,29 @@ export default function PrintButton() {
     styleTag.textContent = PRINT_STYLES;
     document.head.appendChild(styleTag);
 
-    // 4. Force a synchronous reflow so styles are computed before print captures layout.
+    // 4. Force a synchronous reflow so styles are computed, then wait for a paint
+    //    frame before opening the print dialog. Chrome captures the print layout
+    //    after the next repaint; skipping this frame can cause the dark-mode
+    //    background to appear in the PDF even when inline styles are set.
     void body.offsetHeight;
 
     // 5. Restore everything once the print dialog closes.
     const restore = () => {
       if (!wasAlreadyLight) html.classList.remove("light");
       html.style.removeProperty("background");
+      html.style.removeProperty("background-color");
       body.style.removeProperty("background");
+      body.style.removeProperty("background-color");
       styleTag.remove();
       window.removeEventListener("afterprint", restore);
     };
     window.addEventListener("afterprint", restore);
 
-    window.print();
+    // 6. Defer window.print() by one animation frame so the browser has time to
+    //    repaint with the light-mode styles before the print engine captures layout.
+    requestAnimationFrame(() => {
+      window.print();
+    });
   };
 
   return (

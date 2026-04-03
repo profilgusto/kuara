@@ -62,6 +62,14 @@ export const Courses: CollectionConfig = {
       },
     },
     {
+      name: "coverImage",
+      type: "upload",
+      relationTo: "media",
+      admin: {
+        description: "Background image for the discipline card on /disciplinas",
+      },
+    },
+    {
       name: "workload",
       type: "group",
       fields: [

@@ -27,11 +27,13 @@ Only after Phase 1 passes, run from root (`/`):
 Whenever you modify a Payload CMS Collection (add/remove/rename fields, change types), you **must** create a migration file before committing:
 
 ```bash
-# From inside the running web container:
-docker compose exec web npx payload migrate:create
+# From the repo root (requires the web container to be running):
+./scripts/create-migration.sh
 ```
 
 This generates a timestamped file in `app/migrations/`. Commit it alongside your collection change.
+
+**Why not `npx payload migrate:create` directly?** Node.js 22.12+ throws `ERR_REQUIRE_ASYNC_MODULE` when the payload CLI tries to `require()` the config, because `@lexical/*` packages use ESM top-level await. The script works around this by pre-compiling `payload.config.ts` → `payload.config.mjs` via esbuild first, so Node loads it as native ESM.
 
 **Why this matters:** Dev uses `push:true` (auto-syncs schema), but prod uses explicit migrations. If no migration file exists, the prod deploy will fail at the `migrate` service. The file is the bridge between dev convenience and prod correctness.
 

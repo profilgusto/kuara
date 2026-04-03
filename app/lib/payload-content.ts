@@ -19,6 +19,7 @@ export interface CourseListItem {
   title: string;
   code: string;
   summary?: string;
+  coverImage?: string;
 }
 
 export interface CourseModule {
@@ -62,6 +63,7 @@ export async function listCourses(): Promise<CourseListItem[]> {
     title: doc.title,
     code: doc.code,
     summary: doc.summary || undefined,
+    coverImage: doc.coverImage?.url || undefined,
   }));
 }
 
