@@ -52,6 +52,7 @@ export default function SlideDeck({
   const [title, setTitle] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fsNavOpen, setFsNavOpen] = useState(false);
+  const fsNavRef = useRef<HTMLElement | null>(null);
   // heading.id → slide index (built after ids settle, requires DOM lookup)
   const [headingSlideMap, setHeadingSlideMap] = useState<Map<string, number>>(new Map());
   const [contentScale, setContentScale] = useState(() => {
@@ -295,6 +296,81 @@ export default function SlideDeck({
     };
   }, [mode, ids.length]);
 
+  // Swipe right to close fullscreen section navigator
+  useEffect(() => {
+    const el = fsNavRef.current;
+    if (!el || !fsNavOpen) return;
+
+    let startX = 0;
+    let currentDx = 0;
+    let tracking = false;
+
+    function onTouchStart(e: TouchEvent) {
+      startX = e.touches[0].clientX;
+      currentDx = 0;
+      tracking = true;
+      el!.style.transition = "none";
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      if (!tracking) return;
+      const dx = e.touches[0].clientX - startX;
+      if (dx < 0) {
+        tracking = false;
+        el!.style.transition = "";
+        el!.style.transform = "";
+        return;
+      }
+      currentDx = dx;
+      el!.style.transform = `translateX(${dx}px)`;
+      e.preventDefault();
+    }
+
+    function onTouchEnd() {
+      if (!tracking) return;
+      tracking = false;
+      if (currentDx > 80) {
+        el!.style.transition = "transform 300ms ease-in-out";
+        el!.style.transform = "translateX(100%)";
+        setTimeout(() => {
+          setFsNavOpen(false);
+          el!.style.transform = "";
+          el!.style.transition = "";
+        }, 300);
+      } else {
+        el!.style.transition = "transform 300ms ease-in-out";
+        el!.style.transform = "translateX(0)";
+        setTimeout(() => {
+          el!.style.transform = "";
+          el!.style.transition = "";
+        }, 300);
+      }
+      currentDx = 0;
+    }
+
+    function onTouchCancel() {
+      if (!tracking) return;
+      tracking = false;
+      el!.style.transition = "";
+      el!.style.transform = "";
+      currentDx = 0;
+    }
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchCancel, { passive: true });
+
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchCancel);
+      el.style.transform = "";
+      el.style.transition = "";
+    };
+  }, [fsNavOpen]);
+
   // Trackpad pinch-to-zoom (ctrlKey + wheel) and pan when zoomed in
   useEffect(() => {
     if (mode !== "apresentacao") return;
@@ -536,11 +612,11 @@ export default function SlideDeck({
       {/* Fullscreen section navigator */}
       {isFullscreen && headings.length > 0 && (
         <aside
-          className="absolute right-0 bottom-0 z-20 w-60 bg-background/90 backdrop-blur border-l border-border/40 overflow-y-auto transition-transform duration-300 ease-in-out"
+          ref={fsNavRef}
+          className={`absolute right-0 bottom-0 z-20 w-60 bg-background/90 backdrop-blur border-l border-border/40 overflow-y-auto transition-transform duration-300 ease-in-out ${fsNavOpen ? "translate-x-0" : "translate-x-full"}`}
           aria-hidden={!fsNavOpen}
           style={{
             top: "calc(0.25rem + 2.5rem)",
-            transform: fsNavOpen ? "translateX(0)" : "translateX(100%)",
             fontSize: "calc(1rem * var(--slide-content-scale, 1))",
           }}
         >

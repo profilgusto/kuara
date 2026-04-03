@@ -46,9 +46,10 @@ const TYPE_COLORS: Record<string, string> = {
 interface SortableItemProps {
   module: ModuleItem;
   index: number;
+  adminRoute: string;
 }
 
-const SortableItem: React.FC<SortableItemProps> = ({ module, index }) => {
+const SortableItem: React.FC<SortableItemProps> = ({ module, index, adminRoute }) => {
   const {
     attributes,
     listeners,
@@ -190,6 +191,45 @@ const SortableItem: React.FC<SortableItemProps> = ({ module, index }) => {
           </svg>
         </div>
       )}
+
+      {/* Edit link */}
+      <a
+        href={`${adminRoute}/collections/modules/${module.id}`}
+        title="Editar módulo"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          color: "var(--theme-elevation-500, #888)",
+          display: "flex",
+          alignItems: "center",
+          flexShrink: 0,
+          textDecoration: "none",
+          padding: "4px",
+          borderRadius: "4px",
+        }}
+        onMouseEnter={(e) =>
+          ((e.currentTarget as HTMLAnchorElement).style.color =
+            "var(--theme-elevation-800, #ccc)")
+        }
+        onMouseLeave={(e) =>
+          ((e.currentTarget as HTMLAnchorElement).style.color =
+            "var(--theme-elevation-500, #888)")
+        }
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+      </a>
     </div>
   );
 };
@@ -198,7 +238,7 @@ export const ModuleReorderView: React.FC = () => {
   const { id: courseId } = useDocumentInfo();
   const {
     config: {
-      routes: { api },
+      routes: { api, admin: adminRoute },
     },
   } = useConfig();
 
@@ -417,7 +457,7 @@ export const ModuleReorderView: React.FC = () => {
           strategy={verticalListSortingStrategy}
         >
           {modules.map((module, index) => (
-            <SortableItem key={module.id} module={module} index={index} />
+            <SortableItem key={module.id} module={module} index={index} adminRoute={adminRoute} />
           ))}
         </SortableContext>
       </DndContext>

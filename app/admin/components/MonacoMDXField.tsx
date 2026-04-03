@@ -203,6 +203,14 @@ const SNIPPETS: Snippet[] = [
 
   // ── Figures (numbered) ──
   {
+    label: "Figura Simples",
+    icon: ImagePlus,
+    template:
+      '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  width="${2:400}"\n  widthPresentation="${3:auto}"\n/>\n',
+    description: "Figura simples sem numeração nem legenda.",
+    category: "figures",
+  },
+  {
     label: "Figura Numerada",
     icon: ImagePlus,
     template:
@@ -323,7 +331,7 @@ const SNIPPETS: Snippet[] = [
     label: "Exemplo",
     icon: BookOpen,
     template:
-      '<Question type="example" title="${1:Título do exemplo}" initialState="expanded">\n${2:Descrição do exemplo.}\n\n<Answer>\n${3:Solução ou desenvolvimento.}\n</Answer>\n</Question>\n',
+      '<Question type="example" title="${1:Título do exemplo}" initialState="expanded">\n${2:Descrição do exemplo.}\n</Question>\n',
     description: "Bloco de exemplo resolvido (resposta expandida por padrão)",
     category: "questions",
   },
