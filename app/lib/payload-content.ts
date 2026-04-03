@@ -231,3 +231,247 @@ export async function getPost(slug: string): Promise<any | null> {
 
   return result.docs[0] || null;
 }
+
+// ---------------------------------------------------------------------------
+// Cadernos
+// ---------------------------------------------------------------------------
+
+export interface CadernoListItem {
+  id: string;
+  slug: string;
+  title: string;
+  abstract?: string;
+  stage: "rascunho" | "em-andamento" | "finalizado" | "incrementando";
+  tags: string[];
+  project?: string;
+  publishedAt?: string;
+  updatedAt?: string;
+  coverImage?: { url: string; alt?: string } | null;
+}
+
+export interface CadernoRelatedItem {
+  id: string;
+  slug: string;
+  title: string;
+  abstract?: string;
+  tags: string[];
+  stage: string;
+}
+
+export interface CadernoDetail {
+  id: string;
+  slug: string;
+  title: string;
+  abstract?: string;
+  stage: string;
+  tags: string[];
+  project?: string;
+  publishedAt?: string;
+  updatedAt?: string;
+  coverImage?: { url: string; alt?: string } | null;
+  content?: string;
+  citationStyle?: string;
+  relatedDisciplinas?: { id: string; slug: string; title: string; code: string }[];
+  relatedModules?: { id: string; slug: string; title: string; courseSlug: string }[];
+  relatedCadernos?: CadernoRelatedItem[];
+  referencedBy?: CadernoRelatedItem[];
+}
+
+/** Extract the flat tag array from Payload's `tags` array field. */
+function extractTags(rawTags: any[]): string[] {
+  if (!Array.isArray(rawTags)) return [];
+  return rawTags.map((t: any) => t.tag).filter(Boolean);
+}
+
+/**
+ * List all published cadernos, with optional filtering by tag, status, or project.
+ */
+export async function listCadernos(options?: {
+  tag?: string;
+  stage?: string;
+  project?: string;
+}): Promise<CadernoListItem[]> {
+  const payload = await getPayload({ config: configPromise });
+
+  const where: Record<string, any> = {
+    _status: { equals: "published" },
+  };
+  if (options?.stage) where["stage"] = { equals: options.stage };
+  if (options?.project) where["project"] = { equals: options.project };
+  // Tag filtering: Payload array field query
+  if (options?.tag) where["tags.tag"] = { equals: options.tag };
+
+  const result = await payload.find({
+    collection: "cadernos",
+    where,
+    sort: "-publishedAt",
+    limit: 500,
+    depth: 1,
+  });
+
+  return result.docs.map((doc: any) => ({
+    id: doc.id,
+    slug: doc.slug,
+    title: doc.title,
+    abstract: doc.abstract || undefined,
+    stage: doc.stage,
+    tags: extractTags(doc.tags),
+    project: doc.project || undefined,
+    publishedAt: doc.publishedAt || undefined,
+    updatedAt: doc.updatedAt || undefined,
+    coverImage: doc.coverImage
+      ? { url: doc.coverImage.url, alt: doc.coverImage.alt || undefined }
+      : null,
+  }));
+}
+
+/**
+ * Get a single caderno by slug, with all relationships populated.
+ * Pass `draft = true` to fetch unpublished drafts (admin preview only).
+ */
+export async function getCaderno(
+  slug: string,
+  draft: boolean = false,
+): Promise<CadernoDetail | null> {
+  const payload = await getPayload({ config: configPromise });
+  const decodedSlug = decodeURIComponent(slug);
+
+  const result = await payload.find({
+    collection: "cadernos",
+    where: { slug: { equals: decodedSlug } },
+    limit: 1,
+    depth: 2, // depth 2 to populate relatedModules → course
+    draft,
+  });
+
+  const doc = result.docs[0] as any;
+  if (!doc) return null;
+
+  // For non-admin requests, require published status
+  if (!draft && doc._status !== "published") return null;
+
+  // --- relatedDisciplinas ---
+  const relatedDisciplinas = Array.isArray(doc.relatedDisciplinas)
+    ? doc.relatedDisciplinas
+        .filter((d: any) => d && typeof d === "object")
+        .map((d: any) => ({
+          id: d.id,
+          slug: d.slug,
+          title: d.title,
+          code: d.code,
+        }))
+    : [];
+
+  // --- relatedModules ---
+  const relatedModules = Array.isArray(doc.relatedModules)
+    ? doc.relatedModules
+        .filter((m: any) => m && typeof m === "object")
+        .map((m: any) => ({
+          id: m.id,
+          slug: m.slug,
+          title: m.title,
+          courseSlug:
+            m.course && typeof m.course === "object" ? m.course.slug : "",
+        }))
+    : [];
+
+  // --- relatedCadernos (outgoing) ---
+  const relatedCadernos: CadernoRelatedItem[] = Array.isArray(
+    doc.relatedCadernos,
+  )
+    ? doc.relatedCadernos
+        .filter((c: any) => c && typeof c === "object")
+        .map((c: any) => ({
+          id: c.id,
+          slug: c.slug,
+          title: c.title,
+          abstract: c.abstract || undefined,
+          tags: extractTags(c.tags),
+          stage: c.stage,
+        }))
+    : [];
+
+  // --- referencedBy (incoming) — second query ---
+  const incomingResult = await payload.find({
+    collection: "cadernos",
+    where: {
+      relatedCadernos: { contains: doc.id },
+      _status: { equals: "published" },
+    },
+    limit: 100,
+    depth: 0,
+    draft: false,
+  });
+
+  const referencedBy: CadernoRelatedItem[] = incomingResult.docs.map(
+    (c: any) => ({
+      id: c.id,
+      slug: c.slug,
+      title: c.title,
+      abstract: c.abstract || undefined,
+      tags: extractTags(c.tags),
+      stage: c.stage,
+    }),
+  );
+
+  return {
+    id: doc.id,
+    slug: doc.slug,
+    title: doc.title,
+    abstract: doc.abstract || undefined,
+    stage: doc.stage,
+    tags: extractTags(doc.tags),
+    project: doc.project || undefined,
+    publishedAt: doc.publishedAt || undefined,
+    updatedAt: doc.updatedAt || undefined,
+    coverImage: doc.coverImage
+      ? { url: doc.coverImage.url, alt: doc.coverImage.alt || undefined }
+      : null,
+    content: doc.content || undefined,
+    citationStyle: doc.citationStyle || undefined,
+    relatedDisciplinas,
+    relatedModules,
+    relatedCadernos,
+    referencedBy,
+  };
+}
+
+/**
+ * Lightweight query for the graph visualization (Phase 6).
+ * Returns only fields needed to build nodes and directed edges.
+ */
+export async function listAllCadernosForGraph(): Promise<
+  {
+    id: string;
+    slug: string;
+    title: string;
+    tags: string[];
+    project?: string;
+    stage: string;
+    relatedCadernos: { id: string }[];
+  }[]
+> {
+  const payload = await getPayload({ config: configPromise });
+
+  const result = await payload.find({
+    collection: "cadernos",
+    where: { _status: { equals: "published" } },
+    limit: 1000,
+    depth: 1, // depth 1 to get relatedCadernos ids
+    sort: "-publishedAt",
+  });
+
+  return result.docs.map((doc: any) => ({
+    id: doc.id,
+    slug: doc.slug,
+    title: doc.title,
+    tags: extractTags(doc.tags),
+    project: doc.project || undefined,
+    stage: doc.stage,
+    relatedCadernos: Array.isArray(doc.relatedCadernos)
+      ? doc.relatedCadernos
+          .filter((c: any) => c && (typeof c === "string" || typeof c === "object"))
+          .map((c: any) => ({ id: typeof c === "object" ? c.id : c }))
+      : [],
+  }));
+}

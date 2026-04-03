@@ -59,7 +59,7 @@ function extractLexicalMediaIds(lexicalData: unknown): Set<number | string> {
 // usedIn update helpers
 // ---------------------------------------------------------------------------
 
-type RefEntry = { relationTo: "modules" | "posts"; value: string };
+type RefEntry = { relationTo: "modules" | "posts" | "cadernos"; value: string };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MediaWithUsedIn = { usedIn?: any[] };
@@ -67,7 +67,12 @@ type MediaWithUsedIn = { usedIn?: any[] };
 function normalizeRef(ref: unknown): RefEntry | null {
   if (!ref || typeof ref !== "object") return null;
   const r = ref as Record<string, unknown>;
-  if (r.relationTo !== "modules" && r.relationTo !== "posts") return null;
+  if (
+    r.relationTo !== "modules" &&
+    r.relationTo !== "posts" &&
+    r.relationTo !== "cadernos"
+  )
+    return null;
   const raw =
     r.value && typeof r.value === "object" && "id" in (r.value as object)
       ? (r.value as { id: unknown }).id
@@ -81,7 +86,7 @@ function normalizeRef(ref: unknown): RefEntry | null {
 async function updateMediaUsedIn(
   payload: Payload,
   mediaId: number | string,
-  collectionSlug: "modules" | "posts",
+  collectionSlug: "modules" | "posts" | "cadernos",
   docId: number | string,
   action: "add" | "remove",
 ): Promise<void> {
@@ -228,5 +233,51 @@ export const cleanPostMediaRefs: CollectionAfterDeleteHook = async ({
     [...ids].map((id) =>
       updateMediaUsedIn(payload, id, "posts", doc.id, "remove"),
     ),
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Caderno hooks  (MDX textarea → /media/<filename> pattern)
+// ---------------------------------------------------------------------------
+
+export const syncCadernoMediaRefs: CollectionAfterChangeHook = async ({
+  doc,
+  previousDoc,
+  req,
+}) => {
+  const { payload } = req;
+  const oldFilenames = extractMDXFilenames(previousDoc?.content);
+  const newFilenames = extractMDXFilenames(doc.content);
+
+  const added = [...newFilenames].filter((f) => !oldFilenames.has(f));
+  const removed = [...oldFilenames].filter((f) => !newFilenames.has(f));
+
+  await Promise.all([
+    ...added.map(async (filename) => {
+      const id = await resolveMediaIdByFilename(payload, filename);
+      if (id != null)
+        await updateMediaUsedIn(payload, id, "cadernos", doc.id, "add");
+    }),
+    ...removed.map(async (filename) => {
+      const id = await resolveMediaIdByFilename(payload, filename);
+      if (id != null)
+        await updateMediaUsedIn(payload, id, "cadernos", doc.id, "remove");
+    }),
+  ]);
+};
+
+export const cleanCadernoMediaRefs: CollectionAfterDeleteHook = async ({
+  doc,
+  req,
+}) => {
+  const { payload } = req;
+  const filenames = extractMDXFilenames(doc.content);
+
+  await Promise.all(
+    [...filenames].map(async (filename) => {
+      const id = await resolveMediaIdByFilename(payload, filename);
+      if (id != null)
+        await updateMediaUsedIn(payload, id, "cadernos", doc.id, "remove");
+    }),
   );
 };

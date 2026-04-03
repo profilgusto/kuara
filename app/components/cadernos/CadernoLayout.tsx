@@ -1,23 +1,21 @@
 "use client";
 
-import { useEffect, useRef, ReactNode } from "react";
+import { useEffect, useRef, useState, ReactNode } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CourseSidebar } from "./CourseSidebar";
-import { CourseDetail } from "@/lib/payload-content";
 import { Heading } from "@/lib/mdx-pipeline";
 import { useNav } from "@/components/layout/NavContext";
 import { useEqrefScroll, useEqrefPopover } from "@/lib/eqref-interactions";
 
-// ── swipe-to-close sidebar ────────────────────────────────────────────────────
+// ── swipe-to-close panel ──────────────────────────────────────────────────────
 
-function useSwipeToCloseSidebar(
-  sidebarRef: React.RefObject<HTMLElement | null>,
-  sidebarOpen: boolean,
-  setSidebarOpen: (open: boolean) => void,
+function useSwipeToClosePanel(
+  panelRef: React.RefObject<HTMLElement | null>,
+  panelOpen: boolean,
+  setPanelOpen: (open: boolean) => void,
 ) {
   useEffect(() => {
-    const el = sidebarRef.current;
-    if (!el || !sidebarOpen) return;
+    const el = panelRef.current;
+    if (!el || !panelOpen) return;
 
     let startX = 0;
     let currentDx = 0;
@@ -34,7 +32,6 @@ function useSwipeToCloseSidebar(
       if (!tracking) return;
       const dx = e.touches[0].clientX - startX;
       if (dx < 0) {
-        // Leftward drag — cancel tracking, restore CSS transition
         tracking = false;
         el!.style.transition = "";
         el!.style.transform = "";
@@ -49,16 +46,14 @@ function useSwipeToCloseSidebar(
       if (!tracking) return;
       tracking = false;
       if (currentDx > 80) {
-        // Animate out, then update state
         el!.style.transition = "transform 300ms ease-in-out";
         el!.style.transform = "translateX(calc(100% + 12px))";
         setTimeout(() => {
-          setSidebarOpen(false);
+          setPanelOpen(false);
           el!.style.transform = "";
           el!.style.transition = "";
         }, 300);
       } else {
-        // Snap back to open position
         el!.style.transition = "transform 300ms ease-in-out";
         el!.style.transform = "";
         setTimeout(() => {
@@ -89,44 +84,114 @@ function useSwipeToCloseSidebar(
       el.style.transform = "";
       el.style.transition = "";
     };
-  }, [sidebarRef, sidebarOpen, setSidebarOpen]);
+  }, [panelRef, panelOpen, setPanelOpen]);
+}
+
+// ── TOC panel ─────────────────────────────────────────────────────────────────
+
+function TocPanel({
+  headings,
+  onLinkClick,
+}: {
+  headings: Heading[];
+  onLinkClick?: () => void;
+}) {
+  const [activeHeading, setActiveHeading] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (headings.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveHeading(entry.target.id);
+          }
+        });
+      },
+      { rootMargin: "-20% 0px -80% 0px" },
+    );
+
+    headings.forEach((h) => {
+      const el = document.getElementById(h.id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [headings]);
+
+  if (headings.length === 0) {
+    return (
+      <p className="p-4 text-sm text-muted-foreground">Sem seções.</p>
+    );
+  }
+
+  return (
+    <nav className="p-4 space-y-1 text-sm overflow-y-auto overscroll-contain h-full">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-3">
+        Sumário
+      </p>
+      <ul className="space-y-1">
+        {headings.map((h) => {
+          const isActive = activeHeading === h.id;
+          return (
+            <li
+              key={h.id}
+
+            >
+              <a
+                href={`#${h.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .getElementById(h.id)
+                    ?.scrollIntoView({ behavior: "smooth" });
+                  history.pushState(null, "", `#${h.id}`);
+                  onLinkClick?.();
+                }}
+                className={`block py-0.5 transition-colors line-clamp-2 ${
+                  isActive
+                    ? "font-medium text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {h.text}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
 
-interface ModuleLayoutProps {
-  course: CourseDetail;
-  currentModuleSlug: string;
+interface CadernoLayoutProps {
   headings: Heading[];
-  courseTitle: string;
-  courseSlug: string;
-  moduleTitle: string;
+  cadernoTitle: string;
   children: ReactNode;
 }
 
-export function ModuleLayout({
-  course,
-  currentModuleSlug,
+export function CadernoLayout({
   headings,
-  courseTitle,
-  courseSlug,
-  moduleTitle,
+  cadernoTitle,
   children,
-}: ModuleLayoutProps) {
+}: CadernoLayoutProps) {
   const { sidebarOpen, setSidebarOpen, setHasSidebar, setBreadcrumbs } =
     useNav();
 
   const popoverRef = useRef<HTMLDivElement>(null);
-  const sidebarRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
 
   useEqrefScroll();
   useEqrefPopover(popoverRef);
-  useSwipeToCloseSidebar(sidebarRef, sidebarOpen, setSidebarOpen);
+  useSwipeToClosePanel(panelRef, sidebarOpen, setSidebarOpen);
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: courseTitle, href: `/disciplinas/${courseSlug}` },
-      { label: moduleTitle },
+      { label: "Cadernos", href: "/cadernos" },
+      { label: cadernoTitle },
     ]);
     setHasSidebar(true);
     return () => {
@@ -134,9 +199,8 @@ export function ModuleLayout({
       setHasSidebar(false);
       setSidebarOpen(false);
     };
-    // state setters from useState are stable — safe to omit from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseTitle, courseSlug, moduleTitle]);
+  }, [cadernoTitle]);
 
   return (
     <div className="flex flex-col">
@@ -148,15 +212,13 @@ export function ModuleLayout({
         <div className="absolute inset-0" />
       </div>
 
-      {/* Sidebar panel — floats below root SiteNav */}
+      {/* TOC panel — floats below root SiteNav */}
       <aside
-        ref={sidebarRef}
+        ref={panelRef}
         className={`fixed top-[4.5rem] right-3 bottom-3 z-50 w-72 rounded-xl bg-background/60 backdrop-blur border border-border/40 shadow-lg transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "translate-x-[calc(100%+12px)]"}`}
       >
         <ScrollArea className="h-full">
-          <CourseSidebar
-            course={course}
-            currentModuleSlug={currentModuleSlug}
+          <TocPanel
             headings={headings}
             onLinkClick={() => setSidebarOpen(false)}
           />

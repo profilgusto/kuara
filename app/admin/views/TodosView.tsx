@@ -14,6 +14,13 @@ interface ModuleTodos {
   todos: string[];
 }
 
+interface CadernoTodos {
+  id: string;
+  title: string;
+  slug: string;
+  todos: string[];
+}
+
 interface CourseGroup {
   courseTitle: string;
   modules: ModuleTodos[];
@@ -55,6 +62,7 @@ export const TodosView: React.FC = () => {
   } = useConfig();
 
   const [moduleTodos, setModuleTodos] = useState<ModuleTodos[]>([]);
+  const [cadernoTodos, setCadernoTodos] = useState<CadernoTodos[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalTodos, setTotalTodos] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -62,19 +70,30 @@ export const TodosView: React.FC = () => {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    fetch(`${api}/modules?limit=500&depth=1&draft=true`, {
+
+    const fetchModules = fetch(`${api}/modules?limit=500&depth=1&draft=true`, {
       credentials: "include",
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data) => {
-        const docs: Record<string, unknown>[] = data.docs ?? [];
-        const result: ModuleTodos[] = [];
+    }).then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status} (modules)`);
+      return r.json();
+    });
+
+    const fetchCadernos = fetch(
+      `${api}/cadernos?limit=500&depth=0&draft=true`,
+      { credentials: "include" },
+    ).then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status} (cadernos)`);
+      return r.json();
+    });
+
+    Promise.all([fetchModules, fetchCadernos])
+      .then(([modulesData, cadernosData]) => {
+        // ── Modules ──
+        const moduleDocs: Record<string, unknown>[] = modulesData.docs ?? [];
+        const moduleResult: ModuleTodos[] = [];
         let count = 0;
 
-        for (const doc of docs) {
+        for (const doc of moduleDocs) {
           const content = typeof doc.content === "string" ? doc.content : "";
           const todos = extractTodos(content);
           if (todos.length === 0) continue;
@@ -85,7 +104,7 @@ export const TodosView: React.FC = () => {
               ? (doc.course as { id: string; title?: string })
               : { id: String(doc.course ?? ""), title: "—" };
 
-          result.push({
+          moduleResult.push({
             id: String(doc.id),
             title: String(doc.title ?? "—"),
             slug: String(doc.slug ?? ""),
@@ -95,12 +114,33 @@ export const TodosView: React.FC = () => {
           });
         }
 
-        result.sort((a, b) => {
+        moduleResult.sort((a, b) => {
           const c = a.courseTitle.localeCompare(b.courseTitle);
           return c !== 0 ? c : a.title.localeCompare(b.title);
         });
 
-        setModuleTodos(result);
+        // ── Cadernos ──
+        const cadernoDocs: Record<string, unknown>[] = cadernosData.docs ?? [];
+        const cadernoResult: CadernoTodos[] = [];
+
+        for (const doc of cadernoDocs) {
+          const content = typeof doc.content === "string" ? doc.content : "";
+          const todos = extractTodos(content);
+          if (todos.length === 0) continue;
+
+          count += todos.length;
+          cadernoResult.push({
+            id: String(doc.id),
+            title: String(doc.title ?? "—"),
+            slug: String(doc.slug ?? ""),
+            todos,
+          });
+        }
+
+        cadernoResult.sort((a, b) => a.title.localeCompare(b.title));
+
+        setModuleTodos(moduleResult);
+        setCadernoTodos(cadernoResult);
         setTotalTodos(count);
         setLoading(false);
       })
@@ -139,6 +179,10 @@ export const TodosView: React.FC = () => {
   }
 
   const groups = groupByCourse(moduleTodos);
+  const hasAny = groups.length > 0 || cadernoTodos.length > 0;
+
+  const sourceCount =
+    moduleTodos.length + cadernoTodos.length;
 
   return (
     <div style={{ padding: "32px", maxWidth: "860px" }}>
@@ -170,9 +214,9 @@ export const TodosView: React.FC = () => {
               margin: 0,
             }}
           >
-            {moduleTodos.length > 0
-              ? `${totalTodos} item${totalTodos !== 1 ? "s" : ""} pendente${totalTodos !== 1 ? "s" : ""} em ${moduleTodos.length} módulo${moduleTodos.length !== 1 ? "s" : ""}`
-              : "Nenhum TODO encontrado nos módulos."}
+            {hasAny
+              ? `${totalTodos} item${totalTodos !== 1 ? "s" : ""} pendente${totalTodos !== 1 ? "s" : ""} em ${sourceCount} documento${sourceCount !== 1 ? "s" : ""}`
+              : "Nenhum TODO encontrado nos módulos ou cadernos."}
           </p>
         </div>
 
@@ -196,7 +240,7 @@ export const TodosView: React.FC = () => {
       </div>
 
       {/* Empty state */}
-      {groups.length === 0 && (
+      {!hasAny && (
         <div
           style={{
             padding: "48px 24px",
@@ -211,29 +255,133 @@ export const TodosView: React.FC = () => {
         </div>
       )}
 
-      {/* Groups */}
-      {groups.map(([courseId, { courseTitle, modules }]) => (
-        <div key={courseId} style={{ marginBottom: "32px" }}>
-          {/* Course header */}
+      {/* Module groups */}
+      {groups.length > 0 && (
+        <>
           <div
             style={{
               fontSize: "11px",
               fontWeight: 700,
               letterSpacing: "0.8px",
               textTransform: "uppercase",
-              color: "var(--theme-elevation-500, #888)",
+              color: "#2FA8B8",
               paddingBottom: "8px",
-              marginBottom: "12px",
-              borderBottom: "1px solid var(--theme-elevation-200, #333)",
+              marginBottom: "16px",
+              borderBottom: "2px solid var(--theme-elevation-200, #333)",
             }}
           >
-            {courseTitle}
+            Módulos
           </div>
 
-          {/* Modules */}
-          {modules.map((mod) => (
+          {groups.map(([courseId, { courseTitle, modules }]) => (
+            <div key={courseId} style={{ marginBottom: "32px" }}>
+              {/* Course header */}
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  letterSpacing: "0.8px",
+                  textTransform: "uppercase",
+                  color: "var(--theme-elevation-500, #888)",
+                  paddingBottom: "8px",
+                  marginBottom: "12px",
+                  borderBottom: "1px solid var(--theme-elevation-200, #333)",
+                }}
+              >
+                {courseTitle}
+              </div>
+
+              {/* Modules */}
+              {modules.map((mod) => (
+                <div
+                  key={mod.id}
+                  style={{
+                    marginBottom: "16px",
+                    background: "var(--theme-elevation-100, #1a1a1a)",
+                    border: "1px solid var(--theme-elevation-300, #3a3a3a)",
+                    borderRadius: "6px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 14px",
+                      borderBottom: "1px solid var(--theme-elevation-200, #333)",
+                      gap: "12px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        color: "var(--theme-elevation-1000, #fff)",
+                      }}
+                    >
+                      Módulo: {mod.title}
+                    </span>
+                    <a
+                      href={`/admin/collections/modules/${mod.id}`}
+                      style={{
+                        fontSize: "11px",
+                        color: "#2FA8B8",
+                        textDecoration: "none",
+                        flexShrink: 0,
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      editar →
+                    </a>
+                  </div>
+
+                  <ul style={{ margin: 0, padding: "10px 14px 10px 28px" }}>
+                    {mod.todos.map((text, i) => (
+                      <li
+                        key={i}
+                        style={{
+                          fontSize: "13px",
+                          color: "var(--theme-elevation-800, #ccc)",
+                          marginBottom: i < mod.todos.length - 1 ? "6px" : 0,
+                          lineHeight: 1.5,
+                          whiteSpace: "pre-wrap",
+                          fontFamily: "monospace",
+                        }}
+                      >
+                        {text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* Cadernos section */}
+      {cadernoTodos.length > 0 && (
+        <>
+          <div
+            style={{
+              fontSize: "11px",
+              fontWeight: 700,
+              letterSpacing: "0.8px",
+              textTransform: "uppercase",
+              color: "#2FA8B8",
+              paddingBottom: "8px",
+              marginBottom: "16px",
+              marginTop: groups.length > 0 ? "8px" : 0,
+              borderBottom: "2px solid var(--theme-elevation-200, #333)",
+            }}
+          >
+            Cadernos
+          </div>
+
+          {cadernoTodos.map((caderno) => (
             <div
-              key={mod.id}
+              key={caderno.id}
               style={{
                 marginBottom: "16px",
                 background: "var(--theme-elevation-100, #1a1a1a)",
@@ -242,7 +390,6 @@ export const TodosView: React.FC = () => {
                 overflow: "hidden",
               }}
             >
-              {/* Module title */}
               <div
                 style={{
                   display: "flex",
@@ -260,10 +407,10 @@ export const TodosView: React.FC = () => {
                     color: "var(--theme-elevation-1000, #fff)",
                   }}
                 >
-                  {mod.title}
+                  Caderno: {caderno.title}
                 </span>
                 <a
-                  href={`/admin/collections/modules/${mod.id}`}
+                  href={`/admin/collections/cadernos/${caderno.id}`}
                   style={{
                     fontSize: "11px",
                     color: "#2FA8B8",
@@ -276,15 +423,14 @@ export const TodosView: React.FC = () => {
                 </a>
               </div>
 
-              {/* TODO items */}
               <ul style={{ margin: 0, padding: "10px 14px 10px 28px" }}>
-                {mod.todos.map((text, i) => (
+                {caderno.todos.map((text, i) => (
                   <li
                     key={i}
                     style={{
                       fontSize: "13px",
                       color: "var(--theme-elevation-800, #ccc)",
-                      marginBottom: i < mod.todos.length - 1 ? "6px" : 0,
+                      marginBottom: i < caderno.todos.length - 1 ? "6px" : 0,
                       lineHeight: 1.5,
                       whiteSpace: "pre-wrap",
                       fontFamily: "monospace",
@@ -296,8 +442,8 @@ export const TodosView: React.FC = () => {
               </ul>
             </div>
           ))}
-        </div>
-      ))}
+        </>
+      )}
     </div>
   );
 };

@@ -5,12 +5,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { Sun, Moon, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { useTheme } from "next-themes";
+import { usePathname } from "next/navigation";
 import { useNav } from "./NavContext";
+
+const NAV_LINKS = [
+  { label: "Disciplinas", href: "/disciplinas" },
+  { label: "Cadernos", href: "/cadernos" },
+];
 
 export function SiteNav() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { breadcrumbs, sidebarOpen, setSidebarOpen, hasSidebar } = useNav();
+  const pathname = usePathname();
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -19,12 +26,29 @@ export function SiteNav() {
     <div className="sticky top-0 z-30 px-3 pt-3 pb-2">
       <nav className="flex items-center gap-2 px-3 py-2 rounded-xl bg-background/60 backdrop-blur border border-border/40 text-sm text-muted-foreground shadow-lg">
         <Link
-          href="/disciplinas"
+          href="/"
           className="flex items-center gap-1.5 text-foreground hover:text-primary transition-colors shrink-0"
         >
           <Image src="/icon.svg" alt="Kuara logo" width={32} height={32} />
           <span className="font-serif font-semibold text-base">Kuara</span>
         </Link>
+
+        {NAV_LINKS.map(({ label, href }) => {
+          const isActive = pathname.startsWith(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`shrink-0 text-sm transition-colors hover:text-foreground ${
+                isActive
+                  ? "text-foreground font-medium"
+                  : "text-muted-foreground"
+              }`}
+            >
+              {label}
+            </Link>
+          );
+        })}
 
         {breadcrumbs.map((crumb, i) => (
           <Fragment key={i}>

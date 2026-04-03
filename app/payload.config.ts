@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import { Users } from "./collections/Users.ts";
 import { Courses } from "./collections/Courses.ts";
 import { Modules } from "./collections/Modules.ts";
+import { Cadernos } from "./collections/Cadernos.ts";
 import { Offers } from "./collections/Offers.ts";
 import { Posts } from "./collections/Posts.ts";
 import { Media } from "./collections/Media.ts";
@@ -45,6 +46,7 @@ export default buildConfig({
     Users,
     Courses,
     Modules,
+    Cadernos,
     Offers,
     Posts,
     Media,
