@@ -448,6 +448,7 @@ export async function listAllCadernosForGraph(): Promise<
     tags: string[];
     project?: string;
     stage: string;
+    coverImage?: { url: string; alt?: string } | null;
     relatedCadernos: { id: string }[];
   }[]
 > {
@@ -468,6 +469,9 @@ export async function listAllCadernosForGraph(): Promise<
     tags: extractTags(doc.tags),
     project: doc.project || undefined,
     stage: doc.stage,
+    coverImage: doc.coverImage
+      ? { url: doc.coverImage.url, alt: doc.coverImage.alt || undefined }
+      : null,
     relatedCadernos: Array.isArray(doc.relatedCadernos)
       ? doc.relatedCadernos
           .filter((c: any) => c && (typeof c === "string" || typeof c === "object"))

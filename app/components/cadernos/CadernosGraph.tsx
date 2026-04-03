@@ -23,6 +23,7 @@ interface GraphItem {
   tags: string[];
   project?: string;
   stage: string;
+  coverImage?: { url: string; alt?: string } | null;
   relatedCadernos: { id: string }[];
 }
 
@@ -30,64 +31,79 @@ interface CadernosGraphProps {
   data: GraphItem[];
 }
 
-const statusColorMap: Record<string, string> = {
-  rascunho: "border-muted/30 bg-muted/20 hover:border-muted",
-  "em-andamento": "border-amber-400 bg-amber-100 hover:border-amber-500",
-  finalizado: "border-emerald-400 bg-emerald-100 hover:border-emerald-500",
-  incrementando: "border-blue-400 bg-blue-100 hover:border-blue-500",
-};
-
-const statusTextMap: Record<string, string> = {
-  rascunho: "text-muted-foreground",
-  "em-andamento": "text-amber-800",
-  finalizado: "text-emerald-800",
-  incrementando: "text-blue-800",
+const statusConfig: Record<string, { label: string; className: string }> = {
+  rascunho: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
+  "em-andamento": { label: "Em andamento", className: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400" },
+  finalizado: { label: "Finalizado", className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  incrementando: { label: "Incrementando", className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
 };
 
 // Custom Node component
 const CadernoNode = ({ data }: { data: any }) => {
-  const statusColor = statusColorMap[data.stage] || statusColorMap["rascunho"];
-  const statusText = statusTextMap[data.stage] || statusTextMap["rascunho"];
+  const status = statusConfig[data.stage] || statusConfig["rascunho"];
 
   return (
-    <div
-      className={`p-4 w-[280px] rounded-xl border-2 shadow-sm transition-colors cursor-pointer group ${statusColor}`}
-    >
+    <div className="group relative block rounded-xl overflow-hidden shadow-sm transition-all hover:shadow-md border bg-card hover:border-primary/30 w-[280px] h-[160px]">
       <Handle type="target" position={Position.Top} className="w-2 h-2 opacity-0" />
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2 flex-wrap mb-1">
-          <span
-            className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-sm bg-white/40 ${statusText}`}
-          >
-            {data.stage.replace("-", " ")}
-          </span>
+      
+      {data.coverImage ? (
+        <>
+          <img
+            src={data.coverImage.url}
+            alt={data.coverImage.alt ?? data.title}
+            className="absolute inset-0 object-cover w-full h-full"
+          />
+          <div
+            className="absolute inset-0 z-0"
+            style={{
+              backgroundColor: "rgba(0, 0, 0, 0.55)",
+              backdropFilter: "blur(3px)",
+              WebkitBackdropFilter: "blur(3px)",
+            }}
+          />
+          <div className="relative z-10 p-5 space-y-1 h-full flex flex-col justify-end text-left pointer-events-none">
+            {data.project && (
+              <span className="text-[10px] uppercase tracking-wider font-bold text-white/60">
+                {data.project}
+              </span>
+            )}
+            <h2 className="font-semibold text-lg leading-snug text-white drop-shadow line-clamp-2">
+              {data.title}
+            </h2>
+            <div className="flex items-center flex-wrap gap-x-1.5 gap-y-2 pt-2 mt-auto">
+              <span className={`text-[10px] pointer-events-auto uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ml-auto ${status.className}`}>
+                {status.label}
+              </span>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="p-5 h-full flex flex-col gap-2 relative z-10 text-left pointer-events-none">
+          <h2 className="font-semibold text-lg leading-snug text-foreground transition-colors line-clamp-2">
+            {data.title}
+          </h2>
+
           {data.project && (
-            <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider">
+            <p className="text-sm text-muted-foreground line-clamp-1">
               {data.project}
-            </span>
+            </p>
+          )}
+
+          {(data.tags?.length > 0 || data.stage) && (
+            <div className="flex items-center flex-wrap gap-x-1.5 gap-y-2 pt-2 mt-auto">
+              {data.tags?.slice(0, 2).map((tag: string) => (
+                <span key={tag} className="text-[11px] pointer-events-auto text-muted-foreground border bg-background px-1.5 py-0.5 rounded-sm whitespace-nowrap">
+                  {tag}
+                </span>
+              ))}
+              <span className={`text-[10px] pointer-events-auto uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ml-auto ${status.className}`}>
+                {status.label}
+              </span>
+            </div>
           )}
         </div>
-        <h3 className="font-semibold text-sm leading-tight">
-          <Link
-            href={`/cadernos/${data.slug}`}
-            className="hover:underline line-clamp-2"
-          >
-            {data.title}
-          </Link>
-        </h3>
-        {data.tags && data.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {data.tags.slice(0, 4).map((tag: string) => (
-              <span
-                key={tag}
-                className="text-[10px] bg-background/50 text-foreground px-1.5 py-0.5 rounded-full whitespace-nowrap"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
+      
       <Handle type="source" position={Position.Bottom} className="w-2 h-2 opacity-0" />
     </div>
   );
@@ -133,7 +149,7 @@ const getLayoutedElements = (nodes: any[], edges: any[], direction = "TB") => {
 export function CadernosGraph({ data }: CadernosGraphProps) {
   const initialElements = useMemo(() => {
     const nodes = data.map((item) => ({
-      id: item.id,
+      id: String(item.id),
       type: "caderno",
       data: {
         title: item.title,
@@ -141,31 +157,41 @@ export function CadernosGraph({ data }: CadernosGraphProps) {
         tags: item.tags,
         project: item.project,
         stage: item.stage,
+        coverImage: item.coverImage,
       },
       position: { x: 0, y: 0 },
     }));
 
+    const validNodeIds = new Set(nodes.map((n) => n.id));
     const edges: any[] = [];
+    
     data.forEach((item) => {
-      item.relatedCadernos.forEach((rel) => {
-        edges.push({
-          id: `${item.id}-${rel.id}`,
-          source: item.id,
-          target: rel.id,
-          animated: false,
-          label: "",
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            width: 20,
-            height: 20,
-            color: "#888",
-          },
-          style: {
-            stroke: "#888",
-            strokeWidth: 2,
-          },
+      if (Array.isArray(item.relatedCadernos)) {
+        item.relatedCadernos.forEach((rel) => {
+          const sourceId = String(item.id);
+          const targetId = String(rel.id);
+          
+          if (validNodeIds.has(sourceId) && validNodeIds.has(targetId)) {
+            edges.push({
+              id: `${sourceId}-${targetId}`,
+              source: sourceId,
+              target: targetId,
+              animated: false,
+              label: "",
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                width: 20,
+                height: 20,
+                color: "#888",
+              },
+              style: {
+                stroke: "#888",
+                strokeWidth: 2,
+              },
+            });
+          }
         });
-      });
+      }
     });
 
     return getLayoutedElements(nodes, edges);
@@ -175,7 +201,36 @@ export function CadernosGraph({ data }: CadernosGraphProps) {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialElements.edges);
 
   return (
-    <div className="w-full h-full min-h-[600px] bg-background">
+    <div className="w-full h-full min-h-[600px] bg-background relative" style={{ borderRadius: '0.75rem', overflow: 'hidden' }}>
+      <style>{`
+        .react-flow__node-caderno {
+          background: transparent !important;
+          border: none !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+          color: hsl(var(--foreground)) !important;
+          width: 280px;
+          height: 160px;
+        }
+        .react-flow__controls button {
+          background-color: hsl(var(--card));
+          border-bottom: 1px solid hsl(var(--border));
+          fill: hsl(var(--foreground));
+          transition: background-color 0.2s;
+        }
+        .react-flow__controls button:hover {
+          background-color: hsl(var(--muted));
+        }
+        .react-flow__minimap {
+          background-color: hsl(var(--card));
+          border: 1px solid hsl(var(--border));
+          border-radius: 0.5rem;
+        }
+        .react-flow__minimap-mask {
+          fill: hsl(var(--background));
+          opacity: 0.7;
+        }
+      `}</style>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -188,9 +243,9 @@ export function CadernosGraph({ data }: CadernosGraphProps) {
         nodesConnectable={false}
         elementsSelectable={true}
       >
-        <Background gap={16} size={1} />
-        <Controls />
-        <MiniMap zoomable pannable />
+        <Background gap={24} size={1} color="hsl(var(--primary))" className="opacity-[0.08]" />
+        <Controls showInteractive={false} className="opacity-80 hover:opacity-100 transition-opacity" />
+        <MiniMap zoomable pannable nodeColor="hsl(var(--primary))" className="opacity-80 hover:opacity-100 transition-opacity" />
       </ReactFlow>
     </div>
   );
