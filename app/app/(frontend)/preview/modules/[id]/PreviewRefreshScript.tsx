@@ -77,5 +77,73 @@ export function PreviewRefreshScript() {
     };
   }, []);
 
+  // ── Preview → Editor: click anywhere to jump Monaco to that source line ──
+  useEffect(() => {
+    function handleClick(event: MouseEvent) {
+      // Walk up the DOM from the click target to find the nearest element
+      // stamped with data-source-line by the rehype-source-lines plugin.
+      let el = event.target as HTMLElement | null;
+      while (el && el !== document.body) {
+        const line = el.dataset?.sourceLine;
+        if (line) {
+          const lineNum = parseInt(line, 10);
+          if (!isNaN(lineNum)) {
+            // Post to the parent frame (Payload admin panel)
+            window.parent.postMessage(
+              { type: "preview-goto-line", line: lineNum },
+              "*",
+            );
+          }
+          return;
+        }
+        el = el.parentElement;
+      }
+    }
+
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
+
+  // ── Editor → Preview: receive editor-goto-line and scroll preview ──
+  useEffect(() => {
+    function handleEditorGoto(event: MessageEvent) {
+      if (
+        !event.data ||
+        typeof event.data !== "object" ||
+        event.data.type !== "editor-goto-line"
+      )
+        return;
+
+      const targetLine = Number(event.data.line);
+      if (isNaN(targetLine)) return;
+
+      // Find the element stamped with the exact line, or walk upward to
+      // the nearest element whose line is ≤ targetLine.
+      const all = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-source-line]"),
+      );
+      if (!all.length) return;
+
+      // Find the element whose source line is the closest ≤ targetLine
+      let best: HTMLElement | null = null;
+      let bestLine = -1;
+      for (const el of all) {
+        const n = parseInt(el.dataset.sourceLine!, 10);
+        if (!isNaN(n) && n <= targetLine && n > bestLine) {
+          best = el;
+          bestLine = n;
+        }
+      }
+
+      // Fallback: if targetLine is before the first stamped element, use the first
+      if (!best && all.length) best = all[0];
+
+      best?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    window.addEventListener("message", handleEditorGoto);
+    return () => window.removeEventListener("message", handleEditorGoto);
+  }, []);
+
   return null;
 }

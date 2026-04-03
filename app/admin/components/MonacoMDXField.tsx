@@ -488,6 +488,54 @@ export const MonacoMDXField: React.FC<MonacoMDXFieldProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, []);
 
+  // ── Preview → Editor: receive preview-goto-line from the preview iframe ──
+  React.useEffect(() => {
+    function handlePreviewGoto(event: MessageEvent) {
+      if (
+        !event.data ||
+        typeof event.data !== "object" ||
+        event.data.type !== "preview-goto-line"
+      )
+        return;
+
+      const lineNum = Number(event.data.line);
+      if (isNaN(lineNum) || lineNum < 1) return;
+
+      const editor = editorRef.current;
+      if (!editor) return;
+
+      editor.revealLineInCenter(lineNum);
+      editor.setPosition({ lineNumber: lineNum, column: 1 });
+      editor.focus();
+    }
+
+    window.addEventListener("message", handlePreviewGoto);
+    return () => window.removeEventListener("message", handlePreviewGoto);
+  }, []);
+
+  // ── Editor → Preview: send current cursor line to the preview iframe ──
+  const syncEditorToPreview = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const lineNum = editor.getPosition()?.lineNumber;
+    if (!lineNum) return;
+
+    // Find the preview iframe embedded by Payload Live Preview
+    const iframe = document.querySelector<HTMLIFrameElement>(
+      'iframe[src*="/preview/"]',
+    );
+    if (!iframe?.contentWindow) {
+      console.warn("[Sync] Preview iframe not found.");
+      return;
+    }
+
+    iframe.contentWindow.postMessage(
+      { type: "editor-goto-line", line: lineNum },
+      "*",
+    );
+  }, []);
+
   const insertSnippet = useCallback(
     (template: string) => {
       const editor = editorRef.current;
@@ -661,6 +709,44 @@ export const MonacoMDXField: React.FC<MonacoMDXFieldProps> = ({
             ))}
           </React.Fragment>
         ))}
+
+        {/* Sync button — visually separated on the right */}
+        <div style={{ marginLeft: "auto" }}>
+          <button
+            type="button"
+            title="Sincronizar editor com preview (Sync ↕): scroll do preview até a linha atual do cursor"
+            onClick={syncEditorToPreview}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              height: "28px",
+              padding: "0 10px",
+              fontSize: "12px",
+              fontWeight: 600,
+              background: "#1a3a2a",
+              color: "#5a8",
+              border: "1px solid #3a6a4a",
+              borderRadius: "4px",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+              whiteSpace: "nowrap",
+              letterSpacing: "0.02em",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#22503a";
+              e.currentTarget.style.color = "#7fc";
+              e.currentTarget.style.borderColor = "#5a8";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#1a3a2a";
+              e.currentTarget.style.color = "#5a8";
+              e.currentTarget.style.borderColor = "#3a6a4a";
+            }}
+          >
+            ↕ Sync
+          </button>
+        </div>
       </div>
 
       {/* Monaco Editor */}

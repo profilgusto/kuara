@@ -11,6 +11,7 @@ import remarkMath from "remark-math";
 import remarkDirective from "remark-directive";
 import rehypeMathjax from "rehype-mathjax";
 import rehypeSlug from "rehype-slug";
+import rehypeSourceLines from "../mdx-plugins/rehype-source-lines";
 import remarkDirectiveToMdx from "../mdx-plugins/remark-directive-to-mdx";
 import remarkWrapSlides from "../mdx-plugins/remark-wrap-slides";
 // For heading extraction
@@ -40,6 +41,8 @@ const remarkPlugins = [
 const rehypePlugins: any = [
   [rehypeMathjax, { tex: { tags: "ams" } }],
   rehypeSlug,
+  // Must be LAST — stamps data-source-line after all structural transforms
+  rehypeSourceLines,
 ];
 
 /**
