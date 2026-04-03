@@ -25,6 +25,9 @@ export const References: CollectionConfig = {
       admin: {
         description:
           'BibTeX cite key (e.g. corke2011robotics). Must match exactly what you use in <Cite label="..." />.',
+        components: {
+          Cell: "@/admin/components/CopyKeyCell#CopyKeyCell",
+        },
       },
     },
     {

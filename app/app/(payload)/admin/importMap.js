@@ -28,6 +28,7 @@ import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997e
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { default as default_9a678daa6c9fc208e13fb60118648fde } from '@/admin/components/BackfillUsedInButton'
+import { CopyKeyCell as CopyKeyCell_e128fde5fe841fa3aa4b3db5c780ea22 } from '@/admin/components/CopyKeyCell'
 import { FolderTypeField as FolderTypeField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { default as default_ee57714ec7db77cc07dd61dddcf1688b } from '@/admin/components/TodosNavLink'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
@@ -65,6 +66,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/admin/components/BackfillUsedInButton#default": default_9a678daa6c9fc208e13fb60118648fde,
+  "@/admin/components/CopyKeyCell#CopyKeyCell": CopyKeyCell_e128fde5fe841fa3aa4b3db5c780ea22,
   "@payloadcms/next/client#FolderTypeField": FolderTypeField_2b8867833a34864a02ddf429b0728a40,
   "@/admin/components/TodosNavLink#default": default_ee57714ec7db77cc07dd61dddcf1688b,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
