@@ -233,23 +233,23 @@ export async function getPost(slug: string): Promise<any | null> {
 }
 
 // ---------------------------------------------------------------------------
-// Cadernos
+// Tesselas
 // ---------------------------------------------------------------------------
 
-export interface CadernoListItem {
+export interface TesselaListItem {
   id: string;
   slug: string;
   title: string;
   abstract?: string;
   stage: "rascunho" | "em-andamento" | "finalizado" | "incrementando";
   tags: string[];
-  project?: string;
+  project: string[];
   publishedAt?: string;
   updatedAt?: string;
   coverImage?: { url: string; alt?: string } | null;
 }
 
-export interface CadernoRelatedItem {
+export interface TesselaRelatedItem {
   id: string;
   slug: string;
   title: string;
@@ -258,14 +258,14 @@ export interface CadernoRelatedItem {
   stage: string;
 }
 
-export interface CadernoDetail {
+export interface TesselaDetail {
   id: string;
   slug: string;
   title: string;
   abstract?: string;
   stage: string;
   tags: string[];
-  project?: string;
+  project: string[];
   publishedAt?: string;
   updatedAt?: string;
   coverImage?: { url: string; alt?: string } | null;
@@ -273,36 +273,48 @@ export interface CadernoDetail {
   citationStyle?: string;
   relatedDisciplinas?: { id: string; slug: string; title: string; code: string }[];
   relatedModules?: { id: string; slug: string; title: string; courseSlug: string }[];
-  relatedCadernos?: CadernoRelatedItem[];
-  referencedBy?: CadernoRelatedItem[];
+  relatedTesselas?: TesselaRelatedItem[];
+  referencedBy?: TesselaRelatedItem[];
 }
 
-/** Extract the flat tag array from Payload's `tags` array field. */
-function extractTags(rawTags: any[]): string[] {
-  if (!Array.isArray(rawTags)) return [];
-  return rawTags.map((t: any) => t.tag).filter(Boolean);
+/** Extract tags from the `tags` text field (semicolon-separated). */
+function extractTags(rawTags: any): string[] {
+  if (!rawTags || typeof rawTags !== "string") return [];
+  return rawTags
+    .split(";")
+    .map((t: string) => t.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/** Extract projects from the `project` text field (semicolon-separated). */
+function extractProjects(raw: any): string[] {
+  if (!raw || typeof raw !== "string") return [];
+  return raw
+    .split(";")
+    .map((p: string) => p.trim())
+    .filter(Boolean);
 }
 
 /**
- * List all published cadernos, with optional filtering by tag, status, or project.
+ * List all published tesselas, with optional filtering by tag, status, or project.
  */
-export async function listCadernos(options?: {
+export async function listTesselas(options?: {
   tag?: string;
   stage?: string;
-  project?: string;
-}): Promise<CadernoListItem[]> {
+  project: string[];
+}): Promise<TesselaListItem[]> {
   const payload = await getPayload({ config: configPromise });
 
   const where: Record<string, any> = {
     _status: { equals: "published" },
   };
   if (options?.stage) where["stage"] = { equals: options.stage };
-  if (options?.project) where["project"] = { equals: options.project };
-  // Tag filtering: Payload array field query
-  if (options?.tag) where["tags.tag"] = { equals: options.tag };
+  if (options?.project) where["project"] = { contains: options.project };
+  // Tag filtering: text field contains the tag
+  if (options?.tag) where["tags"] = { contains: options.tag };
 
   const result = await payload.find({
-    collection: "cadernos",
+    collection: "tesselas",
     where,
     sort: "-publishedAt",
     limit: 500,
@@ -316,7 +328,7 @@ export async function listCadernos(options?: {
     abstract: doc.abstract || undefined,
     stage: doc.stage,
     tags: extractTags(doc.tags),
-    project: doc.project || undefined,
+    project: extractProjects(doc.project),
     publishedAt: doc.publishedAt || undefined,
     updatedAt: doc.updatedAt || undefined,
     coverImage: doc.coverImage
@@ -326,18 +338,18 @@ export async function listCadernos(options?: {
 }
 
 /**
- * Get a single caderno by slug, with all relationships populated.
+ * Get a single tessela by slug, with all relationships populated.
  * Pass `draft = true` to fetch unpublished drafts (admin preview only).
  */
-export async function getCaderno(
+export async function getTessela(
   slug: string,
   draft: boolean = false,
-): Promise<CadernoDetail | null> {
+): Promise<TesselaDetail | null> {
   const payload = await getPayload({ config: configPromise });
   const decodedSlug = decodeURIComponent(slug);
 
   const result = await payload.find({
-    collection: "cadernos",
+    collection: "tesselas",
     where: { slug: { equals: decodedSlug } },
     limit: 1,
     depth: 2, // depth 2 to populate relatedModules → course
@@ -375,11 +387,11 @@ export async function getCaderno(
         }))
     : [];
 
-  // --- relatedCadernos (outgoing) ---
-  const relatedCadernos: CadernoRelatedItem[] = Array.isArray(
-    doc.relatedCadernos,
+  // --- relatedTesselas (outgoing) ---
+  const relatedTesselas: TesselaRelatedItem[] = Array.isArray(
+    doc.relatedTesselas,
   )
-    ? doc.relatedCadernos
+    ? doc.relatedTesselas
         .filter((c: any) => c && typeof c === "object")
         .map((c: any) => ({
           id: c.id,
@@ -393,9 +405,9 @@ export async function getCaderno(
 
   // --- referencedBy (incoming) — second query ---
   const incomingResult = await payload.find({
-    collection: "cadernos",
+    collection: "tesselas",
     where: {
-      relatedCadernos: { contains: doc.id },
+      relatedTesselas: { contains: doc.id },
       _status: { equals: "published" },
     },
     limit: 100,
@@ -403,7 +415,7 @@ export async function getCaderno(
     draft: false,
   });
 
-  const referencedBy: CadernoRelatedItem[] = incomingResult.docs.map(
+  const referencedBy: TesselaRelatedItem[] = incomingResult.docs.map(
     (c: any) => ({
       id: c.id,
       slug: c.slug,
@@ -421,7 +433,7 @@ export async function getCaderno(
     abstract: doc.abstract || undefined,
     stage: doc.stage,
     tags: extractTags(doc.tags),
-    project: doc.project || undefined,
+    project: extractProjects(doc.project),
     publishedAt: doc.publishedAt || undefined,
     updatedAt: doc.updatedAt || undefined,
     coverImage: doc.coverImage
@@ -431,34 +443,34 @@ export async function getCaderno(
     citationStyle: doc.citationStyle || undefined,
     relatedDisciplinas,
     relatedModules,
-    relatedCadernos,
+    relatedTesselas,
     referencedBy,
   };
 }
 
 /**
- * Lightweight query for the graph visualization (Phase 6).
+ * Lightweight query for the graph visualization.
  * Returns only fields needed to build nodes and directed edges.
  */
-export async function listAllCadernosForGraph(): Promise<
+export async function listAllTesselasForGraph(): Promise<
   {
     id: string;
     slug: string;
     title: string;
     tags: string[];
-    project?: string;
+    project: string[];
     stage: string;
     coverImage?: { url: string; alt?: string } | null;
-    relatedCadernos: { id: string }[];
+    relatedTesselas: { id: string }[];
   }[]
 > {
   const payload = await getPayload({ config: configPromise });
 
   const result = await payload.find({
-    collection: "cadernos",
+    collection: "tesselas",
     where: { _status: { equals: "published" } },
     limit: 1000,
-    depth: 1, // depth 1 to get relatedCadernos ids
+    depth: 1, // depth 1 to get relatedTesselas ids
     sort: "-publishedAt",
   });
 
@@ -467,13 +479,13 @@ export async function listAllCadernosForGraph(): Promise<
     slug: doc.slug,
     title: doc.title,
     tags: extractTags(doc.tags),
-    project: doc.project || undefined,
+    project: extractProjects(doc.project),
     stage: doc.stage,
     coverImage: doc.coverImage
       ? { url: doc.coverImage.url, alt: doc.coverImage.alt || undefined }
       : null,
-    relatedCadernos: Array.isArray(doc.relatedCadernos)
-      ? doc.relatedCadernos
+    relatedTesselas: Array.isArray(doc.relatedTesselas)
+      ? doc.relatedTesselas
           .filter((c: any) => c && (typeof c === "string" || typeof c === "object"))
           .map((c: any) => ({ id: typeof c === "object" ? c.id : c }))
       : [],

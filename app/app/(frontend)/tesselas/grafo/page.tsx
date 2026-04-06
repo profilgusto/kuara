@@ -1,24 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { listAllCadernosForGraph } from "@/lib/payload-content";
-import { CadernosGraph } from "@/components/cadernos/CadernosGraph";
+import { listAllTesselasForGraph } from "@/lib/payload-content";
+import { TesselasGraph } from "@/components/tesselas/TesselasGraph";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Grafo de Cadernos | Kuara",
-  description: "Visualização das relações de conhecimento entre os cadernos.",
+  title: "Grafo de Tesselas | Kuara",
+  description: "Visualização das relações de conhecimento entre as tesselas.",
 };
 
 export default async function GrafoPage() {
-  const data = await listAllCadernosForGraph();
+  const data = await listAllTesselasForGraph();
 
   return (
     <main className="container mx-auto px-4 py-8 flex flex-col h-[calc(100vh-80px)] min-h-[700px] gap-6">
       <header className="shrink-0 space-y-2">
         <Link
-          href="/cadernos"
+          href="/tesselas"
           className="text-sm font-medium text-muted-foreground hover:text-foreground flex items-center transition-colors w-fit"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
@@ -34,10 +34,10 @@ export default async function GrafoPage() {
 
       <div className="flex-1 w-full bg-card rounded-xl shadow-sm border overflow-hidden">
         {data.length > 0 ? (
-          <CadernosGraph data={data} />
+          <TesselasGraph data={data} />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
-            Você precisa de cadernos publicados para visualizar o grafo.
+            Você precisa de tesselas publicadas para visualizar o grafo.
           </div>
         )}
       </div>

@@ -8,9 +8,10 @@ import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { useNav } from "./NavContext";
 
+// Sorted alphabetically
 const NAV_LINKS = [
   { label: "Disciplinas", href: "/disciplinas" },
-  { label: "Cadernos", href: "/cadernos" },
+  { label: "Tesselas", href: "/tesselas" },
 ];
 
 export function SiteNav() {
@@ -21,6 +22,15 @@ export function SiteNav() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const activeLink = NAV_LINKS.find((l) => pathname.startsWith(l.href)) ?? null;
+  const inactiveLinks = NAV_LINKS.filter(
+    (l) => !activeLink || l.href !== activeLink.href,
+  );
+  // Remove breadcrumbs that duplicate the active section label
+  const filteredBreadcrumbs = activeLink
+    ? breadcrumbs.filter((c) => c.label !== activeLink.label)
+    : breadcrumbs;
 
   return (
     <div className="sticky top-0 z-30 px-3 pt-3 pb-2">
@@ -33,24 +43,29 @@ export function SiteNav() {
           <span className="font-serif font-semibold text-base">Kuara</span>
         </Link>
 
-        {NAV_LINKS.map(({ label, href }) => {
-          const isActive = pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`shrink-0 text-sm transition-colors hover:text-foreground ${
-                isActive
-                  ? "text-foreground font-medium"
-                  : "text-muted-foreground"
-              }`}
-            >
-              {label}
-            </Link>
-          );
-        })}
+        {inactiveLinks.map(({ label, href }) => (
+          <Link
+            key={href}
+            href={href}
+            className="shrink-0 text-sm transition-colors hover:text-foreground text-muted-foreground"
+          >
+            {label}
+          </Link>
+        ))}
 
-        {breadcrumbs.map((crumb, i) => (
+        {activeLink && (
+          <>
+            <span className="text-border/60 shrink-0 mx-1 select-none">|</span>
+            <Link
+              href={activeLink.href}
+              className="shrink-0 text-sm font-medium text-foreground transition-colors hover:text-primary"
+            >
+              {activeLink.label}
+            </Link>
+          </>
+        )}
+
+        {filteredBreadcrumbs.map((crumb, i) => (
           <Fragment key={i}>
             <span className="text-border shrink-0">/</span>
             {crumb.href ? (

@@ -59,7 +59,7 @@ function extractLexicalMediaIds(lexicalData: unknown): Set<number | string> {
 // usedIn update helpers
 // ---------------------------------------------------------------------------
 
-type RefEntry = { relationTo: "modules" | "posts" | "cadernos"; value: string };
+type RefEntry = { relationTo: "modules" | "posts" | "tesselas"; value: string };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MediaWithUsedIn = { usedIn?: any[] };
@@ -70,7 +70,7 @@ function normalizeRef(ref: unknown): RefEntry | null {
   if (
     r.relationTo !== "modules" &&
     r.relationTo !== "posts" &&
-    r.relationTo !== "cadernos"
+    r.relationTo !== "tesselas"
   )
     return null;
   const raw =
@@ -78,7 +78,7 @@ function normalizeRef(ref: unknown): RefEntry | null {
       ? (r.value as { id: unknown }).id
       : r.value;
   return {
-    relationTo: r.relationTo as "modules" | "posts",
+    relationTo: r.relationTo as "modules" | "posts" | "tesselas",
     value: String(raw),
   };
 }
@@ -86,7 +86,7 @@ function normalizeRef(ref: unknown): RefEntry | null {
 async function updateMediaUsedIn(
   payload: Payload,
   mediaId: number | string,
-  collectionSlug: "modules" | "posts" | "cadernos",
+  collectionSlug: "modules" | "posts" | "tesselas",
   docId: number | string,
   action: "add" | "remove",
 ): Promise<void> {
@@ -237,10 +237,10 @@ export const cleanPostMediaRefs: CollectionAfterDeleteHook = async ({
 };
 
 // ---------------------------------------------------------------------------
-// Caderno hooks  (MDX textarea → /media/<filename> pattern)
+// Tessela hooks  (MDX textarea → /media/<filename> pattern)
 // ---------------------------------------------------------------------------
 
-export const syncCadernoMediaRefs: CollectionAfterChangeHook = async ({
+export const syncTesselaMediaRefs: CollectionAfterChangeHook = async ({
   doc,
   previousDoc,
   req,
@@ -256,17 +256,17 @@ export const syncCadernoMediaRefs: CollectionAfterChangeHook = async ({
     ...added.map(async (filename) => {
       const id = await resolveMediaIdByFilename(payload, filename);
       if (id != null)
-        await updateMediaUsedIn(payload, id, "cadernos", doc.id, "add");
+        await updateMediaUsedIn(payload, id, "tesselas", doc.id, "add");
     }),
     ...removed.map(async (filename) => {
       const id = await resolveMediaIdByFilename(payload, filename);
       if (id != null)
-        await updateMediaUsedIn(payload, id, "cadernos", doc.id, "remove");
+        await updateMediaUsedIn(payload, id, "tesselas", doc.id, "remove");
     }),
   ]);
 };
 
-export const cleanCadernoMediaRefs: CollectionAfterDeleteHook = async ({
+export const cleanTesselaMediaRefs: CollectionAfterDeleteHook = async ({
   doc,
   req,
 }) => {
@@ -277,7 +277,7 @@ export const cleanCadernoMediaRefs: CollectionAfterDeleteHook = async ({
     [...filenames].map(async (filename) => {
       const id = await resolveMediaIdByFilename(payload, filename);
       if (id != null)
-        await updateMediaUsedIn(payload, id, "cadernos", doc.id, "remove");
+        await updateMediaUsedIn(payload, id, "tesselas", doc.id, "remove");
     }),
   );
 };

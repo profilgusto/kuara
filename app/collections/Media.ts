@@ -41,7 +41,7 @@ export const Media: CollectionConfig = {
     {
       name: "usedIn",
       type: "relationship",
-      relationTo: ["modules", "posts"] as const,
+      relationTo: ["modules", "posts", "tesselas"] as const,
       hasMany: true,
       admin: {
         readOnly: true,

@@ -21,13 +21,13 @@ interface GraphItem {
   slug: string;
   title: string;
   tags: string[];
-  project?: string;
+  project: string[];
   stage: string;
   coverImage?: { url: string; alt?: string } | null;
-  relatedCadernos: { id: string }[];
+  relatedTesselas: { id: string }[];
 }
 
-interface CadernosGraphProps {
+interface TesselasGraphProps {
   data: GraphItem[];
 }
 
@@ -39,13 +39,13 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 };
 
 // Custom Node component
-const CadernoNode = ({ data }: { data: any }) => {
+const TesselaNode = ({ data }: { data: any }) => {
   const status = statusConfig[data.stage] || statusConfig["rascunho"];
 
   return (
     <div className="group relative block rounded-xl overflow-hidden shadow-sm transition-all hover:shadow-md border bg-card hover:border-primary/30 w-[280px] h-[160px]">
       <Handle type="target" position={Position.Top} className="w-2 h-2 opacity-0" />
-      
+
       {data.coverImage ? (
         <>
           <img
@@ -62,9 +62,9 @@ const CadernoNode = ({ data }: { data: any }) => {
             }}
           />
           <div className="relative z-10 p-5 space-y-1 h-full flex flex-col justify-end text-left pointer-events-none">
-            {data.project && (
+            {data.project.length > 0 && (
               <span className="text-[10px] uppercase tracking-wider font-bold text-white/60">
-                {data.project}
+                {data.project.join(" · ")}
               </span>
             )}
             <h2 className="font-semibold text-lg leading-snug text-white drop-shadow line-clamp-2">
@@ -83,9 +83,9 @@ const CadernoNode = ({ data }: { data: any }) => {
             {data.title}
           </h2>
 
-          {data.project && (
+          {data.project.length > 0 && (
             <p className="text-sm text-muted-foreground line-clamp-1">
-              {data.project}
+              {data.project.join(" · ")}
             </p>
           )}
 
@@ -103,14 +103,14 @@ const CadernoNode = ({ data }: { data: any }) => {
           )}
         </div>
       )}
-      
+
       <Handle type="source" position={Position.Bottom} className="w-2 h-2 opacity-0" />
     </div>
   );
 };
 
 const nodeTypes = {
-  caderno: CadernoNode,
+  tessela: TesselaNode,
 };
 
 const getLayoutedElements = (nodes: any[], edges: any[], direction = "TB") => {
@@ -146,11 +146,11 @@ const getLayoutedElements = (nodes: any[], edges: any[], direction = "TB") => {
   return { nodes, edges };
 };
 
-export function CadernosGraph({ data }: CadernosGraphProps) {
+export function TesselasGraph({ data }: TesselasGraphProps) {
   const initialElements = useMemo(() => {
     const nodes = data.map((item) => ({
       id: String(item.id),
-      type: "caderno",
+      type: "tessela",
       data: {
         title: item.title,
         slug: item.slug,
@@ -164,13 +164,13 @@ export function CadernosGraph({ data }: CadernosGraphProps) {
 
     const validNodeIds = new Set(nodes.map((n) => n.id));
     const edges: any[] = [];
-    
+
     data.forEach((item) => {
-      if (Array.isArray(item.relatedCadernos)) {
-        item.relatedCadernos.forEach((rel) => {
+      if (Array.isArray(item.relatedTesselas)) {
+        item.relatedTesselas.forEach((rel) => {
           const sourceId = String(item.id);
           const targetId = String(rel.id);
-          
+
           if (validNodeIds.has(sourceId) && validNodeIds.has(targetId)) {
             edges.push({
               id: `${sourceId}-${targetId}`,
@@ -203,7 +203,7 @@ export function CadernosGraph({ data }: CadernosGraphProps) {
   return (
     <div className="w-full h-full min-h-[600px] bg-background relative" style={{ borderRadius: '0.75rem', overflow: 'hidden' }}>
       <style>{`
-        .react-flow__node-caderno {
+        .react-flow__node-tessela {
           background: transparent !important;
           border: none !important;
           padding: 0 !important;

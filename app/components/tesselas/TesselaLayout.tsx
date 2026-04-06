@@ -167,17 +167,17 @@ function TocPanel({
 
 // ── component ─────────────────────────────────────────────────────────────────
 
-interface CadernoLayoutProps {
+interface TesselaLayoutProps {
   headings: Heading[];
-  cadernoTitle: string;
+  tesselaTitle: string;
   children: ReactNode;
 }
 
-export function CadernoLayout({
+export function TesselaLayout({
   headings,
-  cadernoTitle,
+  tesselaTitle,
   children,
-}: CadernoLayoutProps) {
+}: TesselaLayoutProps) {
   const { sidebarOpen, setSidebarOpen, setHasSidebar, setBreadcrumbs } =
     useNav();
 
@@ -190,8 +190,8 @@ export function CadernoLayout({
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: "Cadernos", href: "/cadernos" },
-      { label: cadernoTitle },
+      { label: "Tesselas", href: "/tesselas" },
+      { label: tesselaTitle },
     ]);
     setHasSidebar(true);
     return () => {
@@ -200,7 +200,7 @@ export function CadernoLayout({
       setSidebarOpen(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cadernoTitle]);
+  }, [tesselaTitle]);
 
   return (
     <div className="flex flex-col">

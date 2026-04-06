@@ -138,7 +138,23 @@ export function PreviewRefreshScript() {
       // Fallback: if targetLine is before the first stamped element, use the first
       if (!best && all.length) best = all[0];
 
-      best?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (!best) return;
+
+      // In presentation mode, navigate to the slide that contains the element.
+      // SlideDeck listens for the "slidedeck:goto" custom event and switches slides.
+      const mode = localStorage.getItem("view-mode") || "texto";
+      if (mode === "apresentacao") {
+        const slide = best.closest<HTMLElement>("section[data-id]");
+        const slideId = slide?.dataset.id;
+        if (slideId) {
+          window.dispatchEvent(
+            new CustomEvent("slidedeck:goto", { detail: { id: slideId } }),
+          );
+        }
+        return;
+      }
+
+      best.scrollIntoView({ behavior: "smooth", block: "center" });
     }
 
     window.addEventListener("message", handleEditorGoto);

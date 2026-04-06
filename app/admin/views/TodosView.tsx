@@ -14,7 +14,7 @@ interface ModuleTodos {
   todos: string[];
 }
 
-interface CadernoTodos {
+interface TesselaTodos {
   id: string;
   title: string;
   slug: string;
@@ -62,7 +62,7 @@ export const TodosView: React.FC = () => {
   } = useConfig();
 
   const [moduleTodos, setModuleTodos] = useState<ModuleTodos[]>([]);
-  const [cadernoTodos, setCadernoTodos] = useState<CadernoTodos[]>([]);
+  const [tesselaTodos, setTesselaTodos] = useState<TesselaTodos[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalTodos, setTotalTodos] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -78,16 +78,16 @@ export const TodosView: React.FC = () => {
       return r.json();
     });
 
-    const fetchCadernos = fetch(
-      `${api}/cadernos?limit=500&depth=0&draft=true`,
+    const fetchTesselas = fetch(
+      `${api}/tesselas?limit=500&depth=0&draft=true`,
       { credentials: "include" },
     ).then((r) => {
-      if (!r.ok) throw new Error(`HTTP ${r.status} (cadernos)`);
+      if (!r.ok) throw new Error(`HTTP ${r.status} (tesselas)`);
       return r.json();
     });
 
-    Promise.all([fetchModules, fetchCadernos])
-      .then(([modulesData, cadernosData]) => {
+    Promise.all([fetchModules, fetchTesselas])
+      .then(([modulesData, tesselasData]) => {
         // ── Modules ──
         const moduleDocs: Record<string, unknown>[] = modulesData.docs ?? [];
         const moduleResult: ModuleTodos[] = [];
@@ -119,17 +119,17 @@ export const TodosView: React.FC = () => {
           return c !== 0 ? c : a.title.localeCompare(b.title);
         });
 
-        // ── Cadernos ──
-        const cadernoDocs: Record<string, unknown>[] = cadernosData.docs ?? [];
-        const cadernoResult: CadernoTodos[] = [];
+        // ── Tesselas ──
+        const tesselaDocs: Record<string, unknown>[] = tesselasData.docs ?? [];
+        const tesselaResult: TesselaTodos[] = [];
 
-        for (const doc of cadernoDocs) {
+        for (const doc of tesselaDocs) {
           const content = typeof doc.content === "string" ? doc.content : "";
           const todos = extractTodos(content);
           if (todos.length === 0) continue;
 
           count += todos.length;
-          cadernoResult.push({
+          tesselaResult.push({
             id: String(doc.id),
             title: String(doc.title ?? "—"),
             slug: String(doc.slug ?? ""),
@@ -137,10 +137,10 @@ export const TodosView: React.FC = () => {
           });
         }
 
-        cadernoResult.sort((a, b) => a.title.localeCompare(b.title));
+        tesselaResult.sort((a, b) => a.title.localeCompare(b.title));
 
         setModuleTodos(moduleResult);
-        setCadernoTodos(cadernoResult);
+        setTesselaTodos(tesselaResult);
         setTotalTodos(count);
         setLoading(false);
       })
@@ -179,10 +179,10 @@ export const TodosView: React.FC = () => {
   }
 
   const groups = groupByCourse(moduleTodos);
-  const hasAny = groups.length > 0 || cadernoTodos.length > 0;
+  const hasAny = groups.length > 0 || tesselaTodos.length > 0;
 
   const sourceCount =
-    moduleTodos.length + cadernoTodos.length;
+    moduleTodos.length + tesselaTodos.length;
 
   return (
     <div style={{ padding: "32px", maxWidth: "860px" }}>
@@ -216,7 +216,7 @@ export const TodosView: React.FC = () => {
           >
             {hasAny
               ? `${totalTodos} item${totalTodos !== 1 ? "s" : ""} pendente${totalTodos !== 1 ? "s" : ""} em ${sourceCount} documento${sourceCount !== 1 ? "s" : ""}`
-              : "Nenhum TODO encontrado nos módulos ou cadernos."}
+              : "Nenhum TODO encontrado nos módulos ou tesselas."}
           </p>
         </div>
 
@@ -360,8 +360,8 @@ export const TodosView: React.FC = () => {
         </>
       )}
 
-      {/* Cadernos section */}
-      {cadernoTodos.length > 0 && (
+      {/* Tesselas section */}
+      {tesselaTodos.length > 0 && (
         <>
           <div
             style={{
@@ -376,12 +376,12 @@ export const TodosView: React.FC = () => {
               borderBottom: "2px solid var(--theme-elevation-200, #333)",
             }}
           >
-            Cadernos
+            Tesselas
           </div>
 
-          {cadernoTodos.map((caderno) => (
+          {tesselaTodos.map((tessela) => (
             <div
-              key={caderno.id}
+              key={tessela.id}
               style={{
                 marginBottom: "16px",
                 background: "var(--theme-elevation-100, #1a1a1a)",
@@ -407,10 +407,10 @@ export const TodosView: React.FC = () => {
                     color: "var(--theme-elevation-1000, #fff)",
                   }}
                 >
-                  Caderno: {caderno.title}
+                  Tessela: {tessela.title}
                 </span>
                 <a
-                  href={`/admin/collections/cadernos/${caderno.id}`}
+                  href={`/admin/collections/tesselas/${tessela.id}`}
                   style={{
                     fontSize: "11px",
                     color: "#2FA8B8",
@@ -424,13 +424,13 @@ export const TodosView: React.FC = () => {
               </div>
 
               <ul style={{ margin: 0, padding: "10px 14px 10px 28px" }}>
-                {caderno.todos.map((text, i) => (
+                {tessela.todos.map((text: string, i: number) => (
                   <li
                     key={i}
                     style={{
                       fontSize: "13px",
                       color: "var(--theme-elevation-800, #ccc)",
-                      marginBottom: i < caderno.todos.length - 1 ? "6px" : 0,
+                      marginBottom: i < tessela.todos.length - 1 ? "6px" : 0,
                       lineHeight: 1.5,
                       whiteSpace: "pre-wrap",
                       fontFamily: "monospace",

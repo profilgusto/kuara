@@ -4,6 +4,8 @@ import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { default as default_1de2e4b9883e0c13c552cfc8d5bd502f } from '@/admin/components/CustomPublishButton'
 import { default as default_fd3f0ff9d6d59846e58e9b9678ee8433 } from '@/admin/components/SaveDraftButton'
+import { default as default_58ed0f5e7e6131a43b015052c40d7ca2 } from '@/admin/components/TagsField'
+import { default as default_8d8ec893714aa8f72a4b96254c7dd757 } from '@/admin/components/ProjectField'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { LexicalDiffComponent as LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -42,6 +44,8 @@ export const importMap = {
   "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@/admin/components/CustomPublishButton#default": default_1de2e4b9883e0c13c552cfc8d5bd502f,
   "@/admin/components/SaveDraftButton#default": default_fd3f0ff9d6d59846e58e9b9678ee8433,
+  "@/admin/components/TagsField#default": default_58ed0f5e7e6131a43b015052c40d7ca2,
+  "@/admin/components/ProjectField#default": default_8d8ec893714aa8f72a4b96254c7dd757,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#LexicalDiffComponent": LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e,

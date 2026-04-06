@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { listCadernos } from "@/lib/payload-content";
+import { listTesselas } from "@/lib/payload-content";
 import { BookOpen } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Cadernos | Kuara",
+  title: "Tesselas | Kuara",
   description:
-    "Cadernos de pesquisa, notas técnicas e estudos independentes da plataforma Kuara.",
+    "Tesselas de pesquisa, notas técnicas e estudos independentes da plataforma Kuara.",
 };
 
 const statusConfig: Record<
@@ -38,27 +38,27 @@ const statusConfig: Record<
   },
 };
 
-export default async function CadernosPage() {
-  const cadernos = await listCadernos();
+export default async function TesselasPage() {
+  const tesselas = await listTesselas();
 
   return (
     <main className="container mx-auto px-4 py-8 space-y-8">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight">Cadernos</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Tesselas</h1>
         <p className="text-muted-foreground mt-1 max-w-2xl">
           Notas de pesquisa, implementações de artigos, achados de projetos e
           peças de conhecimento que podem ser compostas em novas coisas. Cada
-          caderno é um documento vivo conectado aos demais por referências
+          tessela é um documento vivo conectado aos demais por referências
           explícitas.
         </p>
       </header>
 
-      {cadernos.length === 0 && (
+      {tesselas.length === 0 && (
         <div className="text-center py-12">
           <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">Nenhum caderno publicado.</p>
+          <p className="text-muted-foreground">Nenhuma tessela publicada.</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Crie um caderno no{" "}
+            Crie uma tessela no{" "}
             <Link href="/admin" className="underline">
               painel admin
             </Link>
@@ -67,10 +67,10 @@ export default async function CadernosPage() {
         </div>
       )}
 
-      {cadernos.length > 1 && (
+      {tesselas.length > 1 && (
         <div className="flex justify-end">
           <Link
-            href="/cadernos/grafo"
+            href="/tesselas/grafo"
             className="text-sm font-medium text-primary hover:underline hover:text-primary/80 transition-colors"
           >
             Ver grafo de conhecimento &rarr;
@@ -79,19 +79,19 @@ export default async function CadernosPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cadernos.map((c) => {
-          const status = statusConfig[c.stage] ?? statusConfig["rascunho"];
+        {tesselas.map((t) => {
+          const status = statusConfig[t.stage] ?? statusConfig["rascunho"];
           return (
             <Link
-              key={c.slug}
-              href={`/cadernos/${c.slug}`}
+              key={t.slug}
+              href={`/tesselas/${t.slug}`}
               className="group relative block rounded-xl overflow-hidden shadow-sm transition-all hover:shadow-md"
             >
-              {c.coverImage ? (
+              {t.coverImage ? (
                 <>
                   <Image
-                    src={c.coverImage.url}
-                    alt={c.coverImage.alt ?? c.title}
+                    src={t.coverImage.url}
+                    alt={t.coverImage.alt ?? t.title}
                     fill
                     className="object-cover"
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -106,26 +106,26 @@ export default async function CadernosPage() {
                   />
                   <div className="relative z-10 p-6 space-y-2 min-h-[160px] flex flex-col justify-end">
                     <h2 className="font-semibold text-lg leading-snug text-white drop-shadow">
-                      {c.title}
+                      {t.title}
                     </h2>
-                    {c.abstract && (
+                    {t.abstract && (
                       <p className="text-sm text-white/80 line-clamp-3 drop-shadow mb-1">
-                        {c.abstract}
+                        {t.abstract}
                       </p>
                     )}
                     <div className="flex items-center flex-wrap gap-x-1.5 gap-y-2 pt-2 mt-auto">
-                      {c.publishedAt && (
+                      {t.publishedAt && (
                         <span className="text-[11px] text-white/60">
-                          {new Date(c.publishedAt).toLocaleDateString("pt-BR", {
+                          {new Date(t.publishedAt).toLocaleDateString("pt-BR", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
                           })}
                         </span>
                       )}
-                      {c.updatedAt && (
+                      {t.updatedAt && (
                         <span className="text-[11px] text-white/60">
-                          · {new Date(c.updatedAt).toLocaleDateString("pt-BR", {
+                          · {new Date(t.updatedAt).toLocaleDateString("pt-BR", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
@@ -141,26 +141,26 @@ export default async function CadernosPage() {
               ) : (
                 <div className="border bg-card p-6 rounded-xl h-full transition-all group-hover:border-primary/30 space-y-2 flex flex-col">
                   <h2 className="font-semibold text-lg leading-snug group-hover:text-primary transition-colors">
-                    {c.title}
+                    {t.title}
                   </h2>
-                  {c.abstract && (
+                  {t.abstract && (
                     <p className="text-sm text-muted-foreground line-clamp-3 mb-1">
-                      {c.abstract}
+                      {t.abstract}
                     </p>
                   )}
                   <div className="flex items-center flex-wrap gap-x-1.5 gap-y-2 pt-2 mt-auto">
-                    {c.publishedAt && (
+                    {t.publishedAt && (
                       <span className="text-[11px] text-muted-foreground">
-                        {new Date(c.publishedAt).toLocaleDateString("pt-BR", {
+                        {new Date(t.publishedAt).toLocaleDateString("pt-BR", {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
                         })}
                       </span>
                     )}
-                    {c.updatedAt && (
+                    {t.updatedAt && (
                       <span className="text-[11px] text-muted-foreground">
-                        · {new Date(c.updatedAt).toLocaleDateString("pt-BR", {
+                        · {new Date(t.updatedAt).toLocaleDateString("pt-BR", {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",

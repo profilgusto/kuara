@@ -1,17 +1,17 @@
 import type { CollectionConfig } from "payload";
 import {
-  syncCadernoMediaRefs,
-  cleanCadernoMediaRefs,
+  syncTesselaMediaRefs,
+  cleanTesselaMediaRefs,
 } from "../hooks/syncMediaUsedIn.ts";
 
-export const Cadernos: CollectionConfig = {
-  slug: "cadernos",
+export const Tesselas: CollectionConfig = {
+  slug: "tesselas",
   defaultSort: "-publishedAt",
   admin: {
     useAsTitle: "title",
     defaultColumns: ["title", "stage", "project", "publishedAt", "_status"],
     description:
-      "Cadernos de pesquisa, notas técnicas e estudos independentes.",
+      "Tesselas de pesquisa, notas técnicas e estudos independentes.",
     components: {
       edit: {
         SaveDraftButton: "@/admin/components/SaveDraftButton",
@@ -35,8 +35,8 @@ export const Cadernos: CollectionConfig = {
     delete: ({ req: { user } }) => user?.role === "admin",
   },
   hooks: {
-    afterChange: [syncCadernoMediaRefs],
-    afterDelete: [cleanCadernoMediaRefs],
+    afterChange: [syncTesselaMediaRefs],
+    afterDelete: [cleanTesselaMediaRefs],
   },
   versions: {
     drafts: {
@@ -59,7 +59,7 @@ export const Cadernos: CollectionConfig = {
       required: true,
       unique: true,
       admin: {
-        description: "URL-friendly identifier used in /cadernos/[slug]",
+        description: "URL-friendly identifier used in /tesselas/[slug]",
       },
     },
     {
@@ -74,7 +74,7 @@ export const Cadernos: CollectionConfig = {
       type: "textarea",
       admin: {
         description:
-          "Conteúdo MDX do caderno. Use a toolbar ou Ctrl+Espaço para inserir snippets.",
+          "Conteúdo MDX da tessela. Use a toolbar ou Ctrl+Espaço para inserir snippets.",
         components: {
           Field: "@/admin/components/MonacoMDXField",
         },
@@ -94,17 +94,14 @@ export const Cadernos: CollectionConfig = {
     },
     {
       name: "tags",
-      type: "array",
+      type: "text",
       admin: {
-        description: "Tags for filtering and graph clustering.",
-      },
-      fields: [
-        {
-          name: "tag",
-          type: "text",
-          required: true,
+        description:
+          "Tags for filtering and graph clustering. Semicolon-separated, e.g. robotics; ai; slam",
+        components: {
+          Field: "@/admin/components/TagsField",
         },
-      ],
+      },
     },
     {
       name: "citationStyle",
@@ -112,7 +109,7 @@ export const Cadernos: CollectionConfig = {
       defaultValue: "authoryear",
       admin: {
         description:
-          "Citation style used when rendering <Cite /> components in this caderno.",
+          "Citation style used when rendering <Cite /> components in this tessela.",
       },
       options: [
         { label: "Autor-Ano — (Corke et al., 2011)", value: "authoryear" },
@@ -137,6 +134,9 @@ export const Cadernos: CollectionConfig = {
       admin: {
         description:
           'Free-text project label (e.g. "SLAM Robot", "Artigo IEEE 2026").',
+        components: {
+          Field: "@/admin/components/ProjectField",
+        },
       },
     },
     {
@@ -156,7 +156,7 @@ export const Cadernos: CollectionConfig = {
       relationTo: "courses",
       hasMany: true,
       admin: {
-        description: "Courses related to this caderno.",
+        description: "Courses related to this tessela.",
       },
     },
     {
@@ -165,17 +165,17 @@ export const Cadernos: CollectionConfig = {
       relationTo: "modules",
       hasMany: true,
       admin: {
-        description: "Course modules related to this caderno.",
+        description: "Course modules related to this tessela.",
       },
     },
     {
-      name: "relatedCadernos",
+      name: "relatedTesselas",
       type: "relationship",
-      relationTo: "cadernos",
+      relationTo: "tesselas",
       hasMany: true,
       admin: {
         description:
-          'Directional: "I reference these cadernos." Incoming references are computed at query time.',
+          'Directional: "I reference these tesselas." Incoming references are computed at query time.',
       },
     },
   ],
