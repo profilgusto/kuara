@@ -109,7 +109,8 @@ export async function getCourseModules(courseId: string) {
     collection: "modules",
     where: {
       course: { equals: courseId },
-      visible: { equals: true },
+      visible: { not_equals: false },
+      linkable: { not_equals: false },
     },
     sort: "order",
     limit: 100,

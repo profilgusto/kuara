@@ -1,5 +1,7 @@
 import { default as default_aabdb40b6c0ca016311c39ef98b65f1c } from '@/admin/views/ModuleReorderView'
+import { default as default_1bc63cabb56eb6ed679d6949b6da7c43 } from '@/admin/components/AuthorsField'
 import { default as default_a394cf3bb6107d91a310bd3d4a0b01a0 } from '@/admin/components/MonacoMDXField'
+import { default as default_8726d33b48bcbed711f2a3499aeb9669 } from '@/admin/components/CopyUrlField'
 import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { default as default_1de2e4b9883e0c13c552cfc8d5bd502f } from '@/admin/components/CustomPublishButton'
@@ -39,7 +41,9 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 
 export const importMap = {
   "@/admin/views/ModuleReorderView#default": default_aabdb40b6c0ca016311c39ef98b65f1c,
+  "@/admin/components/AuthorsField#default": default_1bc63cabb56eb6ed679d6949b6da7c43,
   "@/admin/components/MonacoMDXField#default": default_a394cf3bb6107d91a310bd3d4a0b01a0,
+  "@/admin/components/CopyUrlField#default": default_8726d33b48bcbed711f2a3499aeb9669,
   "@payloadcms/next/rsc#FolderTableCell": FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@/admin/components/CustomPublishButton#default": default_1de2e4b9883e0c13c552cfc8d5bd502f,

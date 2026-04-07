@@ -68,6 +68,26 @@ export const Modules: CollectionConfig = {
       },
     },
     {
+      name: "authors",
+      type: "text",
+      admin: {
+        components: {
+          Field: "@/admin/components/AuthorsField",
+        },
+      },
+    },
+    {
+      name: "content",
+      type: "textarea",
+      admin: {
+        description:
+          "Conteúdo MDX do módulo. Use a toolbar ou Ctrl+Espaço para inserir snippets.",
+        components: {
+          Field: "@/admin/components/MonacoMDXField",
+        },
+      },
+    },
+    {
       name: "type",
       type: "select",
       required: true,
@@ -88,17 +108,6 @@ export const Modules: CollectionConfig = {
       },
     },
     {
-      name: "content",
-      type: "textarea",
-      admin: {
-        description:
-          "Conteúdo MDX do módulo. Use a toolbar ou Ctrl+Espaço para inserir snippets.",
-        components: {
-          Field: "@/admin/components/MonacoMDXField",
-        },
-      },
-    },
-    {
       name: "order",
       type: "number",
       required: true,
@@ -112,15 +121,24 @@ export const Modules: CollectionConfig = {
       type: "checkbox",
       defaultValue: true,
       admin: {
-        description: "Whether this module is visible to students",
+        description: "Controla se este módulo é listado na grade da disciplina.",
       },
     },
     {
-      name: "authors",
-      type: "text",
+      name: "linkable",
+      type: "checkbox",
+      defaultValue: true,
       admin: {
-        description:
-          'Autor(es) do módulo. Separe múltiplos com ponto-e-vírgula. Escreva o nome completo (e.g. "Filipe Augusto Santos Rocha") ou abreviado (e.g. "Filipe A S Rocha") — renderiza como "FILIPE A. S. ROCHA".',
+        description: "Habilita o acesso a este módulo através de sua URL direta, mesmo se não estiver visível.",
+      },
+    },
+    {
+      name: "copyUrl",
+      type: "ui",
+      admin: {
+        components: {
+          Field: "@/admin/components/CopyUrlField",
+        },
       },
     },
     {

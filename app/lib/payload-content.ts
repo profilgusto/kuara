@@ -108,7 +108,8 @@ export async function getCourse(
     collection: "modules",
     where: {
       course: { equals: course.id },
-      visible: { equals: true },
+      visible: { not_equals: false },
+      linkable: { not_equals: false },
     },
     sort: "order",
     limit: 100,
@@ -187,6 +188,9 @@ export async function getModule(
   });
   const mod = moduleResult.docs[0] as any;
   if (!mod) return null;
+
+  // Require linkable to access via direct URL (unless draft preview)
+  if (!draft && mod.linkable === false) return null;
 
   // --- relatedModules (outgoing) ---
   const relatedModules: ModuleRelatedItem[] = Array.isArray(mod.relatedModules)
@@ -427,6 +431,8 @@ export async function listTesselas(options?: {
 
   const where: Record<string, any> = {
     _status: { equals: "published" },
+    visible: { not_equals: false },
+    linkable: { not_equals: false },
   };
   if (options?.stage) where["stage"] = { equals: options.stage };
   if (options?.project) where["project"] = { contains: options.project };
@@ -481,6 +487,9 @@ export async function getTessela(
 
   // For non-admin requests, require published status
   if (!draft && doc._status !== "published") return null;
+
+  // Require linkable to access via direct URL (unless draft preview)
+  if (!draft && doc.linkable === false) return null;
 
   // --- relatedDisciplinas ---
   const relatedDisciplinas = Array.isArray(doc.relatedDisciplinas)
@@ -613,7 +622,11 @@ export async function listAllTesselasForGraph(): Promise<
 
   const result = await payload.find({
     collection: "tesselas",
-    where: { _status: { equals: "published" } },
+    where: { 
+      _status: { equals: "published" },
+      visible: { not_equals: false },
+      linkable: { not_equals: false },
+    },
     limit: 1000,
     depth: 1, // depth 1 to get relatedTesselas ids
     sort: "-publishedAt",

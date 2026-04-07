@@ -7,6 +7,7 @@ import { syncTesselaCrossRefs } from "../hooks/syncTesselaCrossRefs.ts";
 
 export const Tesselas: CollectionConfig = {
   slug: "tesselas",
+  folders: true,
   defaultSort: "-publishedAt",
   admin: {
     useAsTitle: "title",
@@ -70,18 +71,12 @@ export const Tesselas: CollectionConfig = {
       },
     },
     {
-      name: "abstract",
-      type: "textarea",
-      admin: {
-        description: "Plain text summary shown on listing cards.",
-      },
-    },
-    {
       name: "authors",
       type: "text",
       admin: {
-        description:
-          'Author(es) da tessela. Separe múltiplos autores com ponto-e-vírgula. Escreva o nome completo (e.g. "Filipe Augusto Santos Rocha") ou abreviado (e.g. "Filipe A S Rocha") — o sistema renderiza automaticamente como "FILIPE A. S. ROCHA".',
+        components: {
+          Field: "@/admin/components/AuthorsField",
+        },
       },
     },
     {
@@ -96,6 +91,13 @@ export const Tesselas: CollectionConfig = {
       },
     },
     {
+      name: "abstract",
+      type: "textarea",
+      admin: {
+        description: "Plain text summary shown on listing cards.",
+      },
+    },
+    {
       name: "stage",
       type: "select",
       required: true,
@@ -106,6 +108,31 @@ export const Tesselas: CollectionConfig = {
         { label: "Finalizado", value: "finalizado" },
         { label: "Incrementando", value: "incrementando" },
       ],
+    },
+    {
+      name: "visible",
+      type: "checkbox",
+      defaultValue: true,
+      admin: {
+        description: "Controla se esta tessela é listada na página /tesselas e nos grafos.",
+      },
+    },
+    {
+      name: "linkable",
+      type: "checkbox",
+      defaultValue: true,
+      admin: {
+        description: "Habilita o acesso a esta tessela através de sua URL direta, mesmo se não estiver visível nas listagens.",
+      },
+    },
+    {
+      name: "copyUrl",
+      type: "ui",
+      admin: {
+        components: {
+          Field: "@/admin/components/CopyUrlField",
+        },
+      },
     },
     {
       name: "tags",

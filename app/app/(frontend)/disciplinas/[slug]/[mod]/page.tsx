@@ -17,6 +17,7 @@ import { extractCiteTesselaSlugs } from "@/lib/tessela-links";
 import { ModuleLinksProvider } from "@/components/disciplinas/ModuleLinksContext";
 import { extractCiteModuleSlugs } from "@/lib/module-links";
 import CitedRelations from "@/components/CitedRelations";
+import { HideInPresentation } from "@/components/mdx/HideInPresentation";
 
 import { draftMode } from "next/headers";
 
@@ -153,49 +154,51 @@ export default async function ModulePage({
           </ModulePageClient>
 
           {/* ── Module metadata footer ───────────────────────────────────── */}
-          <div className="mt-12 pt-8 border-t border-border space-y-6 print:hidden">
-            {/* Authors */}
-            {moduleData.authors && moduleData.authors.length > 0 && (
-              <p className="text-base text-muted-foreground">
-                <span className="font-medium text-foreground">
-                  {moduleData.authors.length === 1 ? "Autor:" : "Autores:"}
-                </span>{" "}
-                {moduleData.authors.join(" · ")}
-              </p>
-            )}
+          <HideInPresentation>
+            <div className="mt-12 pt-8 border-t border-border space-y-6 print:hidden">
+              {/* Authors */}
+              {moduleData.authors && moduleData.authors.length > 0 && (
+                <p className="text-base text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    {moduleData.authors.length === 1 ? "Autor:" : "Autores:"}
+                  </span>{" "}
+                  {moduleData.authors.join(" · ")}
+                </p>
+              )}
 
-            {/* Dates */}
-            {(moduleData.publishedAt || moduleData.updatedAt) && (
-              <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                {moduleData.publishedAt && (
-                  <span>
-                    Publicado em{" "}
-                    {new Date(moduleData.publishedAt).toLocaleDateString(
-                      "pt-BR",
-                      { day: "2-digit", month: "long", year: "numeric" },
-                    )}
-                  </span>
-                )}
-                {moduleData.updatedAt && (
-                  <span>
-                    · Atualizado em{" "}
-                    {new Date(moduleData.updatedAt).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </span>
-                )}
-              </div>
-            )}
+              {/* Dates */}
+              {(moduleData.publishedAt || moduleData.updatedAt) && (
+                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                  {moduleData.publishedAt && (
+                    <span>
+                      Publicado em{" "}
+                      {new Date(moduleData.publishedAt).toLocaleDateString(
+                        "pt-BR",
+                        { day: "2-digit", month: "long", year: "numeric" },
+                      )}
+                    </span>
+                  )}
+                  {moduleData.updatedAt && (
+                    <span>
+                      · Atualizado em{" "}
+                      {new Date(moduleData.updatedAt).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
+                  )}
+                </div>
+              )}
 
-            <CitedRelations
-              citedTesselas={moduleData.relatedTesselas}
-              citedModules={moduleData.relatedModules}
-              citedByTesselas={moduleData.referencedByTesselas}
-              citedByModules={moduleData.referencedByModules}
-            />
-          </div>
+              <CitedRelations
+                citedTesselas={moduleData.relatedTesselas}
+                citedModules={moduleData.relatedModules}
+                citedByTesselas={moduleData.referencedByTesselas}
+                citedByModules={moduleData.referencedByModules}
+              />
+            </div>
+          </HideInPresentation>
         </FiguresProvider>
       </ReferencesProvider>
       </TesselaLinksProvider>

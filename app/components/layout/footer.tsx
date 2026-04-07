@@ -17,7 +17,7 @@ export function Footer() {
             className="opacity-70"
           />
           <span className="font-serif font-semibold">Kuara</span>
-          <span className="ml-1">· © {new Date().getFullYear()} UFSJ</span>
+          <span className="ml-1">· © {new Date().getFullYear()}</span>
         </Link>
         <div className="flex items-center gap-4">
           <a
