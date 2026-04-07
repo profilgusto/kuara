@@ -46,7 +46,7 @@ export async function listProfessorOffers(userId: string, role: string) {
  */
 export async function getOffer(
   offerId: string,
-  user: { id: string | number; role: string },
+  user: { id: string | number; role?: string },
 ) {
   const payload = await getPayload({ config: configPromise });
   try {
