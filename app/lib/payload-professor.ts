@@ -42,8 +42,12 @@ export async function listProfessorOffers(userId: string, role: string) {
 
 /**
  * Get a single offer with populated relationships.
+ * Enforces ownership: professors can only access offers they instruct.
  */
-export async function getOffer(offerId: string) {
+export async function getOffer(
+  offerId: string,
+  user: { id: string | number; role: string },
+) {
   const payload = await getPayload({ config: configPromise });
   try {
     const offer = await payload.findByID({
@@ -51,6 +55,16 @@ export async function getOffer(offerId: string) {
       id: offerId,
       depth: 2, // populate course -> modules, students, etc.
     });
+    if (!offer) return null;
+    // Professors can only access offers they instruct.
+    // Admins bypass this check. Students rely on enrollment checks downstream.
+    if (user.role === "professor") {
+      const instructorId =
+        typeof offer.instructor === "object" && offer.instructor !== null
+          ? (offer.instructor as { id: string | number }).id
+          : offer.instructor;
+      if (String(instructorId) !== String(user.id)) return null;
+    }
     return offer;
   } catch {
     return null;

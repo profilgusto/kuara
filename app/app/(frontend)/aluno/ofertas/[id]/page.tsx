@@ -27,7 +27,7 @@ export default async function StudentOfferPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login?redirect=/aluno");
 
-  const offer = await getOffer(id);
+  const offer = await getOffer(id, user);
   if (!offer) notFound();
 
   // Check enrollment

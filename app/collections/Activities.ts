@@ -13,12 +13,84 @@ export const Activities: CollectionConfig = {
       // Students can read activities of offers they are enrolled in
       return true;
     },
-    create: ({ req: { user } }) =>
-      user?.role === "admin" || user?.role === "professor",
-    update: ({ req: { user } }) =>
-      user?.role === "admin" || user?.role === "professor",
-    delete: ({ req: { user } }) =>
-      user?.role === "admin" || user?.role === "professor",
+    create: async ({ req, data }) => {
+      const user = req.user;
+      if (!user) return false;
+      if (user.role === "admin") return true;
+      if (user.role !== "professor") return false;
+      if (!data?.offer) return false;
+      try {
+        const offer = await req.payload.findByID({
+          collection: "offers",
+          id: String(data.offer),
+          depth: 0,
+          overrideAccess: true,
+        });
+        const instructorId =
+          typeof offer.instructor === "object" && offer.instructor !== null
+            ? (offer.instructor as { id: string | number }).id
+            : offer.instructor;
+        return String(instructorId) === String(user.id);
+      } catch {
+        return false;
+      }
+    },
+    update: async ({ req, id }) => {
+      const user = req.user;
+      if (!user) return false;
+      if (user.role === "admin") return true;
+      if (user.role !== "professor") return false;
+      if (!id) return false;
+      try {
+        const activity = await req.payload.findByID({
+          collection: "activities",
+          id: String(id),
+          depth: 0,
+          overrideAccess: true,
+        });
+        const offer = await req.payload.findByID({
+          collection: "offers",
+          id: String(activity.offer),
+          depth: 0,
+          overrideAccess: true,
+        });
+        const instructorId =
+          typeof offer.instructor === "object" && offer.instructor !== null
+            ? (offer.instructor as { id: string | number }).id
+            : offer.instructor;
+        return String(instructorId) === String(user.id);
+      } catch {
+        return false;
+      }
+    },
+    delete: async ({ req, id }) => {
+      const user = req.user;
+      if (!user) return false;
+      if (user.role === "admin") return true;
+      if (user.role !== "professor") return false;
+      if (!id) return false;
+      try {
+        const activity = await req.payload.findByID({
+          collection: "activities",
+          id: String(id),
+          depth: 0,
+          overrideAccess: true,
+        });
+        const offer = await req.payload.findByID({
+          collection: "offers",
+          id: String(activity.offer),
+          depth: 0,
+          overrideAccess: true,
+        });
+        const instructorId =
+          typeof offer.instructor === "object" && offer.instructor !== null
+            ? (offer.instructor as { id: string | number }).id
+            : offer.instructor;
+        return String(instructorId) === String(user.id);
+      } catch {
+        return false;
+      }
+    },
   },
   fields: [
     {

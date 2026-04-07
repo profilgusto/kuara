@@ -22,7 +22,7 @@ export default async function NotasPage({
   if (!user) redirect("/login?redirect=/gestao");
   if (user.role !== "admin" && user.role !== "professor") redirect("/aluno");
 
-  const offer = await getOffer(id);
+  const offer = await getOffer(id, user);
   if (!offer) notFound();
 
   const courseTitle =

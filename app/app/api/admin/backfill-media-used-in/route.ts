@@ -105,7 +105,8 @@ export async function POST(request: NextRequest) {
     for (const mediaId of ids) {
       const numId = Number(mediaId);
       if (!usedInMap.has(numId)) continue;
-      const refs = usedInMap.get(numId)!;
+      const refs = usedInMap.get(numId);
+      if (!refs) continue;
       if (!refs.some((r) => r.relationTo === "posts" && r.value === post.id)) {
         refs.push({ relationTo: "posts", value: post.id });
       }

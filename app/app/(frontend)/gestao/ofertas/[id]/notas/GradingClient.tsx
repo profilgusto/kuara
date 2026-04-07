@@ -239,6 +239,8 @@ export function GradingClient({
   }
 
   async function deleteActivity(actId: string) {
+    const previousActivities = activities;
+    const previousScores = scores;
     setActivities((prev) => prev.filter((a) => a.id !== actId));
     setScores((prev) => prev.filter((s) => s.activityId !== actId));
     try {
@@ -247,9 +249,13 @@ export function GradingClient({
         credentials: "include",
       });
       if (!res.ok) {
+        setActivities(previousActivities);
+        setScores(previousScores);
         setError("Erro ao excluir a atividade no servidor.");
       }
     } catch {
+      setActivities(previousActivities);
+      setScores(previousScores);
       setError("Erro de conexão ao excluir a atividade.");
     }
   }
