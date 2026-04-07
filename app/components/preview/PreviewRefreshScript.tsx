@@ -19,6 +19,8 @@ const SLIDE_KEY = "preview-slide-id";
  * - Text mode: scroll position is saved to sessionStorage and restored after reload.
  * - Presentation mode: current slide ID is saved to sessionStorage so SlideDeck
  *   can restore it (URL hash alone is unreliable due to a race condition in SlideDeck).
+ *
+ * Used by both Module and Tessela preview pages.
  */
 export function PreviewRefreshScript() {
   // On mount: restore scroll position after a text-mode reload

@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { draftMode } from "next/headers";
 import Link from "next/link";
-import { getTessela } from "@/lib/payload-content";
+import { getTessela, fetchTesselaLinks } from "@/lib/payload-content";
 import { compileMdx, extractHeadings } from "@/lib/mdx-pipeline";
 import { getMdxComponents } from "@/lib/mdx-components";
 import { ContentPageClient } from "@/components/content/ContentPageClient";
 import { TesselaLayout } from "@/components/tesselas/TesselaLayout";
+import { TesselaLinksProvider } from "@/components/tesselas/TesselaLinksContext";
 import { ReferencesProvider } from "@/components/citations/ReferencesProvider";
 import ReferencesSection from "@/components/citations/ReferencesSection";
 import { extractCiteLabels, fetchAndFormatReferences } from "@/lib/citations";
@@ -14,6 +15,7 @@ import type { CitationStyle } from "@/lib/citation-shared";
 import { extractFigureLabels } from "@/lib/figures";
 import { FiguresProvider } from "@/components/figures/FiguresProvider";
 import { extractSlideCoverProps } from "@/lib/slides";
+import { extractCiteTesselaSlugs } from "@/lib/tessela-links";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +101,12 @@ export default async function TesselaPage({
     ? extractSlideCoverProps(tessela.content)
     : null;
 
+  // ── CiteTessela cross-references ───────────────────────────────────────────
+  const citeTesselaSlugs = tessela.content
+    ? extractCiteTesselaSlugs(tessela.content)
+    : [];
+  const tesselaLinks = await fetchTesselaLinks(citeTesselaSlugs, isDraftMode);
+
   // ── Compile MDX ───────────────────────────────────────────────────────────
   let content = null;
   if (tessela.content) {
@@ -110,6 +118,7 @@ export default async function TesselaPage({
 
   return (
     <TesselaLayout headings={headings} tesselaTitle={tessela.title}>
+      <TesselaLinksProvider tesselas={tesselaLinks}>
       <ReferencesProvider
         references={references}
         citationOrder={citationOrder}
@@ -303,6 +312,7 @@ export default async function TesselaPage({
           </div>
         )}
       </div>
+      </TesselaLinksProvider>
     </TesselaLayout>
   );
 }

@@ -7,11 +7,11 @@ import { TesselasGraph } from "@/components/tesselas/TesselasGraph";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Grafo de Tesselas | Kuara",
+  title: "Mosaico | Kuara",
   description: "Visualização das relações de conhecimento entre as tesselas.",
 };
 
-export default async function GrafoPage() {
+export default async function MosaicoPage() {
   const data = await listAllTesselasForGraph();
 
   return (
@@ -25,7 +25,7 @@ export default async function GrafoPage() {
           Voltar para Lista
         </Link>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Grafo de Conhecimento</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Mosaico</h1>
           <p className="text-muted-foreground mt-1 max-w-2xl">
             Visualização das dependências direcionais e conceitos conectados por referências.
           </p>
@@ -37,7 +37,7 @@ export default async function GrafoPage() {
           <TesselasGraph data={data} />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
-            Você precisa de tesselas publicadas para visualizar o grafo.
+            Você precisa de tesselas publicadas para visualizar o Mosaico.
           </div>
         )}
       </div>

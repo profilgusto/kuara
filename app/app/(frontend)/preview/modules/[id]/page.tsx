@@ -9,7 +9,7 @@ import { FiguresProvider } from "@/components/figures/FiguresProvider";
 import { extractCiteLabels, fetchAndFormatReferences } from "@/lib/citations";
 import { extractFigureLabels } from "@/lib/figures";
 import type { CitationStyle } from "@/lib/citation-shared";
-import { PreviewRefreshScript } from "./PreviewRefreshScript";
+import { PreviewRefreshScript } from "@/components/preview/PreviewRefreshScript";
 import { extractSlideCoverProps } from "@/lib/slides";
 
 export const dynamic = "force-dynamic";

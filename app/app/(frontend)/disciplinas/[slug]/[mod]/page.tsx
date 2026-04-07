@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getCourse, getModule } from "@/lib/payload-content";
+import { getCourse, getModule, fetchTesselaLinks } from "@/lib/payload-content";
 import { compileMdx, extractHeadings } from "@/lib/mdx-pipeline";
 import { getMdxComponents } from "@/lib/mdx-components";
 import { ModulePageClient } from "@/components/mdx/ModulePageClient";
@@ -12,6 +12,8 @@ import type { CitationStyle } from "@/lib/citation-shared";
 import { extractFigureLabels } from "@/lib/figures";
 import { FiguresProvider } from "@/components/figures/FiguresProvider";
 import { extractSlideCoverProps } from "@/lib/slides";
+import { TesselaLinksProvider } from "@/components/tesselas/TesselaLinksContext";
+import { extractCiteTesselaSlugs } from "@/lib/tessela-links";
 
 import { draftMode } from "next/headers";
 
@@ -90,6 +92,11 @@ export default async function ModulePage({
   const slideCover = moduleData.content
     ? extractSlideCoverProps(moduleData.content)
     : null;
+  // ── CiteTessela cross-references ───────────────────────────────────────
+  const citeTesselaSlugs = moduleData.content
+    ? extractCiteTesselaSlugs(moduleData.content)
+    : [];
+  const tesselaLinks = await fetchTesselaLinks(citeTesselaSlugs, isDraftMode);
   // ──────────────────────────────────────────────────────────────────────
 
   let content = null;
@@ -107,6 +114,7 @@ export default async function ModulePage({
       courseSlug={courseSlug}
       moduleTitle={moduleData.title}
     >
+      <TesselaLinksProvider tesselas={tesselaLinks}>
       <ReferencesProvider
         references={references}
         citationOrder={citationOrder}
@@ -136,6 +144,7 @@ export default async function ModulePage({
           </ModulePageClient>
         </FiguresProvider>
       </ReferencesProvider>
+      </TesselaLinksProvider>
     </ModuleLayout>
   );
 }

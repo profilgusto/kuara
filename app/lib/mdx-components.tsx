@@ -23,6 +23,7 @@ import Question, { Answer, Hint } from "@/components/mdx/Question";
 import Comment from "@/components/mdx/Comment";
 import Todo from "@/components/mdx/Todo";
 import Cite from "@/components/citations/Cite";
+import CiteTessela from "@/components/tesselas/CiteTessela";
 import RefFig from "@/components/figures/RefFig";
 import type { ComponentType } from "react";
 
@@ -61,6 +62,9 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
 
     // Citation
     Cite,
+
+    // Tessela cross-reference
+    CiteTessela,
 
     // Figure cross-reference
     RefFig,

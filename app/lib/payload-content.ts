@@ -457,6 +457,8 @@ export async function listAllTesselasForGraph(): Promise<
     id: string;
     slug: string;
     title: string;
+    abstract?: string | null;
+    publishedAt?: string | null;
     tags: string[];
     project: string[];
     stage: string;
@@ -478,6 +480,8 @@ export async function listAllTesselasForGraph(): Promise<
     id: doc.id,
     slug: doc.slug,
     title: doc.title,
+    abstract: doc.abstract || null,
+    publishedAt: doc.publishedAt || null,
     tags: extractTags(doc.tags),
     project: extractProjects(doc.project),
     stage: doc.stage,
@@ -489,5 +493,34 @@ export async function listAllTesselasForGraph(): Promise<
           .filter((c: any) => c && (typeof c === "string" || typeof c === "object"))
           .map((c: any) => ({ id: typeof c === "object" ? c.id : c }))
       : [],
+  }));
+}
+
+/**
+ * Fetch lightweight tessela data for the given slugs.
+ * Used server-side to populate the TesselaLinksProvider for <CiteTessela> components.
+ */
+export async function fetchTesselaLinks(
+  slugs: string[],
+  draft = false,
+): Promise<TesselaRelatedItem[]> {
+  if (slugs.length === 0) return [];
+  const payload = await getPayload({ config: configPromise });
+
+  const result = await payload.find({
+    collection: "tesselas",
+    where: { slug: { in: slugs } },
+    limit: slugs.length,
+    depth: 0,
+    draft,
+  });
+
+  return result.docs.map((doc: any) => ({
+    id: String(doc.id),
+    slug: doc.slug,
+    title: doc.title,
+    abstract: doc.abstract || undefined,
+    tags: extractTags(doc.tags),
+    stage: doc.stage,
   }));
 }

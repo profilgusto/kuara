@@ -3,6 +3,7 @@ import {
   syncTesselaMediaRefs,
   cleanTesselaMediaRefs,
 } from "../hooks/syncMediaUsedIn.ts";
+import { syncTesselaCrossRefs } from "../hooks/syncTesselaCrossRefs.ts";
 
 export const Tesselas: CollectionConfig = {
   slug: "tesselas",
@@ -12,6 +13,11 @@ export const Tesselas: CollectionConfig = {
     defaultColumns: ["title", "stage", "project", "publishedAt", "_status"],
     description:
       "Tesselas de pesquisa, notas técnicas e estudos independentes.",
+    livePreview: {
+      url: ({ data }) => {
+        return `${process.env.NEXT_PUBLIC_SERVER_URL}/preview/tesselas/${data.slug}`;
+      },
+    },
     components: {
       edit: {
         SaveDraftButton: "@/admin/components/SaveDraftButton",
@@ -35,6 +41,7 @@ export const Tesselas: CollectionConfig = {
     delete: ({ req: { user } }) => user?.role === "admin",
   },
   hooks: {
+    beforeChange: [syncTesselaCrossRefs],
     afterChange: [syncTesselaMediaRefs],
     afterDelete: [cleanTesselaMediaRefs],
   },
@@ -174,8 +181,9 @@ export const Tesselas: CollectionConfig = {
       relationTo: "tesselas",
       hasMany: true,
       admin: {
+        hidden: true,
         description:
-          'Directional: "I reference these tesselas." Incoming references are computed at query time.',
+          'Auto-managed by <CiteTessela> usage in content. Do not edit manually.',
       },
     },
   ],
