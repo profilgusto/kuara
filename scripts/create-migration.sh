@@ -20,7 +20,9 @@
 set -euo pipefail
 
 docker compose exec web sh -c "
-  npx esbuild payload.config.ts \
+  ARCH=\$(uname -m | sed 's/aarch64/arm64/;s/x86_64/x64/') && \
+  ESBUILD=\"/app/node_modules/@esbuild/linux-\${ARCH}/bin/esbuild\" && \
+  \$ESBUILD payload.config.ts \
     --bundle \
     --packages=external \
     --format=esm \
