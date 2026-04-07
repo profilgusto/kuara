@@ -3,6 +3,7 @@ import {
   syncModuleMediaRefs,
   cleanModuleMediaRefs,
 } from "../hooks/syncMediaUsedIn.ts";
+import { syncModuleCrossRefs } from "../hooks/syncModuleCrossRefs.ts";
 
 export const Modules: CollectionConfig = {
   slug: "modules",
@@ -39,6 +40,7 @@ export const Modules: CollectionConfig = {
     delete: ({ req: { user } }) => user?.role === "admin",
   },
   hooks: {
+    beforeChange: [syncModuleCrossRefs],
     afterChange: [syncModuleMediaRefs],
     afterDelete: [cleanModuleMediaRefs],
   },
@@ -111,6 +113,43 @@ export const Modules: CollectionConfig = {
       defaultValue: true,
       admin: {
         description: "Whether this module is visible to students",
+      },
+    },
+    {
+      name: "authors",
+      type: "text",
+      admin: {
+        description:
+          'Autor(es) do módulo. Separe múltiplos com ponto-e-vírgula. Escreva o nome completo (e.g. "Filipe Augusto Santos Rocha") ou abreviado (e.g. "Filipe A S Rocha") — renderiza como "FILIPE A. S. ROCHA".',
+      },
+    },
+    {
+      name: "publishedAt",
+      type: "date",
+      admin: {
+        description: "Data de publicação do módulo.",
+        date: {
+          pickerAppearance: "dayOnly",
+          displayFormat: "d MMM yyyy",
+        },
+      },
+    },
+    {
+      name: "relatedModules",
+      type: "relationship",
+      relationTo: "modules",
+      hasMany: true,
+      admin: {
+        description: "Módulos referenciados por este módulo.",
+      },
+    },
+    {
+      name: "relatedTesselas",
+      type: "relationship",
+      relationTo: "tesselas",
+      hasMany: true,
+      admin: {
+        description: "Tesselas referenciadas por este módulo.",
       },
     },
     {

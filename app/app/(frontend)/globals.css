@@ -449,6 +449,7 @@ mjx-container.eq-highlight-active {
 /* References slide in fullscreen — the section uses hardcoded Tailwind
    text-* classes that don't inherit from the em-scaled prose overrides.
    Override them here so references scale proportionally with other slides. */
+.presentation-deck[data-fullscreen="true"] section[data-id="referencias"] h1,
 .presentation-deck[data-fullscreen="true"] section[data-id="referencias"] h2 {
   font-size: 2.8em;
   font-weight: 600;

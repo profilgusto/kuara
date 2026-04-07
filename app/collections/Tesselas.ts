@@ -77,6 +77,14 @@ export const Tesselas: CollectionConfig = {
       },
     },
     {
+      name: "authors",
+      type: "text",
+      admin: {
+        description:
+          'Author(es) da tessela. Separe múltiplos autores com ponto-e-vírgula. Escreva o nome completo (e.g. "Filipe Augusto Santos Rocha") ou abreviado (e.g. "Filipe A S Rocha") — o sistema renderiza automaticamente como "FILIPE A. S. ROCHA".',
+      },
+    },
+    {
       name: "content",
       type: "textarea",
       admin: {

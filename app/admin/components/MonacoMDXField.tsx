@@ -50,7 +50,8 @@ import {
   Brain,
   BookText,
   Check,
-  Puzzle
+  Puzzle,
+  BookCheck,
 } from "lucide-react";
 
 // ── Snippet categories include 'citations' now ──
@@ -280,6 +281,14 @@ const SNIPPETS: Snippet[] = [
     template: '<CiteTessela slug="${1:slug-da-tessela}" label="${2:Texto exibido}" />',
     description:
       "Referência cruzada para Tessela com texto personalizado em vez do título da tessela.",
+    category: "citations",
+  },
+  {
+    label: "Citar Módulo",
+    icon: BookCheck,
+    template: '<CiteModule slug="${1:slug-do-modulo}" label="${2:Texto exibido}" />',
+    description:
+      "Referência cruzada para Módulo com texto personalizado em vez do título do módulo.",
     category: "citations",
   },
 

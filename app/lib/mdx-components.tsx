@@ -24,6 +24,7 @@ import Comment from "@/components/mdx/Comment";
 import Todo from "@/components/mdx/Todo";
 import Cite from "@/components/citations/Cite";
 import CiteTessela from "@/components/tesselas/CiteTessela";
+import CiteModule from "@/components/disciplinas/CiteModule";
 import RefFig from "@/components/figures/RefFig";
 import type { ComponentType } from "react";
 
@@ -65,6 +66,9 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
 
     // Tessela cross-reference
     CiteTessela,
+
+    // Module cross-reference
+    CiteModule,
 
     // Figure cross-reference
     RefFig,

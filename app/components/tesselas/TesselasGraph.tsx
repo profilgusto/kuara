@@ -16,12 +16,6 @@ import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import {
-  TesselaFilterBar,
-  applyFilters,
-  deriveFilterOptions,
-  type FilterState,
-} from "./TesselaFilterBar";
 
 // maskColor must be a concrete color value (SVG fill attribute — CSS variables not supported).
 // Everything else uses CSS variables (hsl(var(--*))) so the browser resolves them at
@@ -155,6 +149,7 @@ const TesselaNode = ({ data }: { data: NodeData }) => {
                     day: "2-digit",
                     month: "short",
                     year: "numeric",
+                    timeZone: "UTC",
                   })}
                 </span>
               )}
@@ -190,6 +185,7 @@ const TesselaNode = ({ data }: { data: NodeData }) => {
                     day: "2-digit",
                     month: "short",
                     year: "numeric",
+                    timeZone: "UTC",
                   })}
                 </span>
               )}
@@ -300,29 +296,15 @@ export function TesselasGraph({ data }: TesselasGraphProps) {
   const isDark = !mounted || resolvedTheme !== "light";
   const maskColor = isDark ? MINIMAP_MASK.dark : MINIMAP_MASK.light;
 
-  const [filters, setFilters] = useState<FilterState>({
-    tags: [],
-    projects: [],
-    stages: [],
-  });
-
-  const { tags: allTags, projects: allProjects, stages: allStages } =
-    useMemo(() => deriveFilterOptions(data), [data]);
-
-  const filteredData = useMemo(
-    () => applyFilters(data, filters),
-    [data, filters]
-  );
-
   const layouted = useMemo(
-    () => buildLayoutedElements(filteredData),
-    [filteredData]
+    () => buildLayoutedElements(data),
+    [data]
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(layouted.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(layouted.edges);
 
-  // Sync ReactFlow state when filter-driven layout changes
+  // Sync ReactFlow state when layout changes (e.g. when parent filters change)
   const prevLayoutRef = useRef(layouted);
   useEffect(() => {
     if (layouted !== prevLayoutRef.current) {
@@ -332,49 +314,10 @@ export function TesselasGraph({ data }: TesselasGraphProps) {
     }
   }, [layouted, setNodes, setEdges]);
 
-  function toggleTag(tag: string) {
-    setFilters((f) => ({
-      ...f,
-      tags: f.tags.includes(tag) ? f.tags.filter((t) => t !== tag) : [...f.tags, tag],
-    }));
-  }
-  function toggleProject(project: string) {
-    setFilters((f) => ({
-      ...f,
-      projects: f.projects.includes(project)
-        ? f.projects.filter((p) => p !== project)
-        : [...f.projects, project],
-    }));
-  }
-  function toggleStage(stage: string) {
-    setFilters((f) => ({
-      ...f,
-      stages: f.stages.includes(stage)
-        ? f.stages.filter((s) => s !== stage)
-        : [...f.stages, stage],
-    }));
-  }
-
   return (
     <div className="w-full h-full flex flex-col min-h-[600px]">
-      {/* Filter bar */}
-      {(allTags.length > 0 || allProjects.length > 0 || allStages.length > 0) && (
-        <div className="px-4 pt-4 pb-3 border-b">
-          <TesselaFilterBar
-            allTags={allTags}
-            allProjects={allProjects}
-            allStages={allStages}
-            filters={filters}
-            onTagToggle={toggleTag}
-            onProjectToggle={toggleProject}
-            onStageToggle={toggleStage}
-            onClear={() => setFilters({ tags: [], projects: [], stages: [] })}
-          />
-        </div>
-      )}
-
       {/* Graph canvas */}
-      <div className="flex-1 bg-background relative" style={{ borderRadius: "0 0 0.75rem 0.75rem", overflow: "hidden" }}>
+      <div className="flex-1 bg-background relative" style={{ borderRadius: "0.75rem", overflow: "hidden" }}>
         {/*
           Only CSS that cannot be set via ReactFlow props lives here.
           Background colors for minimap/controls are set via JS style props
@@ -472,7 +415,7 @@ export function TesselasGraph({ data }: TesselasGraphProps) {
           />
         </ReactFlow>
 
-        {filteredData.length === 0 && (
+        {data.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm pointer-events-none">
             Nenhuma tessela corresponde aos filtros selecionados.
           </div>

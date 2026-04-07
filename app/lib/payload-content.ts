@@ -22,6 +22,14 @@ export interface CourseListItem {
   coverImage?: string;
 }
 
+export interface ModuleRelatedItem {
+  id: string;
+  slug: string;
+  title: string;
+  courseSlug: string;
+  type?: ModuleType;
+}
+
 export interface CourseModule {
   id: string;
   title: string;
@@ -32,6 +40,14 @@ export interface CourseModule {
   content?: string;
   /** Citation style for <Cite> components in this module */
   citationStyle?: CitationStyle;
+  /** Formatted author names extracted from the authors text field */
+  authors?: string[];
+  publishedAt?: string;
+  updatedAt?: string;
+  relatedModules?: ModuleRelatedItem[];
+  relatedTesselas?: TesselaRelatedItem[];
+  referencedByModules?: ModuleRelatedItem[];
+  referencedByTesselas?: TesselaRelatedItem[];
   /** Auto-assigned number within its type group (teórico: 1,2,3...; prático: 1,2,3...) */
   number?: number | null;
 }
@@ -158,7 +174,7 @@ export async function getModule(
   const course = courseResult.docs[0] as any;
   if (!course || course.visibility === false) return null;
 
-  // Find the module
+  // Find the module — depth 2 to populate relatedModules → course
   const moduleResult = await payload.find({
     collection: "modules",
     where: {
@@ -166,10 +182,80 @@ export async function getModule(
       slug: { equals: decodedModuleSlug },
     },
     limit: 1,
+    depth: 2,
     draft,
   });
   const mod = moduleResult.docs[0] as any;
   if (!mod) return null;
+
+  // --- relatedModules (outgoing) ---
+  const relatedModules: ModuleRelatedItem[] = Array.isArray(mod.relatedModules)
+    ? mod.relatedModules
+        .filter((m: any) => m && typeof m === "object")
+        .map((m: any) => ({
+          id: m.id,
+          slug: m.slug,
+          title: m.title,
+          courseSlug:
+            m.course && typeof m.course === "object" ? m.course.slug : "",
+          type: m.type as ModuleType | undefined,
+        }))
+    : [];
+
+  // --- relatedTesselas (outgoing) ---
+  const relatedTesselas: TesselaRelatedItem[] = Array.isArray(
+    mod.relatedTesselas,
+  )
+    ? mod.relatedTesselas
+        .filter((t: any) => t && typeof t === "object")
+        .map((t: any) => ({
+          id: t.id,
+          slug: t.slug,
+          title: t.title,
+          abstract: t.abstract || undefined,
+          tags: extractTags(t.tags),
+          stage: t.stage,
+        }))
+    : [];
+
+  // --- referencedByModules (incoming) — modules that list this module ---
+  const refByModulesResult = await payload.find({
+    collection: "modules",
+    where: { relatedModules: { contains: mod.id } },
+    limit: 100,
+    depth: 1,
+    draft: false,
+  });
+  const referencedByModules: ModuleRelatedItem[] =
+    refByModulesResult.docs.map((m: any) => ({
+      id: m.id,
+      slug: m.slug,
+      title: m.title,
+      courseSlug:
+        m.course && typeof m.course === "object" ? m.course.slug : "",
+      type: m.type as ModuleType | undefined,
+    }));
+
+  // --- referencedByTesselas (incoming) — tesselas that list this module ---
+  const refByTesselasResult = await payload.find({
+    collection: "tesselas",
+    where: {
+      relatedModules: { contains: mod.id },
+      _status: { equals: "published" },
+    },
+    limit: 100,
+    depth: 0,
+    draft: false,
+  });
+  const referencedByTesselas: TesselaRelatedItem[] =
+    refByTesselasResult.docs.map((t: any) => ({
+      id: t.id,
+      slug: t.slug,
+      title: t.title,
+      abstract: t.abstract || undefined,
+      tags: extractTags(t.tags),
+      stage: t.stage,
+    }));
 
   return {
     module: {
@@ -181,7 +267,14 @@ export async function getModule(
       visible: mod.visible,
       content: mod.content || undefined,
       citationStyle: (mod.citationStyle as CitationStyle) || "authoryear",
-      number: null, // not needed on detail page
+      authors: extractAuthors(mod.authors),
+      publishedAt: mod.publishedAt || undefined,
+      updatedAt: mod.updatedAt || undefined,
+      relatedModules,
+      relatedTesselas,
+      referencedByModules,
+      referencedByTesselas,
+      number: null,
     },
     courseTitle: course.title,
     courseSlug: course.slug,
@@ -266,15 +359,17 @@ export interface TesselaDetail {
   stage: string;
   tags: string[];
   project: string[];
+  authors: string[];
   publishedAt?: string;
   updatedAt?: string;
   coverImage?: { url: string; alt?: string } | null;
   content?: string;
   citationStyle?: string;
   relatedDisciplinas?: { id: string; slug: string; title: string; code: string }[];
-  relatedModules?: { id: string; slug: string; title: string; courseSlug: string }[];
+  relatedModules?: ModuleRelatedItem[];
   relatedTesselas?: TesselaRelatedItem[];
   referencedBy?: TesselaRelatedItem[];
+  referencedByModules?: ModuleRelatedItem[];
 }
 
 /** Extract tags from the `tags` text field (semicolon-separated). */
@@ -293,6 +388,31 @@ function extractProjects(raw: any): string[] {
     .split(";")
     .map((p: string) => p.trim())
     .filter(Boolean);
+}
+
+/**
+ * Format a single author name into citation style.
+ * "Filipe Augusto Santos Rocha" → "FILIPE A. S. ROCHA"
+ * "FILIPE A S ROCHA" → "FILIPE A. S. ROCHA"
+ * Rules: first and last word kept full (uppercased), middle words abbreviated to "X."
+ */
+function formatAuthorName(name: string): string {
+  const parts = name.trim().toUpperCase().split(/\s+/).filter(Boolean);
+  if (parts.length <= 2) return parts.join(" ");
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  const middle = parts.slice(1, -1).map((p) => p[0] + ".");
+  return [first, ...middle, last].join(" ");
+}
+
+/** Extract and format authors from the `authors` text field (semicolon-separated). */
+function extractAuthors(raw: any): string[] {
+  if (!raw || typeof raw !== "string") return [];
+  return raw
+    .split(";")
+    .map((a: string) => a.trim())
+    .filter(Boolean)
+    .map(formatAuthorName);
 }
 
 /**
@@ -375,7 +495,7 @@ export async function getTessela(
     : [];
 
   // --- relatedModules ---
-  const relatedModules = Array.isArray(doc.relatedModules)
+  const relatedModules: ModuleRelatedItem[] = Array.isArray(doc.relatedModules)
     ? doc.relatedModules
         .filter((m: any) => m && typeof m === "object")
         .map((m: any) => ({
@@ -384,6 +504,7 @@ export async function getTessela(
           title: m.title,
           courseSlug:
             m.course && typeof m.course === "object" ? m.course.slug : "",
+          type: m.type as ModuleType | undefined,
         }))
     : [];
 
@@ -403,8 +524,8 @@ export async function getTessela(
         }))
     : [];
 
-  // --- referencedBy (incoming) — second query ---
-  const incomingResult = await payload.find({
+  // --- referencedBy (incoming tesselas) ---
+  const incomingTesselasResult = await payload.find({
     collection: "tesselas",
     where: {
       relatedTesselas: { contains: doc.id },
@@ -415,7 +536,7 @@ export async function getTessela(
     draft: false,
   });
 
-  const referencedBy: TesselaRelatedItem[] = incomingResult.docs.map(
+  const referencedBy: TesselaRelatedItem[] = incomingTesselasResult.docs.map(
     (c: any) => ({
       id: c.id,
       slug: c.slug,
@@ -425,6 +546,25 @@ export async function getTessela(
       stage: c.stage,
     }),
   );
+
+  // --- referencedByModules (incoming modules) ---
+  const incomingModulesResult = await payload.find({
+    collection: "modules",
+    where: { relatedTesselas: { contains: doc.id } },
+    limit: 100,
+    depth: 1,
+    draft: false,
+  });
+
+  const referencedByModules: ModuleRelatedItem[] =
+    incomingModulesResult.docs.map((m: any) => ({
+      id: m.id,
+      slug: m.slug,
+      title: m.title,
+      courseSlug:
+        m.course && typeof m.course === "object" ? m.course.slug : "",
+      type: m.type as ModuleType | undefined,
+    }));
 
   return {
     id: doc.id,
@@ -441,10 +581,12 @@ export async function getTessela(
       : null,
     content: doc.content || undefined,
     citationStyle: doc.citationStyle || undefined,
+    authors: extractAuthors(doc.authors),
     relatedDisciplinas,
     relatedModules,
     relatedTesselas,
     referencedBy,
+    referencedByModules,
   };
 }
 
@@ -459,6 +601,7 @@ export async function listAllTesselasForGraph(): Promise<
     title: string;
     abstract?: string | null;
     publishedAt?: string | null;
+    updatedAt?: string | null;
     tags: string[];
     project: string[];
     stage: string;
@@ -482,6 +625,7 @@ export async function listAllTesselasForGraph(): Promise<
     title: doc.title,
     abstract: doc.abstract || null,
     publishedAt: doc.publishedAt || null,
+    updatedAt: doc.updatedAt || null,
     tags: extractTags(doc.tags),
     project: extractProjects(doc.project),
     stage: doc.stage,
@@ -493,6 +637,47 @@ export async function listAllTesselasForGraph(): Promise<
           .filter((c: any) => c && (typeof c === "string" || typeof c === "object"))
           .map((c: any) => ({ id: typeof c === "object" ? c.id : c }))
       : [],
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Module links (for <CiteModule>)
+// ---------------------------------------------------------------------------
+
+export interface ModuleLinkData {
+  id: string;
+  slug: string;
+  title: string;
+  courseSlug: string;
+  type: ModuleType;
+}
+
+/**
+ * Fetch lightweight module data for the given slugs.
+ * Used server-side to populate the ModuleLinksProvider for <CiteModule> components.
+ */
+export async function fetchModuleLinks(
+  slugs: string[],
+  draft = false,
+): Promise<ModuleLinkData[]> {
+  if (slugs.length === 0) return [];
+  const payload = await getPayload({ config: configPromise });
+
+  const result = await payload.find({
+    collection: "modules",
+    where: { slug: { in: slugs } },
+    limit: slugs.length,
+    depth: 1, // populate course → slug
+    draft,
+  });
+
+  return result.docs.map((doc: any) => ({
+    id: String(doc.id),
+    slug: doc.slug,
+    title: doc.title,
+    courseSlug:
+      doc.course && typeof doc.course === "object" ? doc.course.slug : "",
+    type: doc.type as ModuleType,
   }));
 }
 

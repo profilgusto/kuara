@@ -3,16 +3,16 @@ import { extractCiteTesselaSlugs } from "../lib/tessela-links";
 import { extractCiteModuleSlugs } from "../lib/module-links";
 
 /**
- * Before a Tessela is saved, scan its MDX content for:
+ * Before a Module is saved, scan its MDX content for:
  *   - <CiteTessela slug="..."> → sets relatedTesselas
- *   - <CiteModule slug="...">  → sets relatedModules
+ *   - <CiteModule slug="...">  → sets relatedModules (excluding self)
  *
  * Using beforeChange means the IDs are written in the same DB operation —
  * no nested payload.update(), no double-save.
  *
  * IDs are kept as their native type (number for PostgreSQL serial).
  */
-export const syncTesselaCrossRefs: CollectionBeforeChangeHook = async ({
+export const syncModuleCrossRefs: CollectionBeforeChangeHook = async ({
   data,
   req,
   originalDoc,
@@ -26,12 +26,12 @@ export const syncTesselaCrossRefs: CollectionBeforeChangeHook = async ({
     (originalDoc?.slug as string | undefined);
 
   // ── relatedTesselas ────────────────────────────────────────────────────────
-  const tesselaSlugs = extractCiteTesselaSlugs(content).filter(
-    (s) => s !== docSlug,
-  );
+  const tesselaSlugs = extractCiteTesselaSlugs(content);
 
   // ── relatedModules ─────────────────────────────────────────────────────────
-  const moduleSlugs = extractCiteModuleSlugs(content);
+  const moduleSlugs = extractCiteModuleSlugs(content).filter(
+    (s) => s !== docSlug,
+  );
 
   try {
     const [tesselaResults, moduleResults] = await Promise.all([
@@ -73,7 +73,7 @@ export const syncTesselaCrossRefs: CollectionBeforeChangeHook = async ({
       relatedModules: moduleIds,
     };
   } catch (err) {
-    req.payload.logger.error({ err }, "[syncTesselaCrossRefs] sync failed");
+    req.payload.logger.error({ err }, "[syncModuleCrossRefs] sync failed");
     return data;
   }
 };

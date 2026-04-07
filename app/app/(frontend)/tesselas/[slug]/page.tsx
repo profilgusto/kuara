@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { draftMode } from "next/headers";
 import Link from "next/link";
-import { getTessela, fetchTesselaLinks } from "@/lib/payload-content";
+import { getTessela, fetchTesselaLinks, fetchModuleLinks } from "@/lib/payload-content";
 import { compileMdx, extractHeadings } from "@/lib/mdx-pipeline";
 import { getMdxComponents } from "@/lib/mdx-components";
 import { ContentPageClient } from "@/components/content/ContentPageClient";
@@ -16,6 +16,9 @@ import { extractFigureLabels } from "@/lib/figures";
 import { FiguresProvider } from "@/components/figures/FiguresProvider";
 import { extractSlideCoverProps } from "@/lib/slides";
 import { extractCiteTesselaSlugs } from "@/lib/tessela-links";
+import { ModuleLinksProvider } from "@/components/disciplinas/ModuleLinksContext";
+import { extractCiteModuleSlugs } from "@/lib/module-links";
+import CitedRelations from "@/components/CitedRelations";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +109,11 @@ export default async function TesselaPage({
     ? extractCiteTesselaSlugs(tessela.content)
     : [];
   const tesselaLinks = await fetchTesselaLinks(citeTesselaSlugs, isDraftMode);
+  // ── CiteModule cross-references ────────────────────────────────────────────
+  const citeModuleSlugs = tessela.content
+    ? extractCiteModuleSlugs(tessela.content)
+    : [];
+  const moduleLinks = await fetchModuleLinks(citeModuleSlugs, isDraftMode);
 
   // ── Compile MDX ───────────────────────────────────────────────────────────
   let content = null;
@@ -118,6 +126,7 @@ export default async function TesselaPage({
 
   return (
     <TesselaLayout headings={headings} tesselaTitle={tessela.title}>
+      <ModuleLinksProvider modules={moduleLinks}>
       <TesselaLinksProvider tesselas={tesselaLinks}>
       <ReferencesProvider
         references={references}
@@ -136,7 +145,7 @@ export default async function TesselaPage({
                 <article className="prose prose-neutral dark:prose-invert max-w-none">
                   {content}
                 </article>
-                {citationOrder.length > 0 && <ReferencesSection />}
+                
               </>
             ) : (
               <div className="text-center py-12 border border-dashed rounded-xl">
@@ -147,12 +156,47 @@ export default async function TesselaPage({
             )}
           </ContentPageClient>
         </FiguresProvider>
-      </ReferencesProvider>
 
       {/* ── Metadata section ──────────────────────────────────────────────── */}
       <div className="mt-12 pt-8 border-t border-border space-y-6 print:hidden">
-        {/* Status + dates + project */}
-        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+        {/* Authors */}
+        {tessela.authors.length > 0 && (
+          <p className="text-base text-muted-foreground">
+            <span className="font-medium text-foreground">
+              {tessela.authors.length === 1 ? "Autor:" : "Autores:"}
+            </span>{" "}
+            {tessela.authors.join(" · ")}
+          </p>
+        )}
+
+        {(tessela.publishedAt || tessela.updatedAt) && (
+          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            {tessela.publishedAt && (
+              <span>
+                Publicado em{" "}
+                {new Date(tessela.publishedAt).toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </span>
+            )}
+            {tessela.updatedAt && (
+              <span>
+                · Atualizado em{" "}
+                {new Date(tessela.updatedAt).toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </span>
+            )}
+          </div>
+        )}
+        
+
+        {/* Status + labels + Tags */}
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span
             className={`text-[11px] uppercase tracking-wider font-medium px-2.5 py-1 rounded-full ${status.className}`}
           >
@@ -163,115 +207,24 @@ export default async function TesselaPage({
               {p}
             </span>
           ))}
-          {tessela.publishedAt && (
-            <span>
-              Publicado em{" "}
-              {new Date(tessela.publishedAt).toLocaleDateString("pt-BR", {
-                day: "2-digit",
-                month: "long",
-                year: "numeric",
-              })}
+          {tessela.tags.map((tag) => (
+            <span
+              key={tag}
+              className="text-[11px] bg-muted text-muted-foreground px-2.5 py-1 rounded-full"
+            >
+              {tag}
             </span>
-          )}
-          {tessela.updatedAt && (
-            <span>
-              · Atualizado em{" "}
-              {new Date(tessela.updatedAt).toLocaleDateString("pt-BR", {
-                day: "2-digit",
-                month: "long",
-                year: "numeric",
-              })}
-            </span>
-          )}
+          ))}
         </div>
 
-        {/* Tags */}
-        {tessela.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {tessela.tags.map((tag) => (
-              <span
-                key={tag}
-                className="text-xs bg-muted text-muted-foreground px-2.5 py-1 rounded-full"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
+        <ReferencesSection />
 
-        {/* Outgoing: tesselas referenciadas */}
-        {tessela.relatedTesselas && tessela.relatedTesselas.length > 0 && (
-          <div>
-            <h2 className="text-base font-semibold mb-3">
-              Tesselas referenciadas
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {tessela.relatedTesselas.map((t) => (
-                <Link
-                  key={t.id}
-                  href={`/tesselas/${t.slug}`}
-                  className="block border rounded-lg p-4 hover:border-primary/40 transition-colors space-y-1"
-                >
-                  <p className="font-medium text-sm leading-snug">{t.title}</p>
-                  {t.abstract && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {t.abstract}
-                    </p>
-                  )}
-                  {t.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {t.tags.slice(0, 3).map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Incoming: referenciada por */}
-        {tessela.referencedBy && tessela.referencedBy.length > 0 && (
-          <div>
-            <h2 className="text-base font-semibold mb-3">
-              Referenciada por
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {tessela.referencedBy.map((t) => (
-                <Link
-                  key={t.id}
-                  href={`/tesselas/${t.slug}`}
-                  className="block border rounded-lg p-4 hover:border-primary/40 transition-colors space-y-1"
-                >
-                  <p className="font-medium text-sm leading-snug">{t.title}</p>
-                  {t.abstract && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {t.abstract}
-                    </p>
-                  )}
-                  {t.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {t.tags.slice(0, 3).map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
+        <CitedRelations
+          citedTesselas={tessela.relatedTesselas}
+          citedModules={tessela.relatedModules}
+          citedByTesselas={tessela.referencedBy}
+          citedByModules={tessela.referencedByModules}
+        />
 
         {/* Related disciplinas */}
         {tessela.relatedDisciplinas && tessela.relatedDisciplinas.length > 0 && (
@@ -293,26 +246,10 @@ export default async function TesselaPage({
             </div>
           </div>
         )}
-
-        {/* Related modules */}
-        {tessela.relatedModules && tessela.relatedModules.length > 0 && (
-          <div>
-            <h2 className="text-base font-semibold mb-3">Módulos relacionados</h2>
-            <div className="flex flex-wrap gap-2">
-              {tessela.relatedModules.map((m) => (
-                <Link
-                  key={m.id}
-                  href={`/disciplinas/${m.courseSlug}/${m.slug}`}
-                  className="text-sm border rounded-lg px-3 py-1.5 hover:border-primary/40 transition-colors"
-                >
-                  {m.title}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+      </ReferencesProvider>
       </TesselaLinksProvider>
+      </ModuleLinksProvider>
     </TesselaLayout>
   );
 }

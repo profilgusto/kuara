@@ -3,6 +3,8 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+import { Eye } from "lucide-react";
 import {
   TesselaFilterBar,
   applyFilters,
@@ -10,7 +12,13 @@ import {
   type FilterState,
 } from "./TesselaFilterBar";
 
+const TesselasGraph = dynamic(
+  () => import("./TesselasGraph").then((m) => m.TesselasGraph),
+  { ssr: false }
+);
+
 interface TesselaItem {
+  id: string;
   slug: string;
   title: string;
   abstract?: string | null;
@@ -20,6 +28,7 @@ interface TesselaItem {
   publishedAt?: string | null;
   updatedAt?: string | null;
   coverImage?: { url: string; alt?: string } | null;
+  relatedTesselas: { id: string }[];
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
@@ -46,6 +55,7 @@ function formatDate(dateStr: string) {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   });
 }
 
@@ -55,6 +65,7 @@ interface FilteredTesselaGridProps {
 }
 
 export function FilteredTesselaGrid({ tesselas, showMosaico }: FilteredTesselaGridProps) {
+  const [view, setView] = useState<"list" | "mosaico">("list");
   const [filters, setFilters] = useState<FilterState>({
     tags: [],
     projects: [],
@@ -96,8 +107,20 @@ export function FilteredTesselaGrid({ tesselas, showMosaico }: FilteredTesselaGr
 
   return (
     <div className="space-y-6">
-      {/* Filter bar + Mosaico link on the same line */}
-      <div className="flex items-center gap-4">
+      {/* View toggle + filter bar on the same line */}
+      <div className="flex items-center gap-2">
+        {showMosaico && (
+          <div className="shrink-0 flex items-center gap-1.5 text-muted-foreground">
+            <Eye className="h-3.5 w-3.5" />
+            <button
+              onClick={() => setView(view === "list" ? "mosaico" : "list")}
+              aria-label={view === "list" ? "Ver Mosaico" : "Ver Lista"}
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-border text-muted-foreground transition-all whitespace-nowrap hover:border-muted-foreground hover:text-foreground"
+            >
+              {view === "list" ? "Lista" : "Mosaico"}
+            </button>
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <TesselaFilterBar
             allTags={allTags}
@@ -110,142 +133,142 @@ export function FilteredTesselaGrid({ tesselas, showMosaico }: FilteredTesselaGr
             onClear={() => setFilters({ tags: [], projects: [], stages: [] })}
           />
         </div>
-        {showMosaico && (
-          <Link
-            href="/tesselas/grafo"
-            className="shrink-0 text-sm font-medium text-primary hover:underline hover:text-primary/80 transition-colors"
-          >
-            Ver Mosaico &rarr;
-          </Link>
-        )}
       </div>
 
-      {visible.length === 0 && (
-        <p className="text-muted-foreground text-sm py-8 text-center">
-          Nenhuma tessela corresponde aos filtros selecionados.
-        </p>
-      )}
+      {view === "mosaico" ? (
+        <div className="w-full bg-card rounded-xl shadow-sm border overflow-hidden h-[calc(100vh-220px)] min-h-[600px]">
+          <TesselasGraph data={visible} />
+        </div>
+      ) : (
+        <>
+          {visible.length === 0 && (
+            <p className="text-muted-foreground text-sm py-8 text-center">
+              Nenhuma tessela corresponde aos filtros selecionados.
+            </p>
+          )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visible.map((t) => {
-          const status = statusConfig[t.stage] ?? statusConfig["rascunho"];
-          return (
-            <Link
-              key={t.slug}
-              href={`/tesselas/${t.slug}`}
-              className="group relative block rounded-xl overflow-hidden shadow-sm transition-all hover:shadow-md"
-            >
-              {/* Tag chips — top-right corner, shared by both card variants */}
-              {t.tags.length > 0 && (
-                <div className="absolute top-3 right-3 z-20 flex flex-wrap justify-end gap-1">
-                  {t.tags.slice(0, 3).map((tag) =>
-                    t.coverImage ? (
-                      <span
-                        key={tag}
-                        className="text-[9px] uppercase tracking-wider bg-black/40 text-white/80 px-1.5 py-0.5 rounded-sm backdrop-blur-sm"
-                      >
-                        {tag}
-                      </span>
-                    ) : (
-                      <span
-                        key={tag}
-                        className="text-[9px] uppercase tracking-wider border bg-background/80 text-muted-foreground px-1.5 py-0.5 rounded-sm"
-                      >
-                        {tag}
-                      </span>
-                    )
-                  )}
-                </div>
-              )}
-
-              {t.coverImage ? (
-                <>
-                  <Image
-                    src={t.coverImage.url}
-                    alt={t.coverImage.alt ?? t.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  />
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      backgroundColor: "rgba(0, 0, 0, 0.55)",
-                      backdropFilter: "blur(3px)",
-                      WebkitBackdropFilter: "blur(3px)",
-                    }}
-                  />
-                  <div className="relative z-10 p-6 space-y-2 min-h-[160px] flex flex-col justify-end">
-                    {t.project.length > 0 && (
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-white/60">
-                        {t.project.join(" · ")}
-                      </span>
-                    )}
-                    <h2 className="font-semibold text-lg leading-snug text-white drop-shadow">
-                      {t.title}
-                    </h2>
-                    {t.abstract && (
-                      <p className="text-sm text-white/80 line-clamp-3 drop-shadow mb-1">
-                        {t.abstract}
-                      </p>
-                    )}
-                    <div className="flex items-center flex-wrap gap-x-1.5 gap-y-2 pt-2 mt-auto">
-                      {t.publishedAt && (
-                        <span className="text-[11px] text-white/60">
-                          {formatDate(t.publishedAt)}
-                        </span>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {visible.map((t) => {
+              const status = statusConfig[t.stage] ?? statusConfig["rascunho"];
+              return (
+                <Link
+                  key={t.slug}
+                  href={`/tesselas/${t.slug}`}
+                  className="group relative block rounded-xl overflow-hidden shadow-sm transition-all hover:shadow-md"
+                >
+                  {/* Tag chips — top-right corner */}
+                  {t.tags.length > 0 && (
+                    <div className="absolute top-3 right-3 z-20 flex flex-wrap justify-end gap-1">
+                      {t.tags.slice(0, 3).map((tag) =>
+                        t.coverImage ? (
+                          <span
+                            key={tag}
+                            className="text-[9px] uppercase tracking-wider bg-black/40 text-white/80 px-1.5 py-0.5 rounded-sm backdrop-blur-sm"
+                          >
+                            {tag}
+                          </span>
+                        ) : (
+                          <span
+                            key={tag}
+                            className="text-[9px] uppercase tracking-wider border bg-background/80 text-muted-foreground px-1.5 py-0.5 rounded-sm"
+                          >
+                            {tag}
+                          </span>
+                        )
                       )}
-                      {t.updatedAt && (
-                        <span className="text-[11px] text-white/60">
-                          · {formatDate(t.updatedAt)}
-                        </span>
-                      )}
-                      <span
-                        className={`text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ml-auto ${status.className}`}
-                      >
-                        {status.label}
-                      </span>
                     </div>
-                  </div>
-                </>
-              ) : (
-                <div className="border bg-card p-6 rounded-xl h-full transition-all group-hover:border-primary/30 space-y-2 flex flex-col">
-                  {t.project.length > 0 && (
-                    <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                      {t.project.join(" · ")}
-                    </span>
                   )}
-                  <h2 className="font-semibold text-lg leading-snug group-hover:text-primary transition-colors">
-                    {t.title}
-                  </h2>
-                  {t.abstract && (
-                    <p className="text-sm text-muted-foreground line-clamp-3 mb-1">
-                      {t.abstract}
-                    </p>
+
+                  {t.coverImage ? (
+                    <>
+                      <Image
+                        src={t.coverImage.url}
+                        alt={t.coverImage.alt ?? t.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          backgroundColor: "rgba(0, 0, 0, 0.55)",
+                          backdropFilter: "blur(3px)",
+                          WebkitBackdropFilter: "blur(3px)",
+                        }}
+                      />
+                      <div className="relative z-10 p-6 space-y-2 min-h-[160px] flex flex-col justify-end">
+                        {t.project.length > 0 && (
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-white/60">
+                            {t.project.join(" · ")}
+                          </span>
+                        )}
+                        <h2 className="font-semibold text-lg leading-snug text-white drop-shadow">
+                          {t.title}
+                        </h2>
+                        {t.abstract && (
+                          <p className="text-sm text-white/80 line-clamp-3 drop-shadow mb-1">
+                            {t.abstract}
+                          </p>
+                        )}
+                        <div className="flex items-center flex-wrap gap-x-1.5 gap-y-2 pt-2 mt-auto">
+                          {t.publishedAt && (
+                            <span className="text-[11px] text-white/60">
+                              {formatDate(t.publishedAt)}
+                            </span>
+                          )}
+                          {t.updatedAt && (
+                            <span className="text-[11px] text-white/60">
+                              · {formatDate(t.updatedAt)}
+                            </span>
+                          )}
+                          <span
+                            className={`text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ml-auto ${status.className}`}
+                          >
+                            {status.label}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="border bg-card p-6 rounded-xl h-full transition-all group-hover:border-primary/30 space-y-2 flex flex-col">
+                      {t.project.length > 0 && (
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                          {t.project.join(" · ")}
+                        </span>
+                      )}
+                      <h2 className="font-semibold text-lg leading-snug group-hover:text-primary transition-colors">
+                        {t.title}
+                      </h2>
+                      {t.abstract && (
+                        <p className="text-sm text-muted-foreground line-clamp-3 mb-1">
+                          {t.abstract}
+                        </p>
+                      )}
+                      <div className="flex items-center flex-wrap gap-x-1.5 gap-y-2 pt-2 mt-auto">
+                        {t.publishedAt && (
+                          <span className="text-[11px] text-muted-foreground">
+                            {formatDate(t.publishedAt)}
+                          </span>
+                        )}
+                        {t.updatedAt && (
+                          <span className="text-[11px] text-muted-foreground">
+                            · {formatDate(t.updatedAt)}
+                          </span>
+                        )}
+                        <span
+                          className={`text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ml-auto ${status.className}`}
+                        >
+                          {status.label}
+                        </span>
+                      </div>
+                    </div>
                   )}
-                  <div className="flex items-center flex-wrap gap-x-1.5 gap-y-2 pt-2 mt-auto">
-                    {t.publishedAt && (
-                      <span className="text-[11px] text-muted-foreground">
-                        {formatDate(t.publishedAt)}
-                      </span>
-                    )}
-                    {t.updatedAt && (
-                      <span className="text-[11px] text-muted-foreground">
-                        · {formatDate(t.updatedAt)}
-                      </span>
-                    )}
-                    <span
-                      className={`text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ml-auto ${status.className}`}
-                    >
-                      {status.label}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </Link>
-          );
-        })}
-      </div>
+                </Link>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

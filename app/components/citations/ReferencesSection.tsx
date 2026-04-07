@@ -82,9 +82,9 @@ export default function ReferencesSection() {
         style={{ fontSize: "calc(1rem * var(--slide-content-scale, 1))" }}
       >
         <div className="slide-layout-vertical space-y-4">
-          <h2 className="text-xl font-semibold mb-2 text-foreground font-display tracking-tight">
+          <h1 className="text-[1.75em] font-semibold leading-[1.3] tracking-tight mb-[0.6em] text-foreground">
             Referências
-          </h2>
+          </h1>
           {referenceList}
         </div>
       </section>
@@ -96,9 +96,9 @@ export default function ReferencesSection() {
       aria-label="Referências"
       className="mt-16 pt-8 border-t border-border/40"
     >
-      <h2 className="text-xl font-semibold mb-6 text-foreground font-display tracking-tight">
+      <h1 className="text-[1.75em] font-semibold leading-[1.3] tracking-tight mb-[0.6em] text-foreground">
         Referências
-      </h2>
+      </h1>
       {referenceList}
     </section>
   );
