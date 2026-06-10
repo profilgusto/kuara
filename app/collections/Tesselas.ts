@@ -207,7 +207,8 @@ export const Tesselas: CollectionConfig = {
       relationTo: "modules",
       hasMany: true,
       admin: {
-        description: "Course modules related to this tessela.",
+        hidden: true,
+        description: "Auto-managed by <CiteModule> usage in content. Do not edit manually.",
       },
     },
     {

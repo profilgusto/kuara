@@ -65,6 +65,7 @@ export const SaveDraftButton: React.FC = () => {
     }
 
     const cachedURL = livePreviewURL;
+    const isCreate = !id;
 
     await submit({
       action,
@@ -75,22 +76,26 @@ export const SaveDraftButton: React.FC = () => {
 
     setUnpublishedVersionCount((count: number) => count + 1);
 
-    // Restore URL if it vanished (Payload core issue workaround)
-    setTimeout(() => {
-      if (cachedURL) {
-        setLivePreviewURL(cachedURL);
-      }
-    }, 50);
-
-    // Tell the preview iframe to refresh
-    setTimeout(() => {
-      const iframes = document.querySelectorAll("iframe");
-      iframes.forEach((iframe) => {
-        if (iframe.contentWindow) {
-          iframe.contentWindow.postMessage({ type: "payload-update" }, "*");
+    // For CREATE operations we're navigating away — don't fire state updates that
+    // would interrupt the React 19 concurrent route transition to the new doc URL.
+    if (!isCreate) {
+      // Restore URL if it vanished (Payload core issue workaround on updates)
+      setTimeout(() => {
+        if (cachedURL) {
+          setLivePreviewURL(cachedURL);
         }
-      });
-    }, 100);
+      }, 50);
+
+      // Tell the preview iframe to refresh
+      setTimeout(() => {
+        const iframes = document.querySelectorAll("iframe");
+        iframes.forEach((iframe) => {
+          if (iframe.contentWindow) {
+            iframe.contentWindow.postMessage({ type: "payload-update" }, "*");
+          }
+        });
+      }, 100);
+    }
   }, [
     submit,
     collectionSlug,

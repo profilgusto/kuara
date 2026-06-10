@@ -35,6 +35,7 @@ export function SiteNav() {
   return (
     <div className="sticky top-0 z-30 px-3 pt-3 pb-2">
       <nav className="flex items-center gap-2 px-3 py-2 rounded-xl bg-background/60 backdrop-blur border border-border/40 text-sm text-muted-foreground shadow-lg">
+        {/* Logo — always visible */}
         <Link
           href="/"
           className="flex items-center gap-1.5 text-foreground hover:text-primary transition-colors shrink-0"
@@ -43,47 +44,53 @@ export function SiteNav() {
           <span className="font-serif font-semibold text-base">Kuara</span>
         </Link>
 
-        {inactiveLinks.map(({ label, href }) => (
-          <Link
-            key={href}
-            href={href}
-            className="shrink-0 text-sm transition-colors hover:text-foreground text-muted-foreground"
-          >
-            {label}
-          </Link>
-        ))}
-
-        {activeLink && (
-          <>
-            <span className="text-border/60 shrink-0 mx-1 select-none">|</span>
+        {/* Middle: nav links + breadcrumbs — truncates on mobile */}
+        <div className="min-w-0 flex-1 flex items-center gap-2 overflow-hidden">
+          {inactiveLinks.map(({ label, href }) => (
             <Link
-              href={activeLink.href}
-              className="shrink-0 text-sm font-medium text-foreground transition-colors hover:text-primary"
+              key={href}
+              href={href}
+              className="hidden sm:block shrink-0 text-sm transition-colors hover:text-foreground text-muted-foreground"
             >
-              {activeLink.label}
+              {label}
             </Link>
-          </>
-        )}
+          ))}
 
-        {filteredBreadcrumbs.map((crumb, i) => (
-          <Fragment key={i}>
-            <span className="text-border shrink-0">/</span>
-            {crumb.href ? (
-              <Link
-                href={crumb.href}
-                className="hover:underline truncate max-w-[120px] sm:max-w-xs shrink-0"
-              >
-                {crumb.label}
-              </Link>
-            ) : (
-              <span className="text-foreground font-medium truncate">
-                {crumb.label}
+          {activeLink && (
+            <>
+              <span className="hidden sm:block text-border/60 shrink-0 mx-1 select-none">
+                |
               </span>
-            )}
-          </Fragment>
-        ))}
+              <Link
+                href={activeLink.href}
+                className="shrink-0 text-sm font-medium text-foreground transition-colors hover:text-primary"
+              >
+                {activeLink.label}
+              </Link>
+            </>
+          )}
 
-        <div className="ml-auto flex items-center gap-1 shrink-0">
+          {filteredBreadcrumbs.map((crumb, i) => (
+            <Fragment key={i}>
+              <span className="text-border shrink-0">/</span>
+              {crumb.href ? (
+                <Link
+                  href={crumb.href}
+                  className="hover:underline truncate max-w-[80px] sm:max-w-xs"
+                >
+                  {crumb.label}
+                </Link>
+              ) : (
+                <span className="text-foreground font-medium truncate">
+                  {crumb.label}
+                </span>
+              )}
+            </Fragment>
+          ))}
+        </div>
+
+        {/* Right side buttons — always visible */}
+        <div className="flex items-center gap-1 shrink-0">
           {mounted && (
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}

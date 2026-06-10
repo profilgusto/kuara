@@ -25,6 +25,7 @@ import GithubSlugger from "github-slugger";
 export interface Heading {
   id: string;
   text: string;
+  level: number;
 }
 
 /**
@@ -92,11 +93,11 @@ export function extractHeadings(source: string): Heading[] {
 
   const collectHeadings = () => (tree: any) => {
     visit(tree, "heading", (node: any) => {
-      if (node.depth === 1) {
+      if (node.depth >= 1 && node.depth <= 4) {
         const text = toString(node).trim();
         if (!text) return;
         const id = slugger.slug(text);
-        headings.push({ id, text });
+        headings.push({ id, text, level: node.depth });
       }
     });
   };

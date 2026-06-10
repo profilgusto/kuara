@@ -141,13 +141,13 @@ export default function KImage({
     const availableWidth = containerEl
       ? containerEl.getBoundingClientRect().width
       : (() => {
-          const ss = window.getComputedStyle(section);
-          return (
-            section.getBoundingClientRect().width -
-            parseFloat(ss.paddingLeft) -
-            parseFloat(ss.paddingRight)
-          );
-        })();
+        const ss = window.getComputedStyle(section);
+        return (
+          section.getBoundingClientRect().width -
+          parseFloat(ss.paddingLeft) -
+          parseFloat(ss.paddingRight)
+        );
+      })();
 
     const availableHeight = visibleBottom - wrapperRect.top - pb;
 
@@ -266,12 +266,12 @@ export default function KImage({
             ref={imgRef}
             src={imageSrc}
             alt={alt}
-            className="rounded-lg shadow-md block"
+            className="rounded-lg shadow-md block !my-0"
             style={autoStyle}
           />
           {showFigcaption && (
             <figcaption
-              className={`mt-1.5 text-xs text-muted-foreground italic [&_p]:inline [&_p]:m-0 ${captionTextAlign[align]}`}
+              className={`mt-4 text-sm text-muted-foreground italic [&_p]:inline [&_p]:m-0 ${captionTextAlign[align]}`}
               style={{ maxWidth: figcaptionAutoMaxWidth }}
             >
               {hasFigNum && (
@@ -337,12 +337,12 @@ export default function KImage({
         <img
           src={imageSrc}
           alt={alt}
-          className="rounded-lg shadow-md h-auto transition-all duration-300"
+          className="rounded-lg shadow-md h-auto transition-all duration-300 !my-0"
           style={{ width: imageWidthStyle ?? "auto", height: "auto" }}
         />
         {showFigcaption && (
           <figcaption
-            className={`mt-1.5 text-xs text-muted-foreground italic [&_p]:inline [&_p]:m-0 ${captionTextAlign[align]}`}
+            className={`mt-2 text-sm text-muted-foreground italic [&_p]:inline [&_p]:m-0 ${captionTextAlign[align]}`}
             style={{ maxWidth: imageWidthStyle }}
           >
             {hasFigNum && (

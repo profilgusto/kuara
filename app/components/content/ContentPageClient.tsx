@@ -108,9 +108,19 @@ export function ContentPageClient({
           <h2 className="text-2xl font-bold mb-6 pb-2 border-b border-border">
             Sumário
           </h2>
-          <ol className="space-y-2 list-decimal list-inside">
+          <ul className="space-y-1">
             {headings.map((h) => (
-              <li key={h.id}>
+              <li
+                key={h.id}
+                style={{ paddingLeft: `${(h.level - 1) * 1.25}rem` }}
+                className={
+                  h.level === 1
+                    ? "mt-3 first:mt-0 font-semibold"
+                    : h.level === 2
+                      ? "mt-1 text-sm"
+                      : "text-sm text-muted-foreground"
+                }
+              >
                 <a
                   href={`#${h.id}`}
                   className="text-foreground no-underline hover:underline"
@@ -119,7 +129,7 @@ export function ContentPageClient({
                 </a>
               </li>
             ))}
-          </ol>
+          </ul>
         </div>
       )}
 

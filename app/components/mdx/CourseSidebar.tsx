@@ -115,7 +115,10 @@ export function CourseSidebar({
                   {headings.map((h) => {
                     const isHeadingActive = activeHeading === h.id;
                     return (
-                      <li key={h.id}>
+                      <li
+                        key={h.id}
+                        style={{ paddingLeft: `${(h.level - 1) * 0.75}rem` }}
+                      >
                         <a
                           href={`#${h.id}`}
                           className={`block transition-colors line-clamp-2 ${

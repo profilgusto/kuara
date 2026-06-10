@@ -158,7 +158,8 @@ export const Modules: CollectionConfig = {
       relationTo: "modules",
       hasMany: true,
       admin: {
-        description: "Módulos referenciados por este módulo.",
+        hidden: true,
+        description: "Auto-managed by <CiteModule> usage in content. Do not edit manually.",
       },
     },
     {
@@ -167,7 +168,8 @@ export const Modules: CollectionConfig = {
       relationTo: "tesselas",
       hasMany: true,
       admin: {
-        description: "Tesselas referenciadas por este módulo.",
+        hidden: true,
+        description: "Auto-managed by <CiteTessela> usage in content. Do not edit manually.",
       },
     },
     {

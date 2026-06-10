@@ -5,7 +5,7 @@ export interface YouTubeProps {
   url?: string;
   id?: string;
   title?: string;
-  start?: number;
+  start?: number | string;
   className?: string;
 }
 
@@ -53,8 +53,9 @@ export default function YouTube({
     modestbranding: "1",
     playsinline: "1",
   });
-  if (start && Number.isFinite(start) && start > 0)
-    params.set("start", String(start));
+  const startSeconds = Number(start);
+  if (Number.isFinite(startSeconds) && startSeconds > 0)
+    params.set("start", String(startSeconds));
   const src = `https://www.youtube.com/embed/${vid}?${params.toString()}`;
   const videoUrl = `https://www.youtube.com/watch?v=${vid}`;
 

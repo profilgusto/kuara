@@ -237,7 +237,7 @@ const SNIPPETS: Snippet[] = [
     label: "YouTube",
     icon: Video,
     template:
-      '<YouTube\n  url="${1:https://youtu.be/ID_DO_VIDEO}"\n  start={${2:0}}\n  title="${3:Título do Vídeo}"\n/>\n',
+      '<YouTube\n  url="${1:https://youtu.be/ID_DO_VIDEO}"\n  start="${2:0}"\n  title="${3:Título do Vídeo}"\n/>\n',
     description: "Incorporar vídeo do YouTube (URL ou ID)",
     category: "media",
   },

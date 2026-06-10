@@ -238,16 +238,42 @@
   text-decoration: underline;
 }
 
+/* ─── Inline Code ─────────────────────────────────────────────── */
+/* Remove Tailwind Typography's default backtick quotes and style inline <code> */
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none !important;
+}
+
+.prose :not(pre) > code {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--secondary));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.25rem;
+  padding: 0.1em 0.4em;
+  font-size: 0.875em;
+  font-weight: 400;
+  font-family: var(--font-ibm-plex-mono), Menlo, monospace;
+}
+
+.light .prose :not(pre) > code {
+  background-color: hsl(var(--muted));
+  color: hsl(188 60% 32%);
+}
+
 /* Override Tailwind Typography prose link defaults */
 .prose a {
-  color: hsl(var(--muted-foreground)) !important;
-  text-decoration: none !important;
+  color: hsl(var(--secondary)) !important;
+  text-decoration: underline !important;
+  text-decoration-color: hsl(var(--secondary) / 0.45) !important;
+  text-underline-offset: 3px !important;
   font-weight: inherit !important;
-  transition: color 0.2s ease !important;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease !important;
 }
 
 .prose a:hover {
-  color: hsl(var(--foreground)) !important;
+  color: hsl(var(--primary)) !important;
+  text-decoration-color: hsl(var(--primary) / 0.6) !important;
 }
 
 /* Fix inline MathJax SVG rendering inside Tailwind Typography (.prose) */
@@ -285,7 +311,7 @@
 
 /* Style MathJax equation reference links — color is handled globally; only SVG fill overrides needed */
 .prose mjx-container a {
-  fill: hsl(var(--muted-foreground)) !important;
+  fill: hsl(var(--secondary)) !important;
   transition: color 0.2s ease, fill 0.2s ease !important;
 }
 
@@ -294,7 +320,7 @@
 }
 
 .prose mjx-container a:hover {
-  fill: hsl(var(--foreground)) !important;
+  fill: hsl(var(--primary)) !important;
 }
 
 /* Equation reference popover */

@@ -137,7 +137,7 @@ function TocPanel({
           return (
             <li
               key={h.id}
-
+              style={{ paddingLeft: `${(h.level - 1) * 0.75}rem` }}
             >
               <a
                 href={`#${h.id}`}
