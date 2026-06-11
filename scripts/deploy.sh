@@ -125,8 +125,7 @@ fi
 
 # ── Step 3: Build application images ─────────────────────────────────────────
 step "Building application images (migrator + runner)"
-docker builder prune -f
-docker compose -f "$COMPOSE_APP" build --pull --no-cache migrate web
+docker compose -f "$COMPOSE_APP" build --pull migrate web
 log "Images built successfully."
 
 # ── Step 4: Start infrastructure services ────────────────────────────────────

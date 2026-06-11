@@ -6,6 +6,35 @@ use it as a reference for day-to-day operations.
 
 ---
 
+## Cheat Sheet
+
+### Development (dev machine, from repo root)
+
+| Task | Command |
+|------|---------|
+| Start dev stack | `docker compose up -d` |
+| Stop dev stack | `docker compose down` |
+| Follow web logs | `docker compose logs -f web` |
+| Run static checks (TS + lint + tests) | `cd app && npm run typecheck && npm run lint && npm run test` |
+| Generate migration after schema change | `./scripts/create-migration.sh` |
+| Open admin panel | http://localhost:3000/admin |
+
+### Production (server at `/opt/kuara`)
+
+| Task | Command |
+|------|---------|
+| Deploy latest code | `./scripts/update-app-in-server.sh` |
+| Check service status | `docker compose -f docker-compose.prod.yml ps` |
+| Follow web logs | `docker compose -f docker-compose.prod.yml logs -f web` |
+| Follow last migration run | `docker compose -f docker-compose.prod.yml logs migrate` |
+| Manual DB backup | `./scripts/backup-db.sh` |
+| Restart web only | `docker compose -f docker-compose.prod.yml restart web` |
+| Open postgres shell | `docker compose -f docker-compose.prod.yml exec postgres psql -U kuara -d kuara` |
+| Check migration state | `SELECT id, name, batch FROM payload_migrations ORDER BY id;` (inside psql) |
+| Restore from backup | See [Section 7.4](#74-restore-from-backup) |
+
+---
+
 ## Table of Contents
 
 1. [Architecture Overview](#1-architecture-overview)
@@ -31,19 +60,21 @@ Cloudflare Edge  (TLS termination, DDoS, WAF)
    ▼
 Ubuntu Server 24.04  (Tailscale: 100.84.212.53)
    │
-   ├── Nginx  :80  (127.0.0.1 only — internal reverse proxy)
+   ├── Traefik  :80 / :443  (reverse proxy + Let's Encrypt TLS)
    │      │
    │      ▼
    ├── web  :3000  (Next.js 15 + Payload CMS)
    │
    ├── migrate  (one-shot container — runs DB migrations, exits)
    │
-   └── postgres :5432  (internal network only)
+   ├── postgres :5432  (internal network only)
+   │
+   └── minio  :9000  (S3-compatible media storage, internal only)
 ```
 
 **Key rules:**
-- Port 80 is bound to `127.0.0.1` only. The internet enters exclusively through
-  the Cloudflare tunnel. No port is publicly exposed on the host.
+- Traefik handles routing and TLS certificates (Let's Encrypt). Internet traffic
+  enters exclusively through the Cloudflare tunnel.
 - `migrate` runs before `web` on every deploy and must exit 0 for `web` to start.
 - All secrets live in `.env.prod` on the server. This file is never committed.
 
@@ -234,26 +265,57 @@ sudo ufw status
 
 ## 5. Ongoing Deployments
 
-After the first deploy, every code update follows this single command:
+### 5.1 Pre-Deploy Checklist (run on dev machine before pushing)
+
+**If your commits touched any file under `app/collections/`**, a migration file
+must exist in `app/migrations/` before you push. Production never generates
+migrations — it only applies files that are baked into the Docker image at build
+time. A missing migration means the `migrate` service exits non-zero and the
+deploy aborts with the old web container still running.
+
+**Check from your dev machine:**
+
+```bash
+# 1. See which collection files changed since the last production deploy
+git diff origin/main --name-only | grep app/collections/
+
+# 2. If any collection changed, confirm a matching migration was committed
+git log --oneline app/migrations/   # most recent entry should be from this branch
+```
+
+If a collection changed but no new migration appears in `app/migrations/`, stop
+and generate one before pushing (see [Section 6.2](#62-generating-a-migration-dev-machine)).
+
+> **Why this matters:** Dev uses `push: true` — Payload silently alters the
+> local database on startup with no paper trail. Production uses `push: false`
+> and relies exclusively on committed migration files. The two environments can
+> drift without warning; the checklist above is the only gate.
+
+### 5.2 Deploy
+
+Once the checklist passes, run on the **production server**:
 
 ```bash
 cd /opt/kuara
-./scripts/deploy.sh
+./scripts/update-app-in-server.sh
 ```
+
+> `deploy.sh` is for **first-time server setup only** (Traefik, network bootstrap,
+> initial postgres start). For every subsequent code update, use
+> `update-app-in-server.sh`.
 
 What the script does, in order:
 1. `git pull origin main` — pulls latest code.
-2. Builds `migrator` and `web` Docker images.
-3. Starts postgres (if not already running).
-4. Runs `docker compose run --rm migrate` — applies any pending migrations.
+2. Builds `migrator` and `web` Docker images (migration files are baked in here).
+3. Runs `docker compose run --rm migrate` — applies any pending migrations.
    **If this exits non-zero, the deploy aborts before touching the web service.**
-5. `docker compose up -d --remove-orphans` — starts/updates all services.
-6. Waits up to 120s for the web health check to pass.
-7. Prunes dangling Docker images.
+4. `docker compose up -d --no-deps web` — restarts only the web service; postgres, minio, and Traefik are left untouched.
+5. Waits up to 3 min for the web health check (`/api/health`) to pass.
+6. Prunes dangling Docker images.
 
 To deploy a specific branch:
 ```bash
-./scripts/deploy.sh --branch feature/some-branch
+./scripts/update-app-in-server.sh --branch feature/some-branch
 ```
 
 ---
@@ -276,49 +338,36 @@ git commit (collection file + migration files)
          ↓
 git push
          ↓
-./scripts/deploy.sh   ← migration runs automatically in production
+./scripts/update-app-in-server.sh   ← migration runs automatically in production
 ```
 
 ### 6.2 Generating a Migration (Dev Machine)
 
-Due to a compatibility issue between tsx 4.x and Node 22 in projects without
-`"type": "module"`, the Payload CLI requires a temporary workaround to load
-`payload.config.ts` as an ES module.
-
-Run this inside the running dev container:
+**Step 1 — Start the dev stack** (if not already running):
 
 ```bash
-# From repo root on your dev machine
-docker compose exec web sh -c '
-  # 1. Temporarily enable ESM mode
-  node -e "
-    const fs = require(\"fs\");
-    const p = JSON.parse(fs.readFileSync(\"./package.json\", \"utf8\"));
-    p.type = \"module\";
-    fs.writeFileSync(\"./package.json\", JSON.stringify(p, null, 2));
-  "
-
-  # 2. Generate the migration
-  npx payload migrate:create --name describe_your_change
-
-  # 3. Immediately revert — DO NOT skip this step
-  node -e "
-    const fs = require(\"fs\");
-    const p = JSON.parse(fs.readFileSync(\"./package.json\", \"utf8\"));
-    delete p.type;
-    fs.writeFileSync(\"./package.json\", JSON.stringify(p, null, 2));
-  "
-'
+# From repo root
+docker compose up -d
 ```
 
-Replace `describe_your_change` with a short snake_case description, e.g.
-`add_course_thumbnail` or `rename_module_title_to_name`.
+Wait until the `web` container is healthy before continuing. The migration
+script connects into that container and uses the live dev database to compute
+the schema diff — it will fail if the container is not running.
 
-> **Why the workaround?** tsx 4.x ESM worker threads don't resolve extensionless
-> TypeScript imports when the package has no `"type": "module"`. Temporarily
-> adding it makes tsx treat `payload.config.ts` as ESM, which is the correct
-> loading path for the Payload CLI. The dev server is unaffected because the
-> revert happens in the same command.
+**Step 2 — Run the migration script:**
+
+```bash
+./scripts/create-migration.sh
+```
+
+The script executes entirely inside the running `web` container. It
+pre-compiles `payload.config.ts` to a temporary `.mjs` file via esbuild (to
+work around a Node 22 / ESM compatibility issue), runs
+`npx payload migrate:create`, and then deletes the temporary file. New files
+appear in `app/migrations/` on your host machine via the Docker volume mount.
+
+> **Prerequisite:** `docker compose up -d` must be running before calling this
+> script. It will error immediately if the `web` container is not up.
 
 ### 6.3 What Gets Generated
 
@@ -417,8 +466,8 @@ docker compose -f /opt/kuara/docker-compose.prod.yml up -d web
 ```
 
 > After restoring, the migration table reflects the state at backup time. If you
-> deployed new migrations after the backup was taken, re-run `deploy.sh` to
-> apply them again.
+> deployed new migrations after the backup was taken, re-run
+> `./scripts/update-app-in-server.sh` to apply them again.
 
 ---
 
@@ -500,7 +549,7 @@ Common causes:
   as already applied (batch = current batch number).
 - **"column does not exist"** — the down() of a previous migration ran
   incorrectly. Restore from backup, then replay migrations cleanly.
-- **Database connection refused** — postgres is not healthy yet. Re-run `deploy.sh`.
+- **Database connection refused** — postgres is not healthy yet. Re-run `./scripts/update-app-in-server.sh`.
 
 Inspect the migration state:
 ```bash
@@ -563,18 +612,3 @@ docker system prune -f
 find /var/backups/kuara -name "*.sql.gz" -mtime +7 -delete
 ```
 
----
-
-## Quick Reference Card
-
-| Task | Command |
-|------|---------|
-| Deploy latest code | `./scripts/deploy.sh` |
-| Follow web logs | `docker compose -f docker-compose.prod.yml logs -f web` |
-| Manual DB backup | `./scripts/backup-db.sh` |
-| Check service status | `docker compose -f docker-compose.prod.yml ps` |
-| Restart web only | `docker compose -f docker-compose.prod.yml restart web` |
-| Open postgres shell | `docker compose -f docker-compose.prod.yml exec postgres psql -U kuara -d kuara` |
-| Check migration state | `SELECT * FROM payload_migrations ORDER BY id;` (inside psql) |
-| Generate migration | See [Section 6.2](#62-generating-a-migration-dev-machine) |
-| Restore from backup | See [Section 7.4](#74-restore-from-backup) |
