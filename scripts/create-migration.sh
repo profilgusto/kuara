@@ -29,5 +29,8 @@ docker compose exec web sh -c "
     --platform=node \
     --outfile=payload.config.mjs && \
   PAYLOAD_CONFIG_PATH=./payload.config.mjs npx payload migrate:create && \
-  rm payload.config.mjs
+  rm payload.config.mjs && \
+  LATEST=\$(ls -t /app/migrations/*.ts | head -1) && \
+  sed -i 's/{ MigrateUpArgs, MigrateDownArgs/{ type MigrateUpArgs, type MigrateDownArgs/g' \"\$LATEST\" && \
+  echo \"Patched type imports in \$LATEST\"
 "
