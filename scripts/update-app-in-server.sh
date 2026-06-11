@@ -56,24 +56,44 @@ git checkout "$BRANCH"
 git pull origin "$BRANCH"
 log "Now at commit: $(git rev-parse --short HEAD) — $(git log -1 --pretty=%s)"
 
-# ── Step 2: Build updated images ─────────────────────────────────────────────
+# ── Step 2: Validate migration index consistency ──────────────────────────────
+step "Validating migration index consistency"
+MIGRATIONS_DIR="$REPO_DIR/app/migrations"
+INDEX_FILE="$MIGRATIONS_DIR/index.ts"
+idx_errors=0
+
+for f in "$MIGRATIONS_DIR"/[0-9]*.ts; do
+    name="$(basename "$f" .ts)"
+    grep -q "from './$name'" "$INDEX_FILE" \
+        || { log "ERROR: $name.ts exists but is not referenced in migrations/index.ts"; idx_errors=$((idx_errors + 1)); }
+done
+
+while IFS= read -r name; do
+    [[ -f "$MIGRATIONS_DIR/$name.ts" ]] \
+        || { log "ERROR: migrations/index.ts references '$name' but the file does not exist"; idx_errors=$((idx_errors + 1)); }
+done < <(grep -oP "from '\./\K[^']+" "$INDEX_FILE")
+
+[[ $idx_errors -eq 0 ]] || fail "Migration index is inconsistent. Fix app/migrations/index.ts before deploying."
+log "Migration index OK."
+
+# ── Step 3: Build updated images ─────────────────────────────────────────────
 step "Building updated application images"
 docker compose -f "$COMPOSE_APP" build --pull migrate web
 log "Images built."
 
-# ── Step 3: Run database migrations ──────────────────────────────────────────
+# ── Step 4: Run database migrations ──────────────────────────────────────────
 step "Running database migrations"
 # Runs against the already-running postgres. Aborts on non-zero exit.
 docker compose -f "$COMPOSE_APP" run --rm migrate
 log "Migrations complete."
 
-# ── Step 4: Restart web service with the new image ───────────────────────────
+# ── Step 5: Restart web service with the new image ───────────────────────────
 step "Restarting web service"
 # --no-deps: only restart web, leave postgres/minio/traefik untouched.
 docker compose -f "$COMPOSE_APP" up -d --no-deps web
 log "Web service restarted."
 
-# ── Step 5: Wait for web service health ──────────────────────────────────────
+# ── Step 6: Wait for web service health ──────────────────────────────────────
 step "Waiting for web service to become healthy (up to 3 min)"
 MAX_WAIT=180
 ELAPSED=0
@@ -88,7 +108,7 @@ until docker compose -f "$COMPOSE_APP" exec -T web \
 done
 log "Web service is healthy."
 
-# ── Step 6: Prune dangling images ────────────────────────────────────────────
+# ── Step 7: Prune dangling images ────────────────────────────────────────────
 step "Pruning unused Docker images"
 docker image prune -f
 
