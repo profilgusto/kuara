@@ -4,6 +4,7 @@ import {
   cleanModuleMediaRefs,
 } from "../hooks/syncMediaUsedIn.ts";
 import { syncModuleCrossRefs } from "../hooks/syncModuleCrossRefs.ts";
+import { syncQuestionOffsets } from "../hooks/syncQuestionOffsets.ts";
 
 export const Modules: CollectionConfig = {
   slug: "modules",
@@ -41,7 +42,7 @@ export const Modules: CollectionConfig = {
   },
   hooks: {
     beforeChange: [syncModuleCrossRefs],
-    afterChange: [syncModuleMediaRefs],
+    afterChange: [syncModuleMediaRefs, syncQuestionOffsets],
     afterDelete: [cleanModuleMediaRefs],
   },
   versions: {
@@ -188,6 +189,15 @@ export const Modules: CollectionConfig = {
         { label: "IEEE — [1]", value: "ieee" },
         { label: "Vancouver — [1]", value: "vancouver" },
       ],
+    },
+    {
+      name: "questionOffsets",
+      type: "json",
+      admin: {
+        hidden: true,
+        description:
+          "Auto-managed. Starting question numbers (per type) for this module within its course sequence. Updated on every publish.",
+      },
     },
   ],
 };

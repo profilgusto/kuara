@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CourseDetail } from "@/lib/payload-content";
 import { Heading } from "@/lib/mdx-pipeline";
-import { BookOpen, FlaskConical, ClipboardCheck, FileText } from "lucide-react";
+import { BookOpen, Monitor, ClipboardCheck, FileText } from "lucide-react";
 import { useViewMode } from "./useViewMode";
 
 interface CourseSidebarProps {
@@ -26,7 +26,7 @@ const typeConfig: Record<
   },
   "modulo-pratico": {
     label: "Módulos Práticos",
-    icon: FlaskConical,
+    icon: Monitor,
     color: "text-emerald-500",
   },
   "atividade-avaliativa": {

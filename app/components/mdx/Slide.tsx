@@ -52,7 +52,7 @@ export default function Slide({
           "relative flex flex-col min-h-[400px]",
           isCover
             ? "w-full h-full p-0 m-0 rounded-none shadow-none bg-transparent"
-            : "mx-auto mb-2 max-w-4xl px-6 pt-3 pb-12 rounded-2xl shadow-sm bg-[var(--bg)] text-[var(--fg)] w-full",
+            : "mx-auto mb-2 max-w-4xl px-6 pt-3 pb-4 rounded-2xl shadow-sm bg-[var(--bg)] text-[var(--fg)] w-full",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -69,13 +69,13 @@ export default function Slide({
           <div className="slide-layout-horizontal h-full flex flex-col">
             <div className="flex-1 flex flex-row gap-6 lg:gap-8 items-start min-h-0">
               <div
-                className="slide-main-content space-y-4 overflow-y-auto pr-2"
+                className="slide-main-content space-y-2 overflow-y-auto pr-2"
                 style={{ flex: `0 0 calc(100% - ${secondCol.width} - 1.5rem)` }}
               >
                 {children}
               </div>
               <div
-                className="slide-second-col-content space-y-4 overflow-y-auto"
+                className="slide-second-col-content space-y-2 overflow-y-auto"
                 style={{ flex: `0 0 ${secondCol.width}` }}
               >
                 {secondCol.content}
@@ -83,7 +83,7 @@ export default function Slide({
             </div>
           </div>
         ) : (
-          <div className="slide-layout-vertical space-y-4">{children}</div>
+          <div className="slide-layout-vertical space-y-2">{children}</div>
         )}
       </section>
     </SlideSecondColumnContext.Provider>

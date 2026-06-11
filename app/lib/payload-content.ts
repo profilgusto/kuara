@@ -50,6 +50,8 @@ export interface CourseModule {
   referencedByTesselas?: TesselaRelatedItem[];
   /** Auto-assigned number within its type group (teórico: 1,2,3...; prático: 1,2,3...) */
   number?: number | null;
+  /** Course-wide starting offsets per Question type (e.g. { exercise: 3 } means first exercise in this module is #4) */
+  questionOffsets?: Record<string, number>;
 }
 
 export interface CourseDetail {
@@ -279,6 +281,10 @@ export async function getModule(
       referencedByModules,
       referencedByTesselas,
       number: null,
+      questionOffsets:
+        mod.questionOffsets && typeof mod.questionOffsets === "object"
+          ? (mod.questionOffsets as Record<string, number>)
+          : undefined,
     },
     courseTitle: course.title,
     courseSlug: course.slug,

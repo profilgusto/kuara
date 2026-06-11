@@ -14,6 +14,7 @@ interface ContentPageClientProps {
   headings: Heading[];
   slideCover?: SlideCoverData | null;
   printContextLabel?: string;
+  questionOffsets?: Record<string, number>;
 }
 
 export function ContentPageClient({
@@ -22,6 +23,7 @@ export function ContentPageClient({
   headings,
   slideCover,
   printContextLabel,
+  questionOffsets,
 }: ContentPageClientProps) {
   return (
     <>
@@ -150,7 +152,7 @@ export function ContentPageClient({
       </h1>
 
       {/* SlideDeck wrapper only affects rendering when mode='apresentacao' */}
-      <QuestionCounterProvider>
+      <QuestionCounterProvider initialCounts={questionOffsets}>
         <SlideDeck headings={headings}>{children}</SlideDeck>
       </QuestionCounterProvider>
     </>

@@ -125,7 +125,7 @@ export function Hint({ children }: HintProps) {
         }`}
       >
         <div
-          className="px-4 py-3 bg-muted/10 text-sm [&>p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit"
+          className="px-4 py-3 bg-muted/10 text-sm [&>.mdx-p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit"
         >
           {children}
         </div>
@@ -167,7 +167,7 @@ export function Answer({ children }: AnswerProps) {
         }`}
       >
         <div
-          className="px-4 py-3 bg-muted/10 text-sm [&>p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit"
+          className="px-4 py-3 bg-muted/10 text-sm [&>.mdx-p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit"
         >
           {children}
         </div>
@@ -247,7 +247,7 @@ export default function Question({
             Children render directly here. <Hint> and <Answer> inside will
             render as full-width collapsible sections using -mx-4 to break
             out of the horizontal padding. No children inspection needed. */}
-        <div className="px-4 py-3 text-sm [&>p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit">
+        <div className="px-4 py-3 text-sm [&>.mdx-p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit">
           {children}
         </div>
       </div>

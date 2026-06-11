@@ -371,6 +371,10 @@ mjx-container.eq-highlight-active {
   margin-bottom: 0.6em;
 }
 
+.prose hr + h1 {
+  margin-top: 0.4rem;
+}
+
 .prose h2 {
   font-size: 1.375em;
   font-weight: 600;
@@ -395,6 +399,50 @@ mjx-container.eq-highlight-active {
   margin-bottom: 0.3em;
 }
 
+/* ─── Presentation Mode Prose Spacing (both windowed and fullscreen) ── */
+/* Compress default Tailwind Typography margins so slides can fit more content. */
+.presentation-deck .prose h1 {
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+
+.presentation-deck .prose h2 {
+  margin-top: 1em;
+  margin-bottom: 0.3em;
+}
+
+.presentation-deck .prose h3 {
+  margin-top: 0.75em;
+  margin-bottom: 0.25em;
+}
+
+.presentation-deck .prose h4 {
+  margin-top: 0.6em;
+  margin-bottom: 0.2em;
+}
+
+.presentation-deck .prose p,
+.presentation-deck .prose ul,
+.presentation-deck .prose ol {
+  margin-top: 0.4em;
+  margin-bottom: 0.4em;
+}
+
+.presentation-deck .prose li {
+  margin-top: 0.15em;
+  margin-bottom: 0.15em;
+}
+
+.presentation-deck .prose blockquote {
+  margin-top: 0.6em;
+  margin-bottom: 0.6em;
+}
+
+.presentation-deck .prose pre {
+  margin-top: 0.6em;
+  margin-bottom: 0.6em;
+}
+
 /* ─── Presentation Fullscreen Overrides ───────────────────────── */
 /* When in full-screen presentation mode, scale up the typography for projectors (720p/1080p) */
 .presentation-deck[data-fullscreen="true"] .prose {
@@ -415,32 +463,36 @@ mjx-container.eq-highlight-active {
 .presentation-deck[data-fullscreen="true"] .prose ol {
   font-size: 1.4em;
   line-height: 1.65;
+  margin-top: 0.4em;
+  margin-bottom: 0.4em;
 }
 
 .presentation-deck[data-fullscreen="true"] .prose li {
   line-height: 1.65;
+  margin-top: 0.1em;
+  margin-bottom: 0.1em;
 }
 
 /* Headings */
 .presentation-deck[data-fullscreen="true"] .prose h1 {
   font-size: 4.2em;
   line-height: 1.2;
-  margin-top: 1rem;
-  margin-bottom: 2rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .presentation-deck[data-fullscreen="true"] .prose h2 {
   font-size: 3.3em;
   line-height: 1.3;
-  margin-top: 3rem;
-  margin-bottom: 1.5rem;
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
 }
 
 .presentation-deck[data-fullscreen="true"] .prose h3 {
   font-size: 2.7em;
   line-height: 1.4;
-  margin-top: 2.5rem;
-  margin-bottom: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 /* Code blocks & inline code */

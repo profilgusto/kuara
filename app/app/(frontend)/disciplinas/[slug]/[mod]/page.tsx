@@ -136,6 +136,7 @@ export default async function ModulePage({
             headings={headings}
             courseTitle={courseTitle}
             slideCover={slideCover}
+            questionOffsets={moduleData.questionOffsets}
           >
             {content ? (
               <>

@@ -271,7 +271,7 @@ export default function KImage({
           />
           {showFigcaption && (
             <figcaption
-              className={`mt-4 text-sm text-muted-foreground italic [&_p]:inline [&_p]:m-0 ${captionTextAlign[align]}`}
+              className={`mt-4 text-sm text-muted-foreground italic [&_.mdx-p]:inline [&_.mdx-p]:m-0 ${captionTextAlign[align]}`}
               style={{ maxWidth: figcaptionAutoMaxWidth }}
             >
               {hasFigNum && (
@@ -342,7 +342,7 @@ export default function KImage({
         />
         {showFigcaption && (
           <figcaption
-            className={`mt-2 text-sm text-muted-foreground italic [&_p]:inline [&_p]:m-0 ${captionTextAlign[align]}`}
+            className={`mt-2 text-sm text-muted-foreground italic [&_.mdx-p]:inline [&_.mdx-p]:m-0 ${captionTextAlign[align]}`}
             style={{ maxWidth: imageWidthStyle }}
           >
             {hasFigNum && (

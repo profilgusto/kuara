@@ -495,6 +495,25 @@ export const MonacoMDXField: React.FC<MonacoMDXFieldProps> = ({
         },
         triggerCharacters: ["<", "/", "#", "$"],
       });
+
+      // Strip $0 that browsers append when copying URLs from the address bar.
+      // Only happens in production where Monaco reads rich clipboard formats.
+      editorInstance.onDidPaste((e: any) => {
+        const model = editorInstance.getModel();
+        if (!model) return;
+        const range = e.range ?? e;
+        const pasted = model.getValueInRange(range);
+        if (!pasted.endsWith('$0') || range.endColumn < 3) return;
+        model.applyEdits([{
+          range: {
+            startLineNumber: range.endLineNumber,
+            startColumn: range.endColumn - 2,
+            endLineNumber: range.endLineNumber,
+            endColumn: range.endColumn,
+          },
+          text: '',
+        }]);
+      });
     },
     [],
   );

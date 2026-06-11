@@ -12,12 +12,14 @@ export function ModulePageClient({
   headings,
   courseTitle,
   slideCover,
+  questionOffsets,
 }: {
   children: ReactNode;
   title: string;
   headings: Heading[];
   courseTitle: string;
   slideCover?: SlideCoverData | null;
+  questionOffsets?: Record<string, number>;
 }) {
   return (
     <ModuleContext.Provider value={{ title }}>
@@ -26,6 +28,7 @@ export function ModulePageClient({
         headings={headings}
         slideCover={slideCover}
         printContextLabel={courseTitle}
+        questionOffsets={questionOffsets}
       >
         {children}
       </ContentPageClient>

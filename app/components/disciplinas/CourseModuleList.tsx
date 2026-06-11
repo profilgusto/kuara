@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   BookOpen,
-  FlaskConical,
+  Monitor,
   ClipboardCheck,
   FileText,
   LayoutList,
@@ -23,7 +23,7 @@ const typeConfig: Record<
   },
   "modulo-pratico": {
     label: "Módulos Práticos",
-    icon: FlaskConical,
+    icon: Monitor,
     color: "text-emerald-600 dark:text-emerald-400",
   },
   "atividade-avaliativa": {

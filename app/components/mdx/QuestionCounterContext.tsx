@@ -13,14 +13,16 @@ const QuestionCounterContext =
 
 /**
  * Wraps MDX content to enable automatic per-type numbering of Question blocks.
- * Place this around any rendered MDX output (e.g., in ModulePageClient).
+ * Pass `initialCounts` to start numbering from course-wide offsets instead of 1.
  */
 export function QuestionCounterProvider({
   children,
+  initialCounts = {},
 }: {
   children: ReactNode;
+  initialCounts?: CounterMap;
 }) {
-  const countersRef = useRef<CounterMap>({});
+  const countersRef = useRef<CounterMap>({ ...initialCounts });
   return (
     <QuestionCounterContext.Provider value={countersRef}>
       {children}

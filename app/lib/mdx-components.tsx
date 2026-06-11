@@ -26,6 +26,7 @@ import Cite from "@/components/citations/Cite";
 import CiteTessela from "@/components/tesselas/CiteTessela";
 import CiteModule from "@/components/disciplinas/CiteModule";
 import RefFig from "@/components/figures/RefFig";
+import MdxH1 from "@/components/mdx/MdxH1";
 import type { ComponentType } from "react";
 
 /**
@@ -72,6 +73,17 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
 
     // Figure cross-reference
     RefFig,
+
+    // H1: prepend a horizontal rule in text mode
+    h1: MdxH1,
+
+    // Override p → div to prevent hydration errors when block-level MDX
+    // components (Hint, Answer) appear on a line adjacent to plain text.
+    // MDX wraps such content in <p>, and a <div> inside <p> is invalid HTML.
+    // Using a <div> with the "mdx-p" class lets parent selectors keep their
+    // per-context margin overrides (e.g. [&>.mdx-p]:my-1.5 inside Question).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    p: (props: any) => <div className="mdx-p my-[1.25em]" {...props} />,
 
     // Links always open in a new tab
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
