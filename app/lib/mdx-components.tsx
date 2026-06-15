@@ -16,6 +16,7 @@ import Callout from "@/components/mdx/Callout";
 import YouTube from "@/components/mdx/YouTube";
 import PDF from "@/components/mdx/PDF";
 import KImage from "@/components/mdx/KImage";
+import ImgInline from "@/components/mdx/ImgInline";
 import ExternalLink from "@/components/mdx/ExternalLink";
 import Download from "@/components/mdx/Download";
 import CodeBlock from "@/components/mdx/CodeBlock";
@@ -56,6 +57,7 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
     YouTube,
     PDF,
     KImage,
+    ImgInline,
     ExternalLink,
     Download,
     Colorize,

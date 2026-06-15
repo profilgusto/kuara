@@ -12,6 +12,7 @@ import {
   TowelRack,
   Minus,
   ImagePlus,
+  Sticker,
   BookmarkPlus,
   Bookmark,
   Image,
@@ -233,6 +234,15 @@ const SNIPPETS: Snippet[] = [
     template:
       '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  label="${2:fig-identificador}"\n  alt="${3:descrição para leitores de tela}"\n  width="${4:400}"\n  widthPresentation="${5:auto}"\n  align="${6:|center,left,right|}"\n>\n  ${7:Legenda da figura}\n</KImage>\n',
     description: 'Figura com numeração automática "Fig. N" e legenda. Requer label único para referências.',
+    category: "figures",
+  },
+  {
+    label: "Figura Inline",
+    icon: Sticker,
+    template:
+      '<ImgInline url="${1:/api/media/file/nome-do-arquivo.png}" alt="${2:descrição}" />',
+    description:
+      "Figura pequena embutida na linha do texto (ex.: ícone de um botão). A altura acompanha o tamanho da fonte ao redor. Use height=\"1.6em\" para ajustar.",
     category: "figures",
   },
   {
