@@ -422,6 +422,7 @@ mjx-container.eq-highlight-active {
 }
 
 .presentation-deck .prose p,
+.presentation-deck .prose .mdx-p,
 .presentation-deck .prose ul,
 .presentation-deck .prose ol {
   margin-top: 0.4em;
@@ -458,7 +459,12 @@ mjx-container.eq-highlight-active {
    NOTE: `li` must NOT get font-size here — it is a child of `ul`/`ol`
    which already have 1.4em, so adding 1.4em on `li` too would compound
    to 1.96em (too large). Only set line-height on li. */
+/* `.mdx-p` is included because the MDX renderer emits paragraphs as
+   <div class="mdx-p"> (not <p>) to avoid invalid-HTML hydration errors when
+   block-level components sit next to text. Without it, paragraphs would keep
+   the base size while list items scaled to 1.4em. */
 .presentation-deck[data-fullscreen="true"] .prose p,
+.presentation-deck[data-fullscreen="true"] .prose .mdx-p,
 .presentation-deck[data-fullscreen="true"] .prose ul,
 .presentation-deck[data-fullscreen="true"] .prose ol {
   font-size: 1.4em;
@@ -471,6 +477,15 @@ mjx-container.eq-highlight-active {
   line-height: 1.65;
   margin-top: 0.1em;
   margin-bottom: 0.1em;
+}
+
+/* Nested lists must NOT re-apply the 1.4em above — `em` is relative to the
+   parent, so each level would compound (1.4em → 1.96em → 2.74em …). Resetting
+   nested ul/ol to 1em keeps every depth at the same body size as paragraphs. */
+.presentation-deck[data-fullscreen="true"] .prose li ul,
+.presentation-deck[data-fullscreen="true"] .prose li ol,
+.presentation-deck[data-fullscreen="true"] .prose li .mdx-p {
+  font-size: 1em;
 }
 
 /* Headings */
@@ -493,6 +508,16 @@ mjx-container.eq-highlight-active {
   line-height: 1.4;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
+}
+
+/* h4 was missing here, so it fell back to the windowed prose size (~1em),
+   rendering smaller than the 1.4em body. Size it between h3 (2.7em) and the
+   body text (1.4em) to keep the hierarchy intact. */
+.presentation-deck[data-fullscreen="true"] .prose h4 {
+  font-size: 2em;
+  line-height: 1.4;
+  margin-top: 0.85rem;
+  margin-bottom: 0.4rem;
 }
 
 /* Code blocks & inline code */

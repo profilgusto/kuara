@@ -22,6 +22,7 @@ import CodeBlock from "@/components/mdx/CodeBlock";
 import Question, { Answer, Hint } from "@/components/mdx/Question";
 import Comment from "@/components/mdx/Comment";
 import Todo from "@/components/mdx/Todo";
+import Colorize from "@/components/mdx/Colorize";
 import Cite from "@/components/citations/Cite";
 import CiteTessela from "@/components/tesselas/CiteTessela";
 import CiteModule from "@/components/disciplinas/CiteModule";
@@ -57,6 +58,7 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
     KImage,
     ExternalLink,
     Download,
+    Colorize,
 
     // Invisible author-only blocks
     Comment,

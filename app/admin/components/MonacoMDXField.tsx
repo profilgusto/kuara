@@ -52,7 +52,9 @@ import {
   Check,
   Puzzle,
   BookCheck,
+  Palette,
 } from "lucide-react";
+import { KUARA_COLOR_NAMES } from "@/components/mdx/Colorize";
 
 // ── Snippet categories include 'citations' now ──
 // Assuming Button component is available or imported from a UI library like shadcn/ui
@@ -122,6 +124,13 @@ const SNIPPETS: Snippet[] = [
     icon: Strikethrough,
     template: "~~${1:texto removido}~~",
     description: "Texto tachado (GFM)",
+    category: "content",
+  },
+  {
+    label: "Colorir Texto",
+    icon: Palette,
+    template: '<Colorize color="red">${1:texto colorido}</Colorize>',
+    description: `Colore um trecho de texto. Cores nominais: ${KUARA_COLOR_NAMES.join(", ")}. Também aceita código HEX (ex.: color="#FF8800") ou qualquer cor CSS.`,
     category: "content",
   },
   {
