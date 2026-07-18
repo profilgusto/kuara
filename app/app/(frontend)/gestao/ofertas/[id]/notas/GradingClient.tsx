@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { comBasePath } from "@/lib/base-path";
 import {
   Plus,
   Trash2,
@@ -199,7 +200,7 @@ export function GradingClient({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/activities", {
+      const res = await fetch(comBasePath("/api/activities"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -244,7 +245,7 @@ export function GradingClient({
     setActivities((prev) => prev.filter((a) => a.id !== actId));
     setScores((prev) => prev.filter((s) => s.activityId !== actId));
     try {
-      const res = await fetch(`/api/activities/${actId}`, {
+      const res = await fetch(comBasePath(`/api/activities/${actId}`), {
         method: "DELETE",
         credentials: "include",
       });
@@ -266,7 +267,7 @@ export function GradingClient({
     try {
       const requests = scores.map((score) => {
         if (score.id.startsWith("new-")) {
-          return fetch("/api/scores", {
+          return fetch(comBasePath("/api/scores"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -280,7 +281,7 @@ export function GradingClient({
             }),
           });
         }
-        return fetch(`/api/scores/${score.id}`, {
+        return fetch(comBasePath(`/api/scores/${score.id}`), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",

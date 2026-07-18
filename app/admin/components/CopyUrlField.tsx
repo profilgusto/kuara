@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useFormFields, useDocumentInfo } from "@payloadcms/ui";
+import { comBasePath } from "@/lib/base-path";
 
 export default function CopyUrlField() {
   const [copied, setCopied] = useState(false);
@@ -14,10 +15,10 @@ export default function CopyUrlField() {
   useEffect(() => {
     // Only resolve course slug if we're dealing with a module
     if (collectionSlug !== "modules") return;
-    
+
     if (courseValue) {
       if (typeof courseValue === "string" || typeof courseValue === "number") {
-        fetch(`/api/courses/${courseValue}`)
+        fetch(comBasePath(`/api/courses/${courseValue}`))
           .then((res) => res.json())
           .then((data) => {
             if (data.slug) setCourseSlug(data.slug);
@@ -38,14 +39,14 @@ export default function CopyUrlField() {
     if (!slug || !courseSlug) {
       fullUrl = "Selecione uma disciplina e aguarde o carregamento...";
     } else {
-      fullUrl = `${baseUrl}/disciplinas/${courseSlug}/${slug}`;
+      fullUrl = `${baseUrl}${comBasePath(`/disciplinas/${courseSlug}/${slug}`)}`;
     }
   } else {
     // defaults to tesselas
     if (!slug) {
       fullUrl = "Preencha o slug para gerar o link";
     } else {
-      fullUrl = `${baseUrl}/tesselas/${slug}`;
+      fullUrl = `${baseUrl}${comBasePath(`/tesselas/${slug}`)}`;
     }
   }
 
@@ -91,7 +92,9 @@ export default function CopyUrlField() {
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
             flex: 1,
-            color: isPlaceholder ? "var(--theme-error-500, #ff6b6b)" : "var(--theme-text-light, #999)",
+            color: isPlaceholder
+              ? "var(--theme-error-500, #ff6b6b)"
+              : "var(--theme-text-light, #999)",
             fontSize: "13px",
             fontFamily: "monospace",
           }}
@@ -119,7 +122,9 @@ export default function CopyUrlField() {
               : "var(--theme-elevation-200, #2a2a2a)",
             color: copied
               ? "var(--theme-base-800, #fff)"
-              : isPlaceholder ? "var(--theme-elevation-400, #666)" : "var(--theme-text, #e0e0e0)",
+              : isPlaceholder
+                ? "var(--theme-elevation-400, #666)"
+                : "var(--theme-text, #e0e0e0)",
             transition: "all 0.2s ease",
             whiteSpace: "nowrap",
           }}

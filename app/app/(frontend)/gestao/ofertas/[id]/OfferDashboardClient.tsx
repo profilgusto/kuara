@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { comBasePath } from "@/lib/base-path";
 import {
   BookOpen,
   CheckCircle2,
@@ -52,7 +53,7 @@ export function OfferDashboardClient({
   async function setCurrentModule(moduleId: string) {
     setSaving(true);
     try {
-      const res = await fetch(`/api/offers/${offerId}`, {
+      const res = await fetch(comBasePath(`/api/offers/${offerId}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

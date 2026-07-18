@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useField } from "@payloadcms/ui";
+import { comBasePath } from "@/lib/base-path";
 
 interface ProjectFieldProps {
   path: string;
@@ -31,7 +32,7 @@ export default function ProjectField({ path }: ProjectFieldProps) {
 
   // Fetch all known project values from existing tesselas once on mount
   useEffect(() => {
-    fetch("/api/tesselas?limit=500&depth=0")
+    fetch(comBasePath("/api/tesselas?limit=500&depth=0"))
       .then((r) => r.json())
       .then((data) => {
         const known = new Set<string>();
@@ -47,7 +48,8 @@ export default function ProjectField({ path }: ProjectFieldProps) {
 
   const suggestions = allKnownProjects.filter((p) => {
     if (projects.includes(p)) return false;
-    if (inputValue.trim()) return p.toLowerCase().includes(inputValue.toLowerCase().trim());
+    if (inputValue.trim())
+      return p.toLowerCase().includes(inputValue.toLowerCase().trim());
     return true;
   });
 
@@ -176,7 +178,9 @@ export default function ProjectField({ path }: ProjectFieldProps) {
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => setFocused(true)}
-          placeholder={projects.length === 0 ? 'Add projects — e.g. "SLAM Robot"' : ""}
+          placeholder={
+            projects.length === 0 ? 'Add projects — e.g. "SLAM Robot"' : ""
+          }
           style={{
             flex: "1 1 120px",
             minWidth: "120px",

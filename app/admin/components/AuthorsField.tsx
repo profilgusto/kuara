@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useField } from "@payloadcms/ui";
+import { comBasePath } from "@/lib/base-path";
 
 interface AuthorsFieldProps {
   path: string;
 }
 
-/** 
+/**
  * Splits a ";" separated string into individual trimmed names.
  */
 function parseAuthorsString(raw: string): string[] {
@@ -26,10 +27,12 @@ export default function AuthorsField({ path }: AuthorsFieldProps) {
   useEffect(() => {
     const fetchAuthorsFromCollection = async (collection: string) => {
       try {
-        const r = await fetch(`/api/${collection}?limit=100&depth=0&sort=-updatedAt`);
+        const r = await fetch(
+          comBasePath(`/api/${collection}?limit=100&depth=0&sort=-updatedAt`),
+        );
         const data = await r.json();
-        return (data.docs ?? []).flatMap((doc: { authors?: string }) => 
-          parseAuthorsString(doc.authors ?? "")
+        return (data.docs ?? []).flatMap((doc: { authors?: string }) =>
+          parseAuthorsString(doc.authors ?? ""),
         );
       } catch (e) {
         console.error(`Error fetching authors from ${collection}`, e);
@@ -40,14 +43,14 @@ export default function AuthorsField({ path }: AuthorsFieldProps) {
     const loadData = async () => {
       const [tesselaAuthors, moduleAuthors] = await Promise.all([
         fetchAuthorsFromCollection("tesselas"),
-        fetchAuthorsFromCollection("modules")
+        fetchAuthorsFromCollection("modules"),
       ]);
 
       const allAuthors = [...tesselaAuthors, ...moduleAuthors];
-      
+
       // Calculate frequency
       const counts: Record<string, number> = {};
-      allAuthors.forEach(a => {
+      allAuthors.forEach((a) => {
         counts[a] = (counts[a] || 0) + 1;
       });
 
@@ -65,21 +68,37 @@ export default function AuthorsField({ path }: AuthorsFieldProps) {
     loadData();
   }, []);
 
-  const addAuthor = useCallback((author: string) => {
-    const currentAuthors = parseAuthorsString(value ?? "");
-    if (currentAuthors.includes(author)) return;
-    
-    const newValue = value ? `${value.trim()}; ${author}` : author;
-    setValue(newValue);
-  }, [value, setValue]);
+  const addAuthor = useCallback(
+    (author: string) => {
+      const currentAuthors = parseAuthorsString(value ?? "");
+      if (currentAuthors.includes(author)) return;
+
+      const newValue = value ? `${value.trim()}; ${author}` : author;
+      setValue(newValue);
+    },
+    [value, setValue],
+  );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "1.5rem" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "6px",
+        marginBottom: "1.5rem",
+      }}
+    >
       {/* Label & Description (from Payload field config usually, but we repeat it here or wrap) */}
-      <label style={{ fontSize: "14px", fontWeight: 600, color: "var(--theme-text, #e0e0e0)" }}>
+      <label
+        style={{
+          fontSize: "14px",
+          fontWeight: 600,
+          color: "var(--theme-text, #e0e0e0)",
+        }}
+      >
         Autores
       </label>
-      
+
       <input
         type="text"
         value={value ?? ""}
@@ -94,15 +113,26 @@ export default function AuthorsField({ path }: AuthorsFieldProps) {
           color: "var(--theme-text, #e0e0e0)",
           fontSize: "14px",
           transition: "border-color 0.15s",
-          outline: "none"
+          outline: "none",
         }}
-        onFocus={(e) => (e.target.style.borderColor = "var(--theme-text, #ccc)")}
-        onBlur={(e) => (e.target.style.borderColor = "var(--theme-border-color, #333)")}
+        onFocus={(e) =>
+          (e.target.style.borderColor = "var(--theme-text, #ccc)")
+        }
+        onBlur={(e) =>
+          (e.target.style.borderColor = "var(--theme-border-color, #333)")
+        }
       />
 
       {/* Suggestion Chips */}
       {topAuthors.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "6px",
+            marginTop: "4px",
+          }}
+        >
           {topAuthors.map((author) => (
             <button
               key={author}
@@ -118,14 +148,16 @@ export default function AuthorsField({ path }: AuthorsFieldProps) {
                 cursor: "pointer",
                 color: "var(--theme-text-light, #999)",
                 fontFamily: "var(--font-mono, monospace)",
-                transition: "all 0.15s ease"
+                transition: "all 0.15s ease",
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.background = "var(--theme-elevation-200, #333)";
+                e.currentTarget.style.background =
+                  "var(--theme-elevation-200, #333)";
                 e.currentTarget.style.color = "var(--theme-text, #e0e0e0)";
               }}
               onMouseOut={(e) => {
-                e.currentTarget.style.background = "var(--theme-elevation-100, #222)";
+                e.currentTarget.style.background =
+                  "var(--theme-elevation-100, #222)";
                 e.currentTarget.style.color = "var(--theme-text-light, #999)";
               }}
             >
@@ -136,8 +168,15 @@ export default function AuthorsField({ path }: AuthorsFieldProps) {
       )}
 
       {/* Field description repeated because custom components bypass the default field wrapper if not managed correctly */}
-      <p style={{ fontSize: "11px", color: "var(--theme-text-light, #666)", margin: 0 }}>
-        Separe múltiplos autores com ponto-e-vírgula. Escreva o nome completo ou abreviado.
+      <p
+        style={{
+          fontSize: "11px",
+          color: "var(--theme-text-light, #666)",
+          margin: 0,
+        }}
+      >
+        Separe múltiplos autores com ponto-e-vírgula. Escreva o nome completo ou
+        abreviado.
       </p>
     </div>
   );

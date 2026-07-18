@@ -33,9 +33,7 @@ async function verifyJWT(token: string): Promise<Record<string, unknown>> {
   );
 
   // Base64url → Uint8Array
-  const signatureStr = atob(
-    signatureB64.replace(/-/g, "+").replace(/_/g, "/"),
-  );
+  const signatureStr = atob(signatureB64.replace(/-/g, "+").replace(/_/g, "/"));
   const signature = new Uint8Array(signatureStr.length);
   for (let i = 0; i < signatureStr.length; i++) {
     signature[i] = signatureStr.charCodeAt(i);
@@ -67,7 +65,10 @@ export async function middleware(request: NextRequest) {
 
   // No token → redirect to login
   if (!token) {
-    const loginUrl = new URL("/login", request.url);
+    // nextUrl.clone() (not `new URL("/login", request.url)`) so the redirect
+    // keeps the app's basePath when the app is served under a sub-path.
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
     loginUrl.searchParams.set("redirect", sanitizeRedirect(pathname));
     return NextResponse.redirect(loginUrl);
   }
@@ -78,14 +79,17 @@ export async function middleware(request: NextRequest) {
     // /gestao routes require professor or admin role
     if (pathname.startsWith("/gestao")) {
       if (decoded.role !== "professor" && decoded.role !== "admin") {
-        return NextResponse.redirect(new URL("/aluno", request.url));
+        const alunoUrl = request.nextUrl.clone();
+        alunoUrl.pathname = "/aluno";
+        return NextResponse.redirect(alunoUrl);
       }
     }
 
     // /aluno — any authenticated user is allowed
   } catch {
     // Invalid or tampered token → redirect to login
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
     loginUrl.searchParams.set("redirect", sanitizeRedirect(pathname));
     return NextResponse.redirect(loginUrl);
   }

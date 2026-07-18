@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { comBasePath } from "@/lib/base-path";
 import {
   DndContext,
   DragOverlay,
@@ -118,7 +119,7 @@ export function GroupBuilderClient({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/student-groups", {
+      const res = await fetch(comBasePath("/api/student-groups"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -154,7 +155,7 @@ export function GroupBuilderClient({
 
     // Delete from API
     try {
-      const res = await fetch(`/api/student-groups/${groupId}`, {
+      const res = await fetch(comBasePath(`/api/student-groups/${groupId}`), {
         method: "DELETE",
         credentials: "include",
       });
@@ -172,7 +173,7 @@ export function GroupBuilderClient({
     try {
       const results = await Promise.allSettled(
         groups.map((g) =>
-          fetch(`/api/student-groups/${g.id}`, {
+          fetch(comBasePath(`/api/student-groups/${g.id}`), {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -206,110 +207,110 @@ export function GroupBuilderClient({
           </button>
         </div>
       )}
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Left: Unassigned students */}
-        <div className="lg:w-72 shrink-0">
-          <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
-            Sem grupo ({unassigned.length})
-          </h3>
-          <DroppableZone id="unassigned">
-            {unassigned.map((s) => (
-              <DraggableStudent key={s.id} student={s} />
-            ))}
-            {unassigned.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-4">
-                Todos os alunos estão em grupos.
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Left: Unassigned students */}
+          <div className="lg:w-72 shrink-0">
+            <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
+              Sem grupo ({unassigned.length})
+            </h3>
+            <DroppableZone id="unassigned">
+              {unassigned.map((s) => (
+                <DraggableStudent key={s.id} student={s} />
+              ))}
+              {unassigned.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  Todos os alunos estão em grupos.
+                </p>
+              )}
+            </DroppableZone>
+          </div>
+
+          {/* Right: Groups */}
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Grupos ({groups.length})
+              </h3>
+              <button
+                onClick={saveAllGroups}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                Salvar Grupos
+              </button>
+            </div>
+
+            {/* Create new group */}
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                placeholder="Nome do novo grupo..."
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && createGroup()}
+                className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+              />
+              <button
+                onClick={createGroup}
+                disabled={saving || !newGroupName.trim()}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-md border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                <Plus className="h-4 w-4" />
+                Criar
+              </button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {groups.map((group) => (
+                <div key={group.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">{group.name}</h4>
+                    <button
+                      onClick={() => deleteGroup(group.id)}
+                      className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                      title="Excluir grupo"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <DroppableZone id={group.id}>
+                    {group.students.map((s) => (
+                      <DraggableStudent key={s.id} student={s} />
+                    ))}
+                    {group.students.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-4">
+                        Arraste alunos aqui
+                      </p>
+                    )}
+                  </DroppableZone>
+                </div>
+              ))}
+            </div>
+            {groups.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8 border border-dashed rounded-xl">
+                Crie um grupo acima para começar a organizar os alunos.
               </p>
             )}
-          </DroppableZone>
+          </div>
         </div>
 
-        {/* Right: Groups */}
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Grupos ({groups.length})
-            </h3>
-            <button
-              onClick={saveAllGroups}
-              disabled={saving}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
-              {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-              Salvar Grupos
-            </button>
-          </div>
-
-          {/* Create new group */}
-          <div className="flex gap-2 mb-4">
-            <input
-              type="text"
-              placeholder="Nome do novo grupo..."
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && createGroup()}
-              className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-            />
-            <button
-              onClick={createGroup}
-              disabled={saving || !newGroupName.trim()}
-              className="inline-flex items-center gap-1 px-3 py-2 rounded-md border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
-            >
-              <Plus className="h-4 w-4" />
-              Criar
-            </button>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            {groups.map((group) => (
-              <div key={group.id} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium">{group.name}</h4>
-                  <button
-                    onClick={() => deleteGroup(group.id)}
-                    className="text-muted-foreground hover:text-destructive transition-colors p-1"
-                    title="Excluir grupo"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <DroppableZone id={group.id}>
-                  {group.students.map((s) => (
-                    <DraggableStudent key={s.id} student={s} />
-                  ))}
-                  {group.students.length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-4">
-                      Arraste alunos aqui
-                    </p>
-                  )}
-                </DroppableZone>
-              </div>
-            ))}
-          </div>
-          {groups.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8 border border-dashed rounded-xl">
-              Crie um grupo acima para começar a organizar os alunos.
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Drag overlay */}
-      <DragOverlay>
-        {activeStudent ? (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/30 text-sm font-medium shadow-lg">
-            <User className="h-3.5 w-3.5" />
-            {activeStudent.name}
-          </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+        {/* Drag overlay */}
+        <DragOverlay>
+          {activeStudent ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/30 text-sm font-medium shadow-lg">
+              <User className="h-3.5 w-3.5" />
+              {activeStudent.name}
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </>
   );
 }

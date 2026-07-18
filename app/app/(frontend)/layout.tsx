@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Footer } from "@/components/layout/footer";
 import { SiteNav } from "@/components/layout/SiteNav";
 import { NavProvider } from "@/components/layout/NavContext";
+import { comBasePath } from "@/lib/base-path";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -38,9 +39,11 @@ export const metadata: Metadata = {
     "sistemas supervisórios",
   ],
   icons: {
+    // Manually prefixed: the Metadata API's icon URLs are not reliably
+    // basePath-aware (unlike next/link and next/image).
     icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico" },
+      { url: comBasePath("/icon.svg"), type: "image/svg+xml" },
+      { url: comBasePath("/favicon.ico") },
     ],
   },
   openGraph: {

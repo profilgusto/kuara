@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { toast } from "@payloadcms/ui";
+import { comBasePath } from "@/lib/base-path";
 
 export const BackfillUsedInButton: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -9,9 +10,12 @@ export const BackfillUsedInButton: React.FC = () => {
   const handleClick = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/backfill-media-used-in", {
-        method: "POST",
-      });
+      const res = await fetch(
+        comBasePath("/api/admin/backfill-media-used-in"),
+        {
+          method: "POST",
+        },
+      );
       const data = await res.json();
       if (!res.ok) {
         toast.error(data.error ?? "Backfill failed");

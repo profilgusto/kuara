@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useField } from "@payloadcms/ui";
+import { comBasePath } from "@/lib/base-path";
 
 interface TagsFieldProps {
   path: string;
@@ -31,7 +32,7 @@ export default function TagsField({ path }: TagsFieldProps) {
 
   // Fetch all known tags from existing tesselas once on mount
   useEffect(() => {
-    fetch("/api/tesselas?limit=500&depth=0")
+    fetch(comBasePath("/api/tesselas?limit=500&depth=0"))
       .then((r) => r.json())
       .then((data) => {
         const known = new Set<string>();
@@ -175,7 +176,9 @@ export default function TagsField({ path }: TagsFieldProps) {
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => setFocused(true)}
-          placeholder={tags.length === 0 ? "Add tags — type and press Enter or ;" : ""}
+          placeholder={
+            tags.length === 0 ? "Add tags — type and press Enter or ;" : ""
+          }
           style={{
             flex: "1 1 100px",
             minWidth: "100px",

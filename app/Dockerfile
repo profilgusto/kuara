@@ -78,6 +78,12 @@ RUN cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mj
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# Sub-path the app is served under in production (e.g. /kuara). Inlined into
+# the client bundle at build time; the runner also needs it at runtime for
+# server components/route handlers — set via docker-compose `environment:`.
+ARG NEXT_PUBLIC_BASE_PATH=
+ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
+
 RUN npm run build
 
 # ─── Stage 3: runner (production) ─────────────────────────────────────────────
