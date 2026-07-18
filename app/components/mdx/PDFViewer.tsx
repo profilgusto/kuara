@@ -4,8 +4,9 @@ import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { ZoomIn, ZoomOut, Download, Loader2, FileWarning } from "lucide-react";
+import { comBasePath } from "@/lib/base-path";
 
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+pdfjs.GlobalWorkerOptions.workerSrc = comBasePath("/pdf.worker.min.mjs");
 
 const ZOOM_STEP = 0.25;
 const MIN_ZOOM = 0.5;

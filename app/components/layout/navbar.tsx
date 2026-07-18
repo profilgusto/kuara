@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { Moon, Sun, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { comBasePath } from "@/lib/base-path";
 
 const navLinks = [
   { label: "Sobre", href: "#sobre" },
@@ -43,7 +44,7 @@ export function Navbar() {
           aria-label="Kuara Biofloresta"
         >
           <Image
-            src="/icon.svg"
+            src={comBasePath("/icon.svg")}
             alt="Kuara logo"
             width={24}
             height={24}

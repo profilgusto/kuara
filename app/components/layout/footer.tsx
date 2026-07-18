@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { comBasePath } from "@/lib/base-path";
 
 export function Footer() {
   return (
@@ -10,7 +11,7 @@ export function Footer() {
           className="flex items-center gap-1.5 hover:text-muted-foreground transition-colors"
         >
           <Image
-            src="/icon.svg"
+            src={comBasePath("/icon.svg")}
             alt="Kuara logo"
             width={14}
             height={14}

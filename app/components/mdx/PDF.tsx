@@ -2,6 +2,7 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
+import { resolveMediaUrl } from "@/lib/base-path";
 
 // react-pdf is only bundled + loaded when this component is actually rendered
 const PDFViewer = dynamic(() => import("./PDFViewer"), {
@@ -29,8 +30,9 @@ export default function PDF({
   className,
   style,
 }: Props) {
-  const url =
-    typeof urlProp === "string" ? urlProp : typeof src === "string" ? src : "";
+  const url = resolveMediaUrl(
+    typeof urlProp === "string" ? urlProp : typeof src === "string" ? src : "",
+  );
 
   // Parse width controls from title: wsm=N wlg=N or size=SM,LG
   let wsm: number | undefined;

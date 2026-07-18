@@ -14,6 +14,8 @@
  *   <ImgInline url="/path/img.png" height="1.6em" alt="botão salvar" />
  */
 
+import { resolveMediaUrl } from "@/lib/base-path";
+
 interface ImgInlineProps {
   /** Image source. `url` and `src` are interchangeable. */
   url?: string;
@@ -35,8 +37,9 @@ export default function ImgInline({
   alt = "",
   height = "1.4em",
 }: ImgInlineProps) {
-  const imageSrc = url || src;
-  if (!imageSrc) return null;
+  const rawSrc = url || src;
+  if (!rawSrc) return null;
+  const imageSrc = resolveMediaUrl(rawSrc);
 
   // Numbers / bare numeric strings are interpreted as `em` multiples so the
   // figure always scales with the surrounding font size.

@@ -7,6 +7,7 @@ import { Sun, Moon, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { useNav } from "./NavContext";
+import { comBasePath } from "@/lib/base-path";
 
 // Sorted alphabetically
 const NAV_LINKS = [
@@ -40,7 +41,7 @@ export function SiteNav() {
           href="/"
           className="flex items-center gap-1.5 text-foreground hover:text-primary transition-colors shrink-0"
         >
-          <Image src="/icon.svg" alt="Kuara logo" width={32} height={32} />
+          <Image src={comBasePath("/icon.svg")} alt="Kuara logo" width={32} height={32} />
           <span className="font-serif font-semibold text-base">Kuara</span>
         </Link>
 

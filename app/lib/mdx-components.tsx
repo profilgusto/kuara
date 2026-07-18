@@ -29,6 +29,7 @@ import CiteTessela from "@/components/tesselas/CiteTessela";
 import CiteModule from "@/components/disciplinas/CiteModule";
 import RefFig from "@/components/figures/RefFig";
 import MdxH1 from "@/components/mdx/MdxH1";
+import { resolveMediaUrl } from "@/lib/base-path";
 import type { ComponentType } from "react";
 
 /**
@@ -89,9 +90,29 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     p: (props: any) => <div className="mdx-p my-[1.25em]" {...props} />,
 
-    // Links always open in a new tab
+    // Markdown images (![...](...)): resolve author-written /api/media URLs
+    // against the basePath, same as KImage/ImgInline do for their url prop.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    a: (props: any) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+    img: ({ src, alt, ...rest }: any) => (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={typeof src === "string" ? resolveMediaUrl(src) : src}
+        alt={alt ?? ""}
+        {...rest}
+      />
+    ),
+
+    // Links always open in a new tab; file links get the same /api/media
+    // URL resolution as images.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    a: ({ href, ...rest }: any) => (
+      <a
+        href={typeof href === "string" ? resolveMediaUrl(href) : href}
+        {...rest}
+        target="_blank"
+        rel="noopener noreferrer"
+      />
+    ),
 
     // Code block override
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

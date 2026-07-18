@@ -4,6 +4,7 @@ import React from "react";
 import { useModuleContext } from "./ModuleContext";
 import { useViewMode } from "./useViewMode";
 import Image from "next/image";
+import { resolveMediaUrl } from "@/lib/base-path";
 
 interface SlideCoverProps {
   title?: string;
@@ -39,7 +40,7 @@ export default function SlideCover({
       {backgroundImage ? (
         <>
           <Image
-            src={backgroundImage}
+            src={resolveMediaUrl(backgroundImage)}
             alt="Capa de Slide"
             fill
             className="object-cover absolute inset-0 z-0"
@@ -67,7 +68,7 @@ export default function SlideCover({
           <div className="absolute top-8 right-8">
             {/* Cannot use next/image blindly without dimensions unless it's layout=fill, so we fallback to img for the logo if size is unknown to keep it small, but here we can give generic dimensions or use width/height if we had them. Just using classic img for simplicity since it's a remote/payload asset */}
             <img
-              src={logoImage}
+              src={resolveMediaUrl(logoImage)}
               alt="Logo"
               className="max-h-16 w-auto object-contain"
             />

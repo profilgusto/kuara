@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { Download as DownloadIcon, FileText } from "lucide-react";
+import { resolveMediaUrl } from "@/lib/base-path";
 
 interface DownloadProps {
   url: string;
@@ -18,7 +19,7 @@ export default function Download({
   return (
     <div className={`my-8 ${className || ""}`}>
       <a
-        href={url}
+        href={resolveMediaUrl(url)}
         download={filename || true}
         className="
                     flex items-center gap-4 p-4 rounded-xl border border-emerald-500/20 

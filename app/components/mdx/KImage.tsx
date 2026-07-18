@@ -2,6 +2,7 @@
 import React, { useRef, useState, useEffect, useCallback, useContext } from "react";
 import { useViewMode } from "./useViewMode";
 import { FiguresContext } from "@/components/figures/FiguresContext";
+import { resolveMediaUrl } from "@/lib/base-path";
 
 interface KImageProps {
   url?: string;
@@ -53,7 +54,8 @@ export default function KImage({
   className,
 }: KImageProps) {
   const mode = useViewMode();
-  const imageSrc = url || src;
+  const rawSrc = url || src;
+  const imageSrc = rawSrc ? resolveMediaUrl(rawSrc) : rawSrc;
 
   // ── Figure numbering (optional — degrades gracefully without FiguresProvider) ──
   const figuresCtx = useContext(FiguresContext);

@@ -7,6 +7,7 @@ import SlideDeck from "@/components/mdx/SlideDeck";
 import PrintButton from "@/components/mdx/PrintButton";
 import type { Heading } from "@/lib/mdx-pipeline";
 import type { SlideCoverData } from "@/lib/slides";
+import { resolveMediaUrl } from "@/lib/base-path";
 
 interface ContentPageClientProps {
   children: ReactNode;
@@ -42,7 +43,7 @@ export function ContentPageClient({
         {slideCover?.logoImage && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={slideCover.logoImage}
+            src={resolveMediaUrl(slideCover.logoImage)}
             alt="Logo"
             className="max-h-16 w-auto object-contain mb-6"
             onError={(e) => {
@@ -55,7 +56,7 @@ export function ContentPageClient({
         {slideCover?.backgroundImage && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={slideCover.backgroundImage}
+            src={resolveMediaUrl(slideCover.backgroundImage)}
             alt="Capa"
             className="max-h-36 max-w-xs object-cover mb-8 rounded-xl"
             onError={(e) => {
