@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation";
 
 export const TodosNavLink: React.FC = () => {
   const pathname = usePathname();
-  const isActive = pathname?.startsWith("/admin/todos") ?? false;
+  const isActive = pathname?.startsWith("/payload/todos") ?? false;
 
   return (
     <div style={{ padding: "0 8px", marginBottom: "4px" }}>
       <Link
-        href="/admin/todos"
+        href="/payload/todos"
         style={{
           display: "flex",
           alignItems: "center",

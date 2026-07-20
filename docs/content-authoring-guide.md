@@ -589,7 +589,7 @@ TODO: verify this statistic with the 2025 report before publishing.
 
 ### Todo
 
-Renders nothing to readers. Author TODOs are indexed in the Payload CMS admin panel at `/admin/todos` for tracking.
+Renders nothing to readers. Author TODOs are indexed in the Payload CMS admin panel at `/payload/todos` for tracking.
 
 ```mdx
 <Todo>Add a diagram illustrating the nitrogen cycle here.</Todo>

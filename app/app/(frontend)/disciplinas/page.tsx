@@ -25,7 +25,7 @@ export default async function DisciplinasPage() {
           </p>
           <p className="text-sm text-muted-foreground mt-1">
             Cadastre uma disciplina no{" "}
-            <Link href="/admin" className="underline">
+            <Link href="/payload" className="underline">
               painel admin
             </Link>
             .

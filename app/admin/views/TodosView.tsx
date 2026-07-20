@@ -181,8 +181,7 @@ export const TodosView: React.FC = () => {
   const groups = groupByCourse(moduleTodos);
   const hasAny = groups.length > 0 || tesselaTodos.length > 0;
 
-  const sourceCount =
-    moduleTodos.length + tesselaTodos.length;
+  const sourceCount = moduleTodos.length + tesselaTodos.length;
 
   return (
     <div style={{ padding: "32px", maxWidth: "860px" }}>
@@ -251,7 +250,9 @@ export const TodosView: React.FC = () => {
             fontSize: "14px",
           }}
         >
-          Nenhum bloco <code style={{ fontFamily: "monospace" }}>&lt;Todo&gt;</code> encontrado.
+          Nenhum bloco{" "}
+          <code style={{ fontFamily: "monospace" }}>&lt;Todo&gt;</code>{" "}
+          encontrado.
         </div>
       )}
 
@@ -309,7 +310,8 @@ export const TodosView: React.FC = () => {
                       alignItems: "center",
                       justifyContent: "space-between",
                       padding: "10px 14px",
-                      borderBottom: "1px solid var(--theme-elevation-200, #333)",
+                      borderBottom:
+                        "1px solid var(--theme-elevation-200, #333)",
                       gap: "12px",
                     }}
                   >
@@ -323,7 +325,7 @@ export const TodosView: React.FC = () => {
                       Módulo: {mod.title}
                     </span>
                     <a
-                      href={`/admin/collections/modules/${mod.id}`}
+                      href={`/payload/collections/modules/${mod.id}`}
                       style={{
                         fontSize: "11px",
                         color: "#2FA8B8",
@@ -410,7 +412,7 @@ export const TodosView: React.FC = () => {
                   Tessela: {tessela.title}
                 </span>
                 <a
-                  href={`/admin/collections/tesselas/${tessela.id}`}
+                  href={`/payload/collections/tesselas/${tessela.id}`}
                   style={{
                     fontSize: "11px",
                     color: "#2FA8B8",

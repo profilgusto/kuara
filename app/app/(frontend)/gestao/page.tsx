@@ -52,7 +52,7 @@ export default async function GestaoPage() {
             <p className="text-muted-foreground text-sm">
               Nenhuma oferta ativa.{" "}
               <Link
-                href="/admin/collections/offers/create"
+                href="/payload/collections/offers/create"
                 className="underline text-primary"
               >
                 Criar no admin

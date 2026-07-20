@@ -12,9 +12,9 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         // Keep private/admin/API routes out of search indexes. Prefixed with
         // the basePath — these are matched against the real request path
-        // (/kuara/admin, not /admin), same class of bug as the icon.svg fix.
+        // (/kuara/payload, not /payload), same class of bug as the icon.svg fix.
         disallow: [
-          comBasePath("/admin"),
+          comBasePath("/payload"),
           comBasePath("/api/"),
           comBasePath("/login"),
           comBasePath("/aluno"),

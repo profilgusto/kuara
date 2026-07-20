@@ -53,7 +53,7 @@ export default async function OfferDashboardPage({
   const rawCurrentModule =
     typeof offer.currentModule === "object"
       ? offer.currentModule?.id
-      : offer.currentModule ?? null;
+      : (offer.currentModule ?? null);
   const currentModuleId: string | null =
     rawCurrentModule != null ? String(rawCurrentModule) : null;
 
@@ -109,13 +109,13 @@ export default async function OfferDashboardPage({
           desc="Organizar grupos de alunos"
         />
         <QuickLink
-          href={`/admin/collections/posts/create?offer=${id}`}
+          href={`/payload/collections/posts/create?offer=${id}`}
           icon={<Megaphone className="h-5 w-5" />}
           label="Novo Comunicado"
           desc="Enviar notícia para a turma"
         />
         <QuickLink
-          href={`/admin/collections/offers/${id}`}
+          href={`/payload/collections/offers/${id}`}
           icon={<Settings className="h-5 w-5" />}
           label="Config"
           desc="Editar no painel admin"

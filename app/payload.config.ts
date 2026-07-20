@@ -27,6 +27,18 @@ const dirname = path.dirname(filename);
 
 export default buildConfig({
   defaultMaxTextLength: 800000, // ~800 KB — allows large MDX module content (default is 40,000)
+  routes: {
+    // The admin panel lives at /payload (served as /kuara/payload once
+    // Next.js applies basePath). Must stay in sync with the route folder
+    // app/(payload)/payload/[[...segments]].
+    //
+    // `api` carries the basePath explicitly: Payload has no basePath
+    // awareness, and the admin client issues plain fetch() calls against
+    // routes.api, which Next.js does NOT prefix (unlike <Link>/router.push,
+    // which is why routes.admin must stay basePath-relative).
+    admin: "/payload",
+    api: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api`,
+  },
   admin: {
     user: Users.slug,
     importMap: {

@@ -33,7 +33,7 @@ export default async function TesselasPage() {
           <p className="text-muted-foreground">Nenhuma tessela publicada.</p>
           <p className="text-sm text-muted-foreground mt-1">
             Crie uma tessela no{" "}
-            <Link href="/admin" className="underline">
+            <Link href="/payload" className="underline">
               painel admin
             </Link>
             .
@@ -41,7 +41,10 @@ export default async function TesselasPage() {
         </div>
       )}
 
-      <FilteredTesselaGrid tesselas={tesselas} showMosaico={tesselas.length > 1} />
+      <FilteredTesselaGrid
+        tesselas={tesselas}
+        showMosaico={tesselas.length > 1}
+      />
     </main>
   );
 }

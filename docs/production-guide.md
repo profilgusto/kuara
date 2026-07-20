@@ -17,7 +17,7 @@ use it as a reference for day-to-day operations.
 | Follow web logs | `docker compose logs -f web` |
 | Run static checks (TS + lint + tests) | `cd app && npm run typecheck && npm run lint && npm run test` |
 | Generate migration after schema change | `./scripts/create-migration.sh` |
-| Open admin panel | http://localhost:3000/admin |
+| Open admin panel | http://localhost:3000/payload |
 
 ### Production (server at `/opt/kuara`)
 
@@ -181,7 +181,7 @@ NAME    IMAGE   ...STATUS
 
 ### Step 4 — Create the First Admin User
 
-Open `https://kuara.filgusto.com/admin` in your browser. Payload will prompt
+Open `https://kuara.filgusto.com/kuara/payload` in your browser. Payload will prompt
 you to create the initial admin account on the first visit.
 
 ---

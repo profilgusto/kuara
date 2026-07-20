@@ -9,7 +9,7 @@ You are Claude Code running on a **Ubuntu 24.04 production server**. Your job is
 Kuara is an educational content platform built with:
 
 - **Next.js 15** (App Router) + **React 19** — frontend and API routes
-- **Payload CMS 3** — headless CMS backed by PostgreSQL, served at `/admin`
+- **Payload CMS 3** — headless CMS backed by PostgreSQL, served at `/kuara/payload`
 - **PostgreSQL 16** — primary database (runs in Docker)
 - **MinIO** — S3-compatible object storage for media files (runs in Docker)
 - **Traefik v3** — reverse proxy / TLS termination (Let's Encrypt)
@@ -209,7 +209,7 @@ Internet → Traefik (:80/:443) → [traefik-net] → web container (:3000)
 ```
 
 - Traefik terminates TLS and proxies `https://TRAEFIK_DOMAIN` → `web:3000`
-- `web` is both the Next.js frontend and the Payload CMS admin (`/admin`)
+- `web` is both the Next.js frontend and the Payload CMS admin (`/kuara/payload`)
 - `migrate` is a one-shot container that runs DB migrations on every deploy
 - `createbuckets` is a one-shot container that initializes the MinIO bucket
 - All app data persists in Docker named volumes: `kuara-pgdata` and `kuara-minio-data`
@@ -220,6 +220,6 @@ Internet → Traefik (:80/:443) → [traefik-net] → web container (:3000)
 
 Verify:
 1. `https://<TRAEFIK_DOMAIN>` loads the Kuara frontend
-2. `https://<TRAEFIK_DOMAIN>/admin` loads the Payload CMS login
+2. `https://<TRAEFIK_DOMAIN>/kuara/payload` loads the Payload CMS login
 3. TLS certificate is valid (check browser padlock — issued by Let's Encrypt)
 4. `docker compose -f docker-compose.prod.yml ps` — all services show `healthy` or `Up`
