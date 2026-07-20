@@ -28,16 +28,25 @@ const dirname = path.dirname(filename);
 export default buildConfig({
   defaultMaxTextLength: 800000, // ~800 KB — allows large MDX module content (default is 40,000)
   routes: {
-    // The admin panel lives at /payload (served as /kuara/payload once
-    // Next.js applies basePath). Must stay in sync with the route folder
-    // app/(payload)/payload/[[...segments]].
+    // Both values are basePath-RELATIVE. The app is served under /kuara and
+    // that prefix is always added downstream, by whichever layer consumes the
+    // route — Payload's own URL helper knows the basePath and applies it:
     //
-    // `api` carries the basePath explicitly: Payload has no basePath
-    // awareness, and the admin client issues plain fetch() calls against
-    // routes.api, which Next.js does NOT prefix (unlike <Link>/router.push,
-    // which is why routes.admin must stay basePath-relative).
+    //   ({ adminRoute, apiRoute, includeBasePath, path }) =>
+    //     (includeBasePath ?? !adminRoute) ? basePath + url : url
+    //
+    // For an API call adminRoute is undefined, so `!adminRoute` is true and
+    // Payload prefixes it. For an admin route it is set, so Payload returns
+    // the bare path and Next.js's router prefixes it instead. Either way the
+    // prefix lands exactly once — as long as it is not baked in here.
+    //
+    // Do NOT interpolate NEXT_PUBLIC_BASE_PATH into these. Doing so produced
+    // POST /kuara/kuara/api/users/login → 500, which the admin surfaced as
+    // "An unknown error has occurred" (Traefik access log, 2026-07-20).
+    //
+    // `admin` must stay in sync with app/(payload)/payload/[[...segments]].
     admin: "/payload",
-    api: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api`,
+    api: "/api",
   },
   admin: {
     user: Users.slug,
