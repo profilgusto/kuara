@@ -17,7 +17,16 @@ use it as a reference for day-to-day operations.
 | Follow web logs | `docker compose logs -f web` |
 | Run static checks (TS + lint + tests) | `cd app && npm run typecheck && npm run lint && npm run test` |
 | Generate migration after schema change | `./scripts/create-migration.sh` |
+| Rebuild local stack from production data | `./scripts/refresh-local-from-prod.sh` |
 | Open admin panel | http://localhost:3000/payload |
+
+`refresh-local-from-prod.sh` downloads production's database and media
+first, then destroys the local Kuara containers, images and volumes,
+rebuilds the web image from source, and loads the clone into it. It only
+reads from production and removes its own staging files there afterwards.
+Add `--all` to also prune every unrelated Docker object on the machine
+(asks for typed confirmation), `--no-cache` to rebuild without layer cache,
+`-y` to skip the prompt.
 
 ### Production (server at `/opt/kuara`)
 
