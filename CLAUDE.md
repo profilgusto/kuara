@@ -12,15 +12,49 @@ We strictly follow a **Two-Phase Verification Protocol** to save time and reduce
 Run from `app/` before declaring a task complete or starting Docker:
 - `npm run typecheck` (Validates TS strictness)
 - `npm run lint` (Next.js/React rules check)
-- `npm run test` (Vitest component logic checking)
+- `npm run test` (Vitest — see §1.1; must be green, not merely runnable)
 - `npm run format` (Prettier auto-formatting)
 
 **Phase 2: Full Integration Testing** 
 Only after Phase 1 passes, run from root (`/`):
 - `docker-compose up --build -d`
-- Web app is at `http://localhost:3000` | Payload Admin is at `http://localhost:3000/admin`.
+- Web app is at `http://localhost:3000` | Payload Admin is at `http://localhost:3000/payload`.
 - `docker-compose logs -f web` to monitor output.
 - *Strict Rule:* NUNCA rode `npm run dev` na máquina host. Use apenas o Docker Compose.
+
+### 1.1 The Test Suite
+
+Tests run under Vitest (jsdom + Testing Library) and live **next to the code
+they cover**: `lib/slides.ts` → `lib/slides.test.ts`. There is no separate
+`__tests__/` tree.
+
+| Command | Use |
+|---------|-----|
+| `npm run test` | One-shot run — part of Phase 1 |
+| `npm run test:watch` | Re-runs on save while developing |
+| `npm run test -- lib/slides.test.ts` | Single file |
+
+**What belongs in a unit test.** The suite targets pure, deterministic logic —
+the MDX extractors (`extractCiteLabels`, `extractHeadings`, the
+cross-reference scanners), the basePath helpers, the open-redirect guard, and
+presentational components with no data fetching. Anything needing Postgres,
+MinIO, or a live Payload instance is Phase 2 territory; do not mock a database
+to force it into Phase 1.
+
+**When you add code, add tests.** Any new exported pure function, or a bug fix
+in one, ships with cases covering the edge inputs — not just the happy path.
+Content-facing extractors run against author-written MDX, so cover the
+malformed and quote-style variants too.
+
+**Testing server-only modules.** `vitest.config.ts` aliases `@payload-config`
+to the real config and stubs Next.js's `server-only` marker
+(`test/stubs/server-only.ts`). Without those, any module in the Payload import
+graph fails to resolve at import-analysis time. Extract genuinely pure helpers
+into `lib/` rather than reaching into a module that drags in Payload.
+
+**A passing test proves nothing until you have seen it fail.** After writing
+one, break the function it covers and confirm the test catches it. Tests that
+pass against a deliberately broken implementation are worse than no tests.
 
 ## 2. Schema Changes & Migrations (MANDATORY)
 

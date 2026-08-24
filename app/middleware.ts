@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sanitizeRedirect } from "@/lib/safe-redirect";
 
 /**
  * Next.js Middleware — protects /aluno and /gestao routes.
@@ -45,18 +46,6 @@ async function verifyJWT(token: string): Promise<Record<string, unknown>> {
 
   const payloadStr = atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"));
   return JSON.parse(payloadStr) as Record<string, unknown>;
-}
-
-/**
- * Ensures the redirect target is a safe relative path.
- * Prevents open-redirect attacks via crafted ?redirect= values.
- */
-function sanitizeRedirect(pathname: string): string {
-  // Must start with / but not // (protocol-relative URL)
-  if (!pathname.startsWith("/") || pathname.startsWith("//")) {
-    return "/";
-  }
-  return pathname;
 }
 
 export async function middleware(request: NextRequest) {
