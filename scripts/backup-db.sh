@@ -28,7 +28,9 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 # ── Pre-flight ────────────────────────────────────────────────────────────────
 mkdir -p "$BACKUP_DIR"
 
-if ! docker compose -f "$COMPOSE_FILE" ps postgres | grep -q "running"; then
+# --status=running rather than grepping the STATUS column: Compose v2 printed
+# "running" there, but v5 prints "Up 42 hours (healthy)", which never matched.
+if [[ -z "$(docker compose -f "$COMPOSE_FILE" ps -q --status running postgres)" ]]; then
     log "ERROR: postgres container is not running. Aborting."
     exit 1
 fi

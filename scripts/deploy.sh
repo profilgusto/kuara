@@ -159,8 +159,11 @@ log "All services started."
 step "Waiting for web service to become healthy (up to 3 min)"
 MAX_WAIT=180
 ELAPSED=0
+# The app is served under NEXT_PUBLIC_BASE_PATH (e.g. /kuara), so the health
+# endpoint lives at ${BASE_PATH}/api/health — not at the bare /api/health.
+HEALTH_URL="http://127.0.0.1:3000${NEXT_PUBLIC_BASE_PATH:-}/api/health"
 until docker compose -f "$COMPOSE_APP" exec -T web \
-        wget -qO- http://127.0.0.1:3000/api/health &>/dev/null; do
+        wget -qO- "$HEALTH_URL" &>/dev/null; do
     if [[ $ELAPSED -ge $MAX_WAIT ]]; then
         log "Web service did not become healthy within ${MAX_WAIT}s."
         log "Check logs: docker compose -f docker-compose.prod.yml logs --tail=50 web"

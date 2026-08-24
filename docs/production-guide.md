@@ -382,6 +382,15 @@ Three files appear in `app/migrations/`:
 **Commit all three files.** The `.json` snapshot is critical: without it, the
 next `migrate:create` will re-generate the full schema instead of just the diff.
 
+> **Do not "clean up" a `.json` with no matching `.ts`.** Payload picks the
+> baseline snapshot by filename alone — `readdirSync(dir).filter(.json).sort().reverse()[0]`
+> — so the newest `.json` is authoritative whether or not its migration still
+> exists. `20260611_164246.json` is exactly this case: its `.ts` was deleted in
+> 9c20415 as a duplicate of the hand-written `20260611_000000.ts`, but the
+> snapshot is the only one recording the `question_offsets` columns. Deleting it
+> would make the next migration diff against the 20260407 snapshot and re-emit
+> those columns.
+
 ### 6.4 Reviewing the Migration File
 
 Open `app/migrations/<timestamp>_<name>.ts` and verify:
