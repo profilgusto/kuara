@@ -284,6 +284,11 @@
   padding: 0 !important;
   line-height: normal !important;
   width: auto !important;
+  /* `text-indent` é herdado e volta a ser aplicado dentro de cada caixa
+     inline-block: sem este zero, a indentação de 2em dos parágrafos
+     (.mdx-indent-paragraphs) empurra toda fórmula inline para a direita,
+     abrindo um vão no meio da frase. */
+  text-indent: 0 !important;
 }
 
 .prose mjx-container:not([display="true"]) [mjx-assistive-mml] {
@@ -307,6 +312,7 @@
   text-align: center !important;
   margin: 1.5rem 0 !important;
   width: 100% !important;
+  text-indent: 0 !important;
 }
 
 /* Style legacy MathJax \eqref links so they match the <RefEq>/<RefFig> tags:
