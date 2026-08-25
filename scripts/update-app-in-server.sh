@@ -62,16 +62,19 @@ MIGRATIONS_DIR="$REPO_DIR/app/migrations"
 INDEX_FILE="$MIGRATIONS_DIR/index.ts"
 idx_errors=0
 
+# Quote style is whatever Prettier last decided (it flipped this file from
+# single to double quotes), so match either — the index is not wrong just
+# because the quotes changed.
 for f in "$MIGRATIONS_DIR"/[0-9]*.ts; do
     name="$(basename "$f" .ts)"
-    grep -q "from './$name'" "$INDEX_FILE" \
+    grep -qE "from [\"']\./$name[\"']" "$INDEX_FILE" \
         || { log "ERROR: $name.ts exists but is not referenced in migrations/index.ts"; idx_errors=$((idx_errors + 1)); }
 done
 
 while IFS= read -r name; do
     [[ -f "$MIGRATIONS_DIR/$name.ts" ]] \
         || { log "ERROR: migrations/index.ts references '$name' but the file does not exist"; idx_errors=$((idx_errors + 1)); }
-done < <(grep -oP "from '\./\K[^']+" "$INDEX_FILE")
+done < <(sed -nE "s|.*from ['\"]\./([^'\"]+)['\"].*|\\1|p" "$INDEX_FILE")
 
 [[ $idx_errors -eq 0 ]] || fail "Migration index is inconsistent. Fix app/migrations/index.ts before deploying."
 log "Migration index OK."
