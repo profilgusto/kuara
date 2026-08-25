@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { EQ_ID_PREFIX, equationNumber } from "./equations";
 
 // ── shared helpers ────────────────────────────────────────────────────────────
 
@@ -24,6 +25,39 @@ export function findEqContainer(id: string): HTMLElement | null {
   return (idEl.closest("mjx-container") as HTMLElement | null) ?? idEl;
 }
 
+/**
+ * Reads the number MathJax assigned to the equation with the given element id
+ * (`mjx-eqn:eq:foo`), by its position among all numbered equations in the
+ * document. Returns -1 when the equation is not present.
+ */
+export function readEquationNumber(elementId: string): number {
+  const ids = Array.from(
+    document.querySelectorAll<HTMLElement>(`[id^="${EQ_ID_PREFIX}"]`),
+  ).map((el) => el.id);
+  return equationNumber(ids, elementId);
+}
+
+/** Centres the equation in the viewport and flashes the highlight animation. */
+export function scrollToEquation(elementId: string): void {
+  const target = findEqContainer(elementId);
+  if (!target) return;
+
+  const rect = target.getBoundingClientRect();
+  window.scrollTo({
+    top: window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2,
+    behavior: "smooth",
+  });
+
+  target.classList.remove("eq-highlight-active");
+  void target.offsetWidth; // force reflow to restart animation
+  target.classList.add("eq-highlight-active");
+  target.addEventListener(
+    "animationend",
+    () => target.classList.remove("eq-highlight-active"),
+    { once: true },
+  );
+}
+
 // ── scroll + highlight on click ──────────────────────────────────────────────
 
 export function useEqrefScroll() {
@@ -35,25 +69,7 @@ export function useEqrefScroll() {
       if (!id) return;
 
       e.preventDefault();
-
-      const target = findEqContainer(id);
-      if (!target) return;
-
-      const rect = target.getBoundingClientRect();
-      window.scrollTo({
-        top:
-          window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2,
-        behavior: "smooth",
-      });
-
-      target.classList.remove("eq-highlight-active");
-      void target.offsetWidth;
-      target.classList.add("eq-highlight-active");
-      target.addEventListener(
-        "animationend",
-        () => target.classList.remove("eq-highlight-active"),
-        { once: true },
-      );
+      scrollToEquation(id);
     }
 
     document.addEventListener("click", handleClick);

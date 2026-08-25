@@ -28,6 +28,7 @@ import Cite from "@/components/citations/Cite";
 import CiteTessela from "@/components/tesselas/CiteTessela";
 import CiteModule from "@/components/disciplinas/CiteModule";
 import RefFig from "@/components/figures/RefFig";
+import RefEq from "@/components/equations/RefEq";
 import MdxH1 from "@/components/mdx/MdxH1";
 import Interactive from "@/components/interactive/InteractiveBox";
 import { resolveMediaUrl } from "@/lib/base-path";
@@ -82,6 +83,9 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
 
     // Figure cross-reference
     RefFig,
+
+    // Equation cross-reference
+    RefEq,
 
     // H1: prepend a horizontal rule in text mode
     h1: MdxH1,

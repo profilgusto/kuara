@@ -39,7 +39,6 @@ import {
   Sigma,
   Pi,
   Hash,
-  TextCursorInput,
   AlignLeft,
   Monitor,
   CornerDownRight,
@@ -79,6 +78,7 @@ interface Snippet {
     | "content"
     | "citations"
     | "figures"
+    | "equations"
     | "questions"
     | "authoring";
 }
@@ -182,36 +182,6 @@ const SNIPPETS: Snippet[] = [
     category: "content",
   },
   {
-    label: "Equação",
-    icon: Sigma,
-    template: "$$\n${1:\\\\frac{a}{b}}\n$$\n",
-    description: "Bloco de equação matemática (LaTeX)",
-    category: "content",
-  },
-  {
-    label: "Equação Inline",
-    icon: Pi,
-    template: "$${1:E = mc^2}$",
-    description: "Equação inline no meio do texto",
-    category: "content",
-  },
-  {
-    label: "Equação Numerada",
-    icon: Hash,
-    template:
-      "$$\n\\begin{equation}\n  ${1:E = mc^2} \\label{eq:${2:referencia}}\n\\end{equation}\n$$\n",
-    description:
-      "Equação com numeração automática e label para referência (AMS)",
-    category: "content",
-  },
-  {
-    label: "Ref. Equação",
-    icon: TextCursorInput, // Using a generic text input icon for now
-    template: "$\\eqref{eq:${1:referencia}}$",
-    description: "Cria hiperlink referenciando uma equação numerada",
-    category: "content",
-  },
-  {
     label: "Código",
     icon: Code,
     template:
@@ -226,6 +196,39 @@ const SNIPPETS: Snippet[] = [
       '<Callout type="${1|info,warning,danger,tip|}">\n${2:Conteúdo ou aviso importante}\n</Callout>\n',
     description: "Caixa de aviso (info, warning, danger, tip)",
     category: "content",
+  },
+
+  // ── Equations (numbered) ──
+  {
+    label: "Equação",
+    icon: Sigma,
+    template: "$$\n${1:\\\\frac{a}{b}}\n$$\n",
+    description: "Bloco de equação matemática (LaTeX)",
+    category: "equations",
+  },
+  {
+    label: "Equação Inline",
+    icon: Pi,
+    template: "$${1:E = mc^2}$",
+    description: "Equação inline no meio do texto",
+    category: "equations",
+  },
+  {
+    label: "Equação Numerada",
+    icon: Hash,
+    template:
+      "$$\n\\begin{equation}\n  ${1:E = mc^2} \\label{eq:${2:referencia}}\n\\end{equation}\n$$\n",
+    description:
+      "Equação com numeração automática e label para referência (AMS)",
+    category: "equations",
+  },
+  {
+    label: "Ref. Equação",
+    icon: Link2,
+    template: '<RefEq label="eq:${1:referencia}" />',
+    description:
+      'Link inline "Eq. N" que rola até a equação e mostra preview ao hover.',
+    category: "equations",
   },
 
   // ── Figures (numbered) ──
@@ -446,6 +449,7 @@ const CATEGORY_LABELS: Record<Snippet["category"], string> = {
   structure: "Estrutura",
   content: "Conteúdo",
   media: "Mídia",
+  equations: "Equações",
   figures: "Figuras",
   citations: "Citações",
   questions: "Questões",
@@ -457,6 +461,7 @@ const CATEGORY_ORDER: Snippet["category"][] = [
   "structure",
   "content",
   "media",
+  "equations",
   "figures",
   "citations",
   "questions",

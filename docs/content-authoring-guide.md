@@ -26,6 +26,7 @@ This guide is the authoritative reference for writing MDX content for Kuara modu
    - [CiteTessela](#citetessela)
    - [CiteModule](#citemodule)
    - [RefFig](#reffig)
+   - [RefEq](#refeq)
    - [Comment](#comment)
    - [Todo](#todo)
    - [Interactive](#8-interactive-blocks)
@@ -577,6 +578,43 @@ The `label` must match the `label` prop of a `<KImage>` defined somewhere in the
 
 ---
 
+### RefEq
+
+Inline reference to a numbered equation — the equation counterpart of `<RefFig>`.
+Hovering shows a preview of the equation; clicking smooth-scrolls to it and
+briefly highlights it. It renders as "Eq. N", styled exactly like "Fig. N".
+
+```mdx
+$$
+\begin{equation}
+  E = mc^2 \label{eq:einstein}
+\end{equation}
+$$
+
+Substituting into <RefEq label="eq:einstein" /> gives…
+```
+
+The `label` must match a `\label{...}` inside a numbered AMS environment in the
+same document. The `eq:` prefix is optional — `label="einstein"` and
+`label="eq:einstein"` both resolve to `\label{eq:einstein}`. If not found,
+renders `[Eq.<label>?]`.
+
+The number is the one MathJax assigned, so unlabelled equations still take up a
+number: an unlabelled `\begin{equation}` between two labelled ones makes the
+second labelled equation Eq. 3, not Eq. 2.
+
+> The older `$\eqref{eq:...}$` syntax still works and still renders "(N)", but
+> `<RefEq>` is preferred for new content — it reads as "Eq. N" and matches the
+> figure references.
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `label` | string | Must match a `\label{...}` on a numbered equation in the same document |
+
+---
+
 ### Comment
 
 Renders nothing. Use for author-only notes that should never appear to readers.
@@ -671,6 +709,20 @@ $$
 ```
 
 Math can be used inside Callouts, Question/Answer/Hint blocks, and captions.
+
+**Numbered equations.** A `\label{...}` inside a numbered AMS environment makes
+the equation referenceable from anywhere in the document with `<RefEq>`, which
+renders an inline "Eq. N" link — see [RefEq](#refeq).
+
+```markdown
+$$
+\begin{equation}
+  E = mc^2 \label{eq:einstein}
+\end{equation}
+$$
+
+Substituindo em <RefEq label="eq:einstein" /> obtemos…
+```
 
 ---
 
