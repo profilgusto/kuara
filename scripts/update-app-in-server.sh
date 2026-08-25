@@ -105,6 +105,20 @@ log "Migration index OK."
 
 # ── Step 3: Build updated images ─────────────────────────────────────────────
 step "Building updated application images"
+
+# Tag the image we are about to replace. Building moves the :latest tag to the
+# new image and leaves the old one dangling, so the cleanup in Step 7 would
+# delete the only artifact a rollback could use. Keeping it under a fixed tag
+# means reverting is `up -d --no-deps web` with kuara-web:rollback, with no
+# rebuild — and each deploy overwrites the tag, so it never accumulates.
+OUTGOING="$(docker compose -f "$COMPOSE_APP" images -q web 2>/dev/null || true)"
+if [[ -n "$OUTGOING" ]]; then
+    docker tag "$OUTGOING" kuara-web:rollback
+    log "Tagged the outgoing image as kuara-web:rollback ($(echo "$OUTGOING" | cut -c1-12))."
+else
+    log "No running web image to tag — skipping the rollback tag."
+fi
+
 docker compose -f "$COMPOSE_APP" build --pull migrate web
 log "Images built."
 
@@ -138,9 +152,20 @@ until docker compose -f "$COMPOSE_APP" exec -T web \
 done
 log "Web service is healthy."
 
-# ── Step 7: Prune dangling images ────────────────────────────────────────────
-step "Pruning unused Docker images"
+# ── Step 7: Reclaim disk from the build ──────────────────────────────────────
+step "Pruning unused images and build cache"
+
+# NEVER use `-a` here, on images or via `system prune`. This host also runs
+# other stacks (fac-*, planos-de-ensino-*, nodered, traefik); `-a` removes every
+# image no container currently references, which would delete their images along
+# with kuara-web:rollback. Dangling-only is the safe scope: it takes exactly the
+# untagged leftovers this build just created.
 docker image prune -f
+
+# The build cache is the real consumer — it grew past 50GB and filled the disk
+# to 85% before anyone noticed. It is a pure cache: pruning only costs time on
+# the next build.
+docker builder prune -f | tail -1
 
 # ── Done ─────────────────────────────────────────────────────────────────────
 echo

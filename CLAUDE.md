@@ -84,7 +84,50 @@ This generates a timestamped file in `app/migrations/`. Commit it alongside your
   - `app/app/`: Next.js frontend pages and API.
   - `app/mdx-plugins/`: Custom rehype/remark plugins.
 
-## 4. Verification Protocol (MANDATORY)
+## 4. Production Deploy Routine
+
+Deploy from the server, never from the dev machine:
+
+```bash
+ssh -p 22691 filgusto@kuara.ufsj.edu.br
+cd ~/kuara-house/kuara && ./scripts/update-app-in-server.sh
+```
+
+The repo lives at `~/kuara-house/kuara` — not `/opt/kuara`. Production is served
+under the `/kuara` basePath, so every health probe is `/kuara/api/health`; the
+bare `/api/health` returns 404 and will make a healthy deploy look broken.
+
+**Before deploying:** run Phase 1 (§1), then take a database backup —
+`BACKUP_DIR=$HOME/kuara-backups ./scripts/backup-db.sh`. If any file under
+`app/collections/` changed, confirm a matching migration was committed (§2);
+production runs `push:false` and only applies committed files.
+
+**Disk cleanup is part of the deploy, not a separate chore.** Step 7 of the
+script prunes dangling images and the build cache on every run. The cache is
+what actually fills the disk: it reached 51GB and took the root filesystem to
+85% before anyone looked. Never widen these to `-a`, and never reach for
+`docker system prune -a`:
+
+- The host is **shared** with other stacks — `fac-*`, `planos-de-ensino-*`,
+  `nodered`, `mongo`, `traefik`. `-a` deletes every image no container
+  currently references, which takes their images down too.
+- `-a` would also delete `kuara-web:rollback`, the tag Step 3 puts on the
+  outgoing image so a bad deploy can be reverted without a rebuild:
+  `docker tag kuara-web:rollback kuara-web:latest && docker compose -f docker-compose.prod.yml up -d --no-deps web`
+
+**Never let the deploy script update itself mid-run.** It re-execs from a
+snapshot outside the repo before `git pull` for this reason. `bash` tracks its
+position in a script by byte offset and re-reads from that offset after the file
+changes on disk, so a pull that touches the running script makes it resume
+inside an unrelated line of the new file — silently, still exiting 0. Two
+deploys failed this way, both appearing to blame whatever step sat at the
+offset. Preserve the guard when editing the script.
+
+**After deploying, verify from outside:** `https://kuara.ufsj.edu.br/kuara`,
+`/kuara/payload` and `/kuara/api/health` must all return 200. A green script is
+not evidence on its own.
+
+## 5. Verification Protocol (MANDATORY)
 Execute this silently before returning control:
 1. Re-read the full original task specification.
 2. For each stated requirement: test it programmatically (Phase 1) or visually (Phase 2), confirm it works, and state the evidence.
