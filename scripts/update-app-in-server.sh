@@ -14,10 +14,34 @@
 set -euo pipefail
 
 # ── Config ────────────────────────────────────────────────────────────────────
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# KUARA_REPO_DIR is set by the self-update guard below when it re-execs a
+# snapshot of this script from outside the repo; otherwise derive it normally.
+REPO_DIR="${KUARA_REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 BRANCH="${BRANCH:-main}"
 COMPOSE_APP="$REPO_DIR/docker-compose.prod.yml"
 ENV_FILE="$REPO_DIR/.env.prod"
+
+# ── Self-update guard ─────────────────────────────────────────────────────────
+# Step 1 runs `git pull`, which can rewrite THIS file while bash is still
+# reading it. Bash tracks its position in the script by byte offset and re-reads
+# from that offset after the file changes on disk, so it resumes in the middle
+# of some unrelated line of the NEW file and executes nonsense — the failure
+# looks like a bug in whatever step happens to land there.
+#
+# Run from a snapshot outside the repo instead, which the pull cannot touch.
+# The snapshot is the version that was on disk when the deploy started; a
+# change to this script only takes effect on the NEXT deploy, which is the
+# same guarantee the compose images already give.
+if [[ -z "${KUARA_DEPLOY_REEXEC:-}" ]]; then
+    SNAPSHOT="$(mktemp "${TMPDIR:-/tmp}/kuara-deploy.XXXXXX")"
+    trap 'rm -f "$SNAPSHOT"' EXIT
+    cat "${BASH_SOURCE[0]}" > "$SNAPSHOT"
+    export KUARA_DEPLOY_REEXEC=1
+    export KUARA_REPO_DIR="$REPO_DIR"
+    rc=0
+    bash "$SNAPSHOT" "$@" || rc=$?
+    exit $rc
+fi
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 log()  { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
