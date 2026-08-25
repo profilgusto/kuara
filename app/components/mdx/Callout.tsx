@@ -46,7 +46,9 @@ export default function Callout({ type = "note", children }: CalloutProps) {
         <Icon className="h-4 w-4 flex-shrink-0" />
         {label}
       </div>
-      <div className="text-sm [&>.mdx-p]:my-1 [&_strong]:text-inherit [&_em]:text-inherit">{children}</div>
+      <div className="text-sm [&>.mdx-p]:my-1 [&_strong]:text-inherit [&_em]:text-inherit">
+        {children}
+      </div>
     </div>
   );
 }

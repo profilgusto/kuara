@@ -21,6 +21,10 @@ Only after Phase 1 passes, run from root (`/`):
 - Web app is at `http://localhost:3000` | Payload Admin is at `http://localhost:3000/payload`.
 - `docker-compose logs -f web` to monitor output.
 - *Strict Rule:* NUNCA rode `npm run dev` na máquina host. Use apenas o Docker Compose.
+- *After adding an npm dependency:* `docker compose up -d --build --renew-anon-volumes web`.
+  `/app/node_modules` is an anonymous volume that survives a plain `--build`, so a
+  new package is in the image but not in the running container — the app fails with
+  `Module not found` for something that is clearly in `package.json`.
 
 ### 1.1 The Test Suite
 

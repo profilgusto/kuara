@@ -1,4 +1,8 @@
-import { type MigrateUpArgs, type MigrateDownArgs, sql } from '@payloadcms/db-postgres'
+import {
+  type MigrateUpArgs,
+  type MigrateDownArgs,
+  sql,
+} from "@payloadcms/db-postgres";
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
@@ -163,10 +167,14 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "media_rels" ADD CONSTRAINT "media_rels_tesselas_fk" FOREIGN KEY ("tesselas_id") REFERENCES "public"."tesselas"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_tesselas_fk" FOREIGN KEY ("tesselas_id") REFERENCES "public"."tesselas"("id") ON DELETE cascade ON UPDATE no action;
   CREATE INDEX "media_rels_tesselas_id_idx" ON "media_rels" USING btree ("tesselas_id");
-  CREATE INDEX "payload_locked_documents_rels_tesselas_id_idx" ON "payload_locked_documents_rels" USING btree ("tesselas_id");`)
+  CREATE INDEX "payload_locked_documents_rels_tesselas_id_idx" ON "payload_locked_documents_rels" USING btree ("tesselas_id");`);
 }
 
-export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
+export async function down({
+  db,
+  payload,
+  req,
+}: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
    ALTER TABLE "modules_rels" DISABLE ROW LEVEL SECURITY;
   ALTER TABLE "_modules_v_rels" DISABLE ROW LEVEL SECURITY;
@@ -203,5 +211,5 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   DROP TYPE "public"."enum_tesselas_status";
   DROP TYPE "public"."enum__tesselas_v_version_stage";
   DROP TYPE "public"."enum__tesselas_v_version_citation_style";
-  DROP TYPE "public"."enum__tesselas_v_version_status";`)
+  DROP TYPE "public"."enum__tesselas_v_version_status";`);
 }

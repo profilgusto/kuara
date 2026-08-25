@@ -13,7 +13,7 @@ export async function GET() {
   } catch {
     return NextResponse.json(
       { status: "error", timestamp: new Date().toISOString() },
-      { status: 503 }
+      { status: 503 },
     );
   }
 }

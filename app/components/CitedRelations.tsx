@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Puzzle, BookOpen } from "lucide-react";
-import type { TesselaRelatedItem, ModuleRelatedItem } from "@/lib/payload-content";
+import type {
+  TesselaRelatedItem,
+  ModuleRelatedItem,
+} from "@/lib/payload-content";
 
 /* ── Badge configs ─────────────────────────────────────────────────────────── */
 

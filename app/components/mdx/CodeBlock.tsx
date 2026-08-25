@@ -21,7 +21,7 @@ export default function CodeBlock({ code, className }: Props) {
     if (codeRef.current) {
       try {
         hljs.highlightElement(codeRef.current);
-      } catch { }
+      } catch {}
     }
   }, [className, code]);
 
@@ -35,7 +35,7 @@ export default function CodeBlock({ code, className }: Props) {
       await navigator.clipboard.writeText(extractText());
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
-    } catch { }
+    } catch {}
   };
 
   return (

@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { draftMode } from "next/headers";
 import Link from "next/link";
-import { getTessela, fetchTesselaLinks, fetchModuleLinks } from "@/lib/payload-content";
+import {
+  getTessela,
+  fetchTesselaLinks,
+  fetchModuleLinks,
+} from "@/lib/payload-content";
 import { compileMdx, extractHeadings } from "@/lib/mdx-pipeline";
 import { getMdxComponents } from "@/lib/mdx-components";
 import { ContentPageClient } from "@/components/content/ContentPageClient";
@@ -57,8 +61,7 @@ export async function generateMetadata({
 
   const title = `${tessela.title} | Tesselas · Kuara`;
   const description =
-    tessela.abstract ??
-    `Tessela "${tessela.title}" na plataforma Kuara.`;
+    tessela.abstract ?? `Tessela "${tessela.title}" na plataforma Kuara.`;
 
   return {
     title,
@@ -129,130 +132,140 @@ export default async function TesselaPage({
   return (
     <TesselaLayout headings={headings} tesselaTitle={tessela.title}>
       <ModuleLinksProvider modules={moduleLinks}>
-      <TesselaLinksProvider tesselas={tesselaLinks}>
-      <ReferencesProvider
-        references={references}
-        citationOrder={citationOrder}
-        style={citationStyle}
-      >
-        <FiguresProvider figureOrder={figureOrder}>
-          <ContentPageClient
-            title={tessela.title}
-            headings={headings}
-            slideCover={slideCover}
-            printContextLabel="Kuara · Tesselas"
+        <TesselaLinksProvider tesselas={tesselaLinks}>
+          <ReferencesProvider
+            references={references}
+            citationOrder={citationOrder}
+            style={citationStyle}
           >
-            {content ? (
-              <>
-                <article className="prose prose-neutral dark:prose-invert max-w-none">
-                  {content}
-                </article>
-                
-              </>
-            ) : (
-              <div className="text-center py-12 border border-dashed rounded-xl">
-                <p className="text-muted-foreground">
-                  Esta tessela ainda não possui conteúdo.
-                </p>
-              </div>
-            )}
-          </ContentPageClient>
-        </FiguresProvider>
-
-      {/* ── Metadata section ──────────────────────────────────────────────── */}
-      <HideInPresentation>
-        <div className="mt-12 pt-8 border-t border-border space-y-6 print:hidden">
-          {/* Authors */}
-          {tessela.authors.length > 0 && (
-            <p className="text-base text-muted-foreground">
-              <span className="font-medium text-foreground">
-                {tessela.authors.length === 1 ? "Autor:" : "Autores:"}
-              </span>{" "}
-              {tessela.authors.join(" · ")}
-            </p>
-          )}
-
-          {(tessela.publishedAt || tessela.updatedAt) && (
-            <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-              {tessela.publishedAt && (
-                <span>
-                  Publicado em{" "}
-                  {new Date(tessela.publishedAt).toLocaleDateString("pt-BR", {
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </span>
-              )}
-              {tessela.updatedAt && (
-                <span>
-                  · Atualizado em{" "}
-                  {new Date(tessela.updatedAt).toLocaleDateString("pt-BR", {
-                    day: "2-digit",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </span>
-              )}
-            </div>
-          )}
-          
-
-          {/* Status + labels + Tags */}
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span
-              className={`text-[11px] uppercase tracking-wider font-medium px-2.5 py-1 rounded-full ${status.className}`}
-            >
-              {status.label}
-            </span>
-            {tessela.project.map((p) => (
-              <span key={p} className="text-[11px] uppercase tracking-wider font-medium">
-                {p}
-              </span>
-            ))}
-            {tessela.tags.map((tag) => (
-              <span
-                key={tag}
-                className="text-[11px] bg-muted text-muted-foreground px-2.5 py-1 rounded-full"
+            <FiguresProvider figureOrder={figureOrder}>
+              <ContentPageClient
+                title={tessela.title}
+                headings={headings}
+                slideCover={slideCover}
+                printContextLabel="Kuara · Tesselas"
               >
-                {tag}
-              </span>
-            ))}
-          </div>
+                {content ? (
+                  <>
+                    <article className="prose prose-neutral dark:prose-invert max-w-none">
+                      {content}
+                    </article>
+                  </>
+                ) : (
+                  <div className="text-center py-12 border border-dashed rounded-xl">
+                    <p className="text-muted-foreground">
+                      Esta tessela ainda não possui conteúdo.
+                    </p>
+                  </div>
+                )}
+              </ContentPageClient>
+            </FiguresProvider>
 
-          <ReferencesSection />
+            {/* ── Metadata section ──────────────────────────────────────────────── */}
+            <HideInPresentation>
+              <div className="mt-12 pt-8 border-t border-border space-y-6 print:hidden">
+                {/* Authors */}
+                {tessela.authors.length > 0 && (
+                  <p className="text-base text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {tessela.authors.length === 1 ? "Autor:" : "Autores:"}
+                    </span>{" "}
+                    {tessela.authors.join(" · ")}
+                  </p>
+                )}
 
-          <CitedRelations
-            citedTesselas={tessela.relatedTesselas}
-            citedModules={tessela.relatedModules}
-            citedByTesselas={tessela.referencedBy}
-            citedByModules={tessela.referencedByModules}
-          />
+                {(tessela.publishedAt || tessela.updatedAt) && (
+                  <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                    {tessela.publishedAt && (
+                      <span>
+                        Publicado em{" "}
+                        {new Date(tessela.publishedAt).toLocaleDateString(
+                          "pt-BR",
+                          {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          },
+                        )}
+                      </span>
+                    )}
+                    {tessela.updatedAt && (
+                      <span>
+                        · Atualizado em{" "}
+                        {new Date(tessela.updatedAt).toLocaleDateString(
+                          "pt-BR",
+                          {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
+                          },
+                        )}
+                      </span>
+                    )}
+                  </div>
+                )}
 
-          {/* Related disciplinas */}
-          {tessela.relatedDisciplinas && tessela.relatedDisciplinas.length > 0 && (
-            <div>
-              <h2 className="text-base font-semibold mb-3">Disciplinas relacionadas</h2>
-              <div className="flex flex-wrap gap-2">
-                {tessela.relatedDisciplinas.map((d) => (
-                  <Link
-                    key={d.id}
-                    href={`/disciplinas/${d.slug}`}
-                    className="text-sm border rounded-lg px-3 py-1.5 hover:border-primary/40 transition-colors"
+                {/* Status + labels + Tags */}
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <span
+                    className={`text-[11px] uppercase tracking-wider font-medium px-2.5 py-1 rounded-full ${status.className}`}
                   >
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-2">
-                      {d.code}
+                    {status.label}
+                  </span>
+                  {tessela.project.map((p) => (
+                    <span
+                      key={p}
+                      className="text-[11px] uppercase tracking-wider font-medium"
+                    >
+                      {p}
                     </span>
-                    {d.title}
-                  </Link>
-                ))}
+                  ))}
+                  {tessela.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-[11px] bg-muted text-muted-foreground px-2.5 py-1 rounded-full"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <ReferencesSection />
+
+                <CitedRelations
+                  citedTesselas={tessela.relatedTesselas}
+                  citedModules={tessela.relatedModules}
+                  citedByTesselas={tessela.referencedBy}
+                  citedByModules={tessela.referencedByModules}
+                />
+
+                {/* Related disciplinas */}
+                {tessela.relatedDisciplinas &&
+                  tessela.relatedDisciplinas.length > 0 && (
+                    <div>
+                      <h2 className="text-base font-semibold mb-3">
+                        Disciplinas relacionadas
+                      </h2>
+                      <div className="flex flex-wrap gap-2">
+                        {tessela.relatedDisciplinas.map((d) => (
+                          <Link
+                            key={d.id}
+                            href={`/disciplinas/${d.slug}`}
+                            className="text-sm border rounded-lg px-3 py-1.5 hover:border-primary/40 transition-colors"
+                          >
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-2">
+                              {d.code}
+                            </span>
+                            {d.title}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
               </div>
-            </div>
-          )}
-        </div>
-      </HideInPresentation>
-      </ReferencesProvider>
-      </TesselaLinksProvider>
+            </HideInPresentation>
+          </ReferencesProvider>
+        </TesselaLinksProvider>
       </ModuleLinksProvider>
     </TesselaLayout>
   );

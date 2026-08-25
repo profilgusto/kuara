@@ -1,6 +1,15 @@
 "use client";
 import { createContext, useContext, useState, ReactNode } from "react";
-import { ChevronDown, ChevronRight, Lightbulb, BookOpen, Pencil, FlaskConical, Target, BookMarked } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Lightbulb,
+  BookOpen,
+  Pencil,
+  FlaskConical,
+  Target,
+  BookMarked,
+} from "lucide-react";
 import { useQuestionNumber } from "./QuestionCounterContext";
 
 export type QuestionType = "example" | "exercise" | "problem" | "definition";
@@ -124,9 +133,7 @@ export function Hint({ children }: HintProps) {
           expanded ? "max-h-[9999px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div
-          className="px-4 py-3 bg-muted/10 text-sm [&>.mdx-p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit"
-        >
+        <div className="px-4 py-3 bg-muted/10 text-sm [&>.mdx-p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit">
           {children}
         </div>
       </div>
@@ -166,9 +173,7 @@ export function Answer({ children }: AnswerProps) {
           expanded ? "max-h-[9999px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div
-          className="px-4 py-3 bg-muted/10 text-sm [&>.mdx-p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit"
-        >
+        <div className="px-4 py-3 bg-muted/10 text-sm [&>.mdx-p]:my-1.5 [&_strong]:text-inherit [&_em]:text-inherit">
           {children}
         </div>
       </div>
@@ -222,11 +227,11 @@ export default function Question({
         className={`my-6 rounded-lg border-l-4 ${config.borderColor} ${config.bgColor} overflow-hidden`}
       >
         {/* ── Header ── */}
-        <div
-          className={`px-4 py-2.5 ${config.headerBg}`}
-        >
+        <div className={`px-4 py-2.5 ${config.headerBg}`}>
           <div className="flex items-center gap-2">
-            <config.icon className={`h-4 w-4 flex-shrink-0 ${config.labelColor}`} />
+            <config.icon
+              className={`h-4 w-4 flex-shrink-0 ${config.labelColor}`}
+            />
             <span
               className={`text-xs font-semibold uppercase tracking-wider ${config.labelColor}`}
             >

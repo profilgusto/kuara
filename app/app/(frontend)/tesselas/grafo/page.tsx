@@ -27,7 +27,8 @@ export default async function MosaicoPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Mosaico</h1>
           <p className="text-muted-foreground mt-1 max-w-2xl">
-            Visualização das dependências direcionais e conceitos conectados por referências.
+            Visualização das dependências direcionais e conceitos conectados por
+            referências.
           </p>
         </div>
       </header>

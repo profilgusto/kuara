@@ -41,7 +41,8 @@ export function useEqrefScroll() {
 
       const rect = target.getBoundingClientRect();
       window.scrollTo({
-        top: window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2,
+        top:
+          window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2,
         behavior: "smooth",
       });
 
@@ -62,7 +63,9 @@ export function useEqrefScroll() {
 
 // ── hover popover ─────────────────────────────────────────────────────────────
 
-export function useEqrefPopover(popoverRef: React.RefObject<HTMLDivElement | null>) {
+export function useEqrefPopover(
+  popoverRef: React.RefObject<HTMLDivElement | null>,
+) {
   useEffect(() => {
     let activeLink: Element | null = null;
 
@@ -82,7 +85,9 @@ export function useEqrefPopover(popoverRef: React.RefObject<HTMLDivElement | nul
       // document.getElementById to return the clone instead of the original
       // equation on subsequent interactions, breaking scroll and highlight.
       const clone = svg.cloneNode(true) as SVGElement;
-      clone.querySelectorAll("[id^='mjx-eqn']").forEach((el) => el.removeAttribute("id"));
+      clone
+        .querySelectorAll("[id^='mjx-eqn']")
+        .forEach((el) => el.removeAttribute("id"));
       popover.innerHTML = "";
       popover.appendChild(clone);
 

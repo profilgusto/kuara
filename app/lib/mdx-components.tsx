@@ -29,6 +29,7 @@ import CiteTessela from "@/components/tesselas/CiteTessela";
 import CiteModule from "@/components/disciplinas/CiteModule";
 import RefFig from "@/components/figures/RefFig";
 import MdxH1 from "@/components/mdx/MdxH1";
+import Interactive from "@/components/interactive/InteractiveBox";
 import { resolveMediaUrl } from "@/lib/base-path";
 import type { ComponentType } from "react";
 
@@ -62,6 +63,9 @@ export function getMdxComponents(): Record<string, ComponentType<any>> {
     ExternalLink,
     Download,
     Colorize,
+
+    // Interactive widget framework (components/interactive/catalog.ts)
+    Interactive,
 
     // Invisible author-only blocks
     Comment,

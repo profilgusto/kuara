@@ -121,9 +121,7 @@ function TocPanel({
   }, [headings]);
 
   if (headings.length === 0) {
-    return (
-      <p className="p-4 text-sm text-muted-foreground">Sem seções.</p>
-    );
+    return <p className="p-4 text-sm text-muted-foreground">Sem seções.</p>;
   }
 
   return (

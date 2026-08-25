@@ -54,13 +54,20 @@ export default async function ModulePreviewPage({
 
   // Extract headings from raw MDX
   const headings = hasContent ? extractHeadings(moduleDoc.content) : [];
-  const slideCover = hasContent ? extractSlideCoverProps(moduleDoc.content) : null;
+  const slideCover = hasContent
+    ? extractSlideCoverProps(moduleDoc.content)
+    : null;
 
   // Citations and figures
-  const citationStyle: CitationStyle = (moduleDoc.citationStyle as CitationStyle) ?? "authoryear";
+  const citationStyle: CitationStyle =
+    (moduleDoc.citationStyle as CitationStyle) ?? "authoryear";
   const citationOrder = hasContent ? extractCiteLabels(moduleDoc.content) : [];
   const figureOrder = hasContent ? extractFigureLabels(moduleDoc.content) : [];
-  const references = await fetchAndFormatReferences(citationOrder, citationStyle, true);
+  const references = await fetchAndFormatReferences(
+    citationOrder,
+    citationStyle,
+    true,
+  );
 
   // Compile MDX content
   let content = null;
@@ -111,7 +118,7 @@ export default async function ModulePreviewPage({
               slideCover={slideCover}
             >
               {content ? (
-                <article className="prose prose-neutral dark:prose-invert max-w-none">
+                <article className="prose prose-neutral dark:prose-invert max-w-none mdx-indent-paragraphs">
                   {content}
                 </article>
               ) : (

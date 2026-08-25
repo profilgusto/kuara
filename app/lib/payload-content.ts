@@ -232,15 +232,15 @@ export async function getModule(
     depth: 1,
     draft: false,
   });
-  const referencedByModules: ModuleRelatedItem[] =
-    refByModulesResult.docs.map((m: any) => ({
+  const referencedByModules: ModuleRelatedItem[] = refByModulesResult.docs.map(
+    (m: any) => ({
       id: m.id,
       slug: m.slug,
       title: m.title,
-      courseSlug:
-        m.course && typeof m.course === "object" ? m.course.slug : "",
+      courseSlug: m.course && typeof m.course === "object" ? m.course.slug : "",
       type: m.type as ModuleType | undefined,
-    }));
+    }),
+  );
 
   // --- referencedByTesselas (incoming) — tesselas that list this module ---
   const refByTesselasResult = await payload.find({
@@ -375,7 +375,12 @@ export interface TesselaDetail {
   coverImage?: { url: string; alt?: string } | null;
   content?: string;
   citationStyle?: string;
-  relatedDisciplinas?: { id: string; slug: string; title: string; code: string }[];
+  relatedDisciplinas?: {
+    id: string;
+    slug: string;
+    title: string;
+    code: string;
+  }[];
   relatedModules?: ModuleRelatedItem[];
   relatedTesselas?: TesselaRelatedItem[];
   referencedBy?: TesselaRelatedItem[];
@@ -576,8 +581,7 @@ export async function getTessela(
       id: m.id,
       slug: m.slug,
       title: m.title,
-      courseSlug:
-        m.course && typeof m.course === "object" ? m.course.slug : "",
+      courseSlug: m.course && typeof m.course === "object" ? m.course.slug : "",
       type: m.type as ModuleType | undefined,
     }));
 
@@ -628,7 +632,7 @@ export async function listAllTesselasForGraph(): Promise<
 
   const result = await payload.find({
     collection: "tesselas",
-    where: { 
+    where: {
       _status: { equals: "published" },
       visible: { not_equals: false },
       linkable: { not_equals: false },
@@ -653,7 +657,9 @@ export async function listAllTesselasForGraph(): Promise<
       : null,
     relatedTesselas: Array.isArray(doc.relatedTesselas)
       ? doc.relatedTesselas
-          .filter((c: any) => c && (typeof c === "string" || typeof c === "object"))
+          .filter(
+            (c: any) => c && (typeof c === "string" || typeof c === "object"),
+          )
           .map((c: any) => ({ id: typeof c === "object" ? c.id : c }))
       : [],
   }));

@@ -1,5 +1,11 @@
 "use client";
-import React, { useRef, useState, useEffect, useCallback, useContext } from "react";
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  useContext,
+} from "react";
 import { useViewMode } from "./useViewMode";
 import { FiguresContext } from "@/components/figures/FiguresContext";
 import { resolveMediaUrl } from "@/lib/base-path";
@@ -143,13 +149,13 @@ export default function KImage({
     const availableWidth = containerEl
       ? containerEl.getBoundingClientRect().width
       : (() => {
-        const ss = window.getComputedStyle(section);
-        return (
-          section.getBoundingClientRect().width -
-          parseFloat(ss.paddingLeft) -
-          parseFloat(ss.paddingRight)
-        );
-      })();
+          const ss = window.getComputedStyle(section);
+          return (
+            section.getBoundingClientRect().width -
+            parseFloat(ss.paddingLeft) -
+            parseFloat(ss.paddingRight)
+          );
+        })();
 
     const availableHeight = visibleBottom - wrapperRect.top - pb;
 
@@ -249,43 +255,35 @@ export default function KImage({
   };
 
   if (isAutoMode) {
-    // Derive max-width for the figcaption from autoStyle so it never exceeds the image width.
-    // If the image is width-constrained (explicit px width), use that; otherwise fall back to maxWidth.
-    const figcaptionAutoMaxWidth =
-      autoStyle.width && autoStyle.width !== "auto"
-        ? autoStyle.width
-        : autoStyle.maxWidth;
-
     return (
       <div
         id={label ? `fig-${label}` : undefined}
         ref={wrapperRef}
-        className={`mt-2 mb-0 flex w-full ${alignmentStyles[align]} ${className || ""}`}
+        className={`mt-2 mb-0 flex flex-col w-full ${className || ""}`}
         style={{ scrollMarginTop: "5rem" }}
       >
-        <div className="flex flex-col w-fit max-w-full">
+        <div className={`flex w-full ${alignmentStyles[align]}`}>
           <img
             ref={imgRef}
             src={imageSrc}
             alt={alt}
-            className="rounded-lg shadow-md block !my-0"
+            className="rounded-lg shadow-md block !my-0 max-w-full"
             style={autoStyle}
           />
-          {showFigcaption && (
-            <figcaption
-              className={`mt-4 text-sm text-muted-foreground italic [&_.mdx-p]:inline [&_.mdx-p]:m-0 ${captionTextAlign[align]}`}
-              style={{ maxWidth: figcaptionAutoMaxWidth }}
-            >
-              {hasFigNum && (
-                <span className="font-semibold not-italic text-foreground/70">
-                  Fig. {figNum}
-                </span>
-              )}
-              {hasFigNum && displayCaption && " \u2014 "}
-              {displayCaption}
-            </figcaption>
-          )}
         </div>
+        {showFigcaption && (
+          <figcaption
+            className={`mt-4 w-full text-sm text-muted-foreground italic [&_.mdx-p]:inline [&_.mdx-p]:m-0 ${captionTextAlign[align]}`}
+          >
+            {hasFigNum && (
+              <span className="font-semibold not-italic text-foreground/70">
+                Fig. {figNum}
+              </span>
+            )}
+            {hasFigNum && displayCaption && " \u2014 "}
+            {displayCaption}
+          </figcaption>
+        )}
       </div>
     );
   }
@@ -327,36 +325,36 @@ export default function KImage({
   })();
 
   const imageWidthStyle =
-    presentationStyleWidth ?? (activeWidth ? normalizeToCss(activeWidth) : undefined);
+    presentationStyleWidth ??
+    (activeWidth ? normalizeToCss(activeWidth) : undefined);
 
   return (
     <div
       id={label ? `fig-${label}` : undefined}
-      className={`my-8 flex w-full ${alignmentStyles[align]} ${className || ""}`}
+      className={`my-8 flex flex-col w-full ${className || ""}`}
       style={{ scrollMarginTop: "5rem" }}
     >
-      <div className="flex flex-col w-fit max-w-full">
+      <div className={`flex w-full ${alignmentStyles[align]}`}>
         <img
           src={imageSrc}
           alt={alt}
-          className="rounded-lg shadow-md h-auto transition-all duration-300 !my-0"
+          className="rounded-lg shadow-md h-auto transition-all duration-300 !my-0 max-w-full"
           style={{ width: imageWidthStyle ?? "auto", height: "auto" }}
         />
-        {showFigcaption && (
-          <figcaption
-            className={`mt-2 text-sm text-muted-foreground italic [&_.mdx-p]:inline [&_.mdx-p]:m-0 ${captionTextAlign[align]}`}
-            style={{ maxWidth: imageWidthStyle }}
-          >
-            {hasFigNum && (
-              <span className="font-semibold not-italic text-foreground/70">
-                Fig. {figNum}
-              </span>
-            )}
-            {hasFigNum && displayCaption && " \u2014 "}
-            {displayCaption}
-          </figcaption>
-        )}
       </div>
+      {showFigcaption && (
+        <figcaption
+          className={`mt-2 w-full text-sm text-muted-foreground italic [&_.mdx-p]:inline [&_.mdx-p]:m-0 ${captionTextAlign[align]}`}
+        >
+          {hasFigNum && (
+            <span className="font-semibold not-italic text-foreground/70">
+              Fig. {figNum}
+            </span>
+          )}
+          {hasFigNum && displayCaption && " \u2014 "}
+          {displayCaption}
+        </figcaption>
+      )}
     </div>
   );
 }

@@ -114,7 +114,8 @@ export const Tesselas: CollectionConfig = {
       type: "checkbox",
       defaultValue: true,
       admin: {
-        description: "Controla se esta tessela é listada na página /tesselas e nos grafos.",
+        description:
+          "Controla se esta tessela é listada na página /tesselas e nos grafos.",
       },
     },
     {
@@ -122,7 +123,8 @@ export const Tesselas: CollectionConfig = {
       type: "checkbox",
       defaultValue: true,
       admin: {
-        description: "Habilita o acesso a esta tessela através de sua URL direta, mesmo se não estiver visível nas listagens.",
+        description:
+          "Habilita o acesso a esta tessela através de sua URL direta, mesmo se não estiver visível nas listagens.",
       },
     },
     {
@@ -185,7 +187,8 @@ export const Tesselas: CollectionConfig = {
       name: "publishedAt",
       type: "date",
       admin: {
-        description: "Manual publication date shown on cards and article header.",
+        description:
+          "Manual publication date shown on cards and article header.",
         date: {
           pickerAppearance: "dayOnly",
           displayFormat: "d MMM yyyy",
@@ -208,7 +211,8 @@ export const Tesselas: CollectionConfig = {
       hasMany: true,
       admin: {
         hidden: true,
-        description: "Auto-managed by <CiteModule> usage in content. Do not edit manually.",
+        description:
+          "Auto-managed by <CiteModule> usage in content. Do not edit manually.",
       },
     },
     {
@@ -219,7 +223,7 @@ export const Tesselas: CollectionConfig = {
       admin: {
         hidden: true,
         description:
-          'Auto-managed by <CiteTessela> usage in content. Do not edit manually.',
+          "Auto-managed by <CiteTessela> usage in content. Do not edit manually.",
       },
     },
   ],

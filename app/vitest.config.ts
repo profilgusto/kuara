@@ -7,6 +7,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    // Polyfills the jsdom gaps the app hits (see the file for what and why).
+    setupFiles: ["./test/setup.ts"],
     // Colocated with the code under test: lib/foo.ts → lib/foo.test.ts.
     include: ["**/*.{test,spec}.?(c|m)[jt]s?(x)"],
     exclude: ["node_modules/**", ".next/**", "migrations/**"],

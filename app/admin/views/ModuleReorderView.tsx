@@ -49,7 +49,11 @@ interface SortableItemProps {
   adminRoute: string;
 }
 
-const SortableItem: React.FC<SortableItemProps> = ({ module, index, adminRoute }) => {
+const SortableItem: React.FC<SortableItemProps> = ({
+  module,
+  index,
+  adminRoute,
+}) => {
   const {
     attributes,
     listeners,
@@ -457,7 +461,12 @@ export const ModuleReorderView: React.FC = () => {
           strategy={verticalListSortingStrategy}
         >
           {modules.map((module, index) => (
-            <SortableItem key={module.id} module={module} index={index} adminRoute={adminRoute} />
+            <SortableItem
+              key={module.id}
+              module={module}
+              index={index}
+              adminRoute={adminRoute}
+            />
           ))}
         </SortableContext>
       </DndContext>

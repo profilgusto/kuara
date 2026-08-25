@@ -14,7 +14,7 @@ import {
 
 const TesselasGraph = dynamic(
   () => import("./TesselasGraph").then((m) => m.TesselasGraph),
-  { ssr: false }
+  { ssr: false },
 );
 
 interface TesselaItem {
@@ -64,7 +64,10 @@ interface FilteredTesselaGridProps {
   showMosaico?: boolean;
 }
 
-export function FilteredTesselaGrid({ tesselas, showMosaico }: FilteredTesselaGridProps) {
+export function FilteredTesselaGrid({
+  tesselas,
+  showMosaico,
+}: FilteredTesselaGridProps) {
   const [view, setView] = useState<"list" | "mosaico">("list");
   const [filters, setFilters] = useState<FilterState>({
     tags: [],
@@ -72,18 +75,23 @@ export function FilteredTesselaGrid({ tesselas, showMosaico }: FilteredTesselaGr
     stages: [],
   });
 
-  const { tags: allTags, projects: allProjects, stages: allStages } =
-    useMemo(() => deriveFilterOptions(tesselas), [tesselas]);
+  const {
+    tags: allTags,
+    projects: allProjects,
+    stages: allStages,
+  } = useMemo(() => deriveFilterOptions(tesselas), [tesselas]);
 
   const visible = useMemo(
     () => applyFilters(tesselas, filters),
-    [tesselas, filters]
+    [tesselas, filters],
   );
 
   function toggleTag(tag: string) {
     setFilters((f) => ({
       ...f,
-      tags: f.tags.includes(tag) ? f.tags.filter((t) => t !== tag) : [...f.tags, tag],
+      tags: f.tags.includes(tag)
+        ? f.tags.filter((t) => t !== tag)
+        : [...f.tags, tag],
     }));
   }
 
@@ -174,7 +182,7 @@ export function FilteredTesselaGrid({ tesselas, showMosaico }: FilteredTesselaGr
                           >
                             {tag}
                           </span>
-                        )
+                        ),
                       )}
                     </div>
                   )}

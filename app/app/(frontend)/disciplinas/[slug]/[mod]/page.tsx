@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getCourse, getModule, fetchTesselaLinks, fetchModuleLinks } from "@/lib/payload-content";
+import {
+  getCourse,
+  getModule,
+  fetchTesselaLinks,
+  fetchModuleLinks,
+} from "@/lib/payload-content";
 import { compileMdx, extractHeadings } from "@/lib/mdx-pipeline";
 import { getMdxComponents } from "@/lib/mdx-components";
 import { ModulePageClient } from "@/components/mdx/ModulePageClient";
@@ -124,85 +129,90 @@ export default async function ModulePage({
       moduleTitle={moduleData.title}
     >
       <ModuleLinksProvider modules={moduleLinks}>
-      <TesselaLinksProvider tesselas={tesselaLinks}>
-      <ReferencesProvider
-        references={references}
-        citationOrder={citationOrder}
-        style={citationStyle}
-      >
-        <FiguresProvider figureOrder={figureOrder}>
-          <ModulePageClient
-            title={moduleData.title}
-            headings={headings}
-            courseTitle={courseTitle}
-            slideCover={slideCover}
-            questionOffsets={moduleData.questionOffsets}
+        <TesselaLinksProvider tesselas={tesselaLinks}>
+          <ReferencesProvider
+            references={references}
+            citationOrder={citationOrder}
+            style={citationStyle}
           >
-            {content ? (
-              <>
-                <article className="prose prose-neutral dark:prose-invert max-w-none">
-                  {content}
-                </article>
-                {citationOrder.length > 0 && <ReferencesSection />}
-              </>
-            ) : (
-              <div className="text-center py-12 border border-dashed rounded-xl">
-                <p className="text-muted-foreground">
-                  Este módulo ainda não possui conteúdo.
-                </p>
-              </div>
-            )}
-          </ModulePageClient>
+            <FiguresProvider figureOrder={figureOrder}>
+              <ModulePageClient
+                title={moduleData.title}
+                headings={headings}
+                courseTitle={courseTitle}
+                slideCover={slideCover}
+                questionOffsets={moduleData.questionOffsets}
+              >
+                {content ? (
+                  <>
+                    <article className="prose prose-neutral dark:prose-invert max-w-none mdx-indent-paragraphs">
+                      {content}
+                    </article>
+                    {citationOrder.length > 0 && <ReferencesSection />}
+                  </>
+                ) : (
+                  <div className="text-center py-12 border border-dashed rounded-xl">
+                    <p className="text-muted-foreground">
+                      Este módulo ainda não possui conteúdo.
+                    </p>
+                  </div>
+                )}
+              </ModulePageClient>
 
-          {/* ── Module metadata footer ───────────────────────────────────── */}
-          <HideInPresentation>
-            <div className="mt-12 pt-8 border-t border-border space-y-6 print:hidden">
-              {/* Authors */}
-              {moduleData.authors && moduleData.authors.length > 0 && (
-                <p className="text-base text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    {moduleData.authors.length === 1 ? "Autor:" : "Autores:"}
-                  </span>{" "}
-                  {moduleData.authors.join(" · ")}
-                </p>
-              )}
+              {/* ── Module metadata footer ───────────────────────────────────── */}
+              <HideInPresentation>
+                <div className="mt-12 pt-8 border-t border-border space-y-6 print:hidden">
+                  {/* Authors */}
+                  {moduleData.authors && moduleData.authors.length > 0 && (
+                    <p className="text-base text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {moduleData.authors.length === 1
+                          ? "Autor:"
+                          : "Autores:"}
+                      </span>{" "}
+                      {moduleData.authors.join(" · ")}
+                    </p>
+                  )}
 
-              {/* Dates */}
-              {(moduleData.publishedAt || moduleData.updatedAt) && (
-                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                  {moduleData.publishedAt && (
-                    <span>
-                      Publicado em{" "}
-                      {new Date(moduleData.publishedAt).toLocaleDateString(
-                        "pt-BR",
-                        { day: "2-digit", month: "long", year: "numeric" },
+                  {/* Dates */}
+                  {(moduleData.publishedAt || moduleData.updatedAt) && (
+                    <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                      {moduleData.publishedAt && (
+                        <span>
+                          Publicado em{" "}
+                          {new Date(moduleData.publishedAt).toLocaleDateString(
+                            "pt-BR",
+                            { day: "2-digit", month: "long", year: "numeric" },
+                          )}
+                        </span>
                       )}
-                    </span>
+                      {moduleData.updatedAt && (
+                        <span>
+                          · Atualizado em{" "}
+                          {new Date(moduleData.updatedAt).toLocaleDateString(
+                            "pt-BR",
+                            {
+                              day: "2-digit",
+                              month: "long",
+                              year: "numeric",
+                            },
+                          )}
+                        </span>
+                      )}
+                    </div>
                   )}
-                  {moduleData.updatedAt && (
-                    <span>
-                      · Atualizado em{" "}
-                      {new Date(moduleData.updatedAt).toLocaleDateString("pt-BR", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </span>
-                  )}
-                </div>
-              )}
 
-              <CitedRelations
-                citedTesselas={moduleData.relatedTesselas}
-                citedModules={moduleData.relatedModules}
-                citedByTesselas={moduleData.referencedByTesselas}
-                citedByModules={moduleData.referencedByModules}
-              />
-            </div>
-          </HideInPresentation>
-        </FiguresProvider>
-      </ReferencesProvider>
-      </TesselaLinksProvider>
+                  <CitedRelations
+                    citedTesselas={moduleData.relatedTesselas}
+                    citedModules={moduleData.relatedModules}
+                    citedByTesselas={moduleData.referencedByTesselas}
+                    citedByModules={moduleData.referencedByModules}
+                  />
+                </div>
+              </HideInPresentation>
+            </FiguresProvider>
+          </ReferencesProvider>
+        </TesselaLinksProvider>
       </ModuleLinksProvider>
     </ModuleLayout>
   );

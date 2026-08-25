@@ -35,8 +35,10 @@ import { default as default_9a678daa6c9fc208e13fb60118648fde } from '@/admin/com
 import { CopyKeyCell as CopyKeyCell_e128fde5fe841fa3aa4b3db5c780ea22 } from '@/admin/components/CopyKeyCell'
 import { FolderTypeField as FolderTypeField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { default as default_ee57714ec7db77cc07dd61dddcf1688b } from '@/admin/components/TodosNavLink'
+import { default as default_92eaed946ec8384da2c06906e83690b0 } from '@/admin/components/InteractiveLibraryNavLink'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
-import { default as default_24615e136a83079625d3473ee43539ff } from '@/admin/views/TodosView'
+import { default as default_a0bb7312aa3b370787de73c4926ac4d8 } from '@/admin/views/TodosPage'
+import { default as default_4559861765b2b36ab64fff0bc44388b1 } from '@/admin/views/InteractiveLibraryPage'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 export const importMap = {
@@ -77,7 +79,9 @@ export const importMap = {
   "@/admin/components/CopyKeyCell#CopyKeyCell": CopyKeyCell_e128fde5fe841fa3aa4b3db5c780ea22,
   "@payloadcms/next/client#FolderTypeField": FolderTypeField_2b8867833a34864a02ddf429b0728a40,
   "@/admin/components/TodosNavLink#default": default_ee57714ec7db77cc07dd61dddcf1688b,
+  "@/admin/components/InteractiveLibraryNavLink#default": default_92eaed946ec8384da2c06906e83690b0,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
-  "@/admin/views/TodosView#default": default_24615e136a83079625d3473ee43539ff,
+  "@/admin/views/TodosPage#default": default_a0bb7312aa3b370787de73c4926ac4d8,
+  "@/admin/views/InteractiveLibraryPage#default": default_4559861765b2b36ab64fff0bc44388b1,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

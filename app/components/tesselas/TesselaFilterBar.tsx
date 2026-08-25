@@ -39,10 +39,8 @@ function Pill({
   variant: "stage" | "project" | "tag";
 }) {
   const activeClasses: Record<typeof variant, string> = {
-    stage:
-      "bg-primary text-primary-foreground border-primary",
-    project:
-      "bg-foreground text-background border-foreground",
+    stage: "bg-primary text-primary-foreground border-primary",
+    project: "bg-foreground text-background border-foreground",
     tag: "bg-muted-foreground/20 text-foreground border-muted-foreground/40",
   };
 
@@ -53,7 +51,7 @@ function Pill({
         "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border transition-all whitespace-nowrap",
         active
           ? activeClasses[variant]
-          : "bg-transparent text-muted-foreground border-border hover:border-muted-foreground hover:text-foreground"
+          : "bg-transparent text-muted-foreground border-border hover:border-muted-foreground hover:text-foreground",
       )}
     >
       {label}
@@ -76,7 +74,8 @@ export function TesselaFilterBar({
     filters.projects.length > 0 ||
     filters.stages.length > 0;
 
-  const hasAny = allTags.length > 0 || allProjects.length > 0 || allStages.length > 0;
+  const hasAny =
+    allTags.length > 0 || allProjects.length > 0 || allStages.length > 0;
 
   if (!hasAny) return null;
 
@@ -154,13 +153,10 @@ export function useFilterState() {
 }
 
 export function applyFilters<
-  T extends { tags: string[]; project: string[]; stage: string }
+  T extends { tags: string[]; project: string[]; stage: string },
 >(items: T[], filters: FilterState): T[] {
   return items.filter((item) => {
-    if (
-      filters.stages.length > 0 &&
-      !filters.stages.includes(item.stage)
-    )
+    if (filters.stages.length > 0 && !filters.stages.includes(item.stage))
       return false;
     if (
       filters.projects.length > 0 &&
@@ -177,13 +173,18 @@ export function applyFilters<
 }
 
 export function deriveFilterOptions<
-  T extends { tags: string[]; project: string[]; stage: string }
+  T extends { tags: string[]; project: string[]; stage: string },
 >(items: T[]) {
   const tags = [...new Set(items.flatMap((i) => i.tags))].sort();
   const projects = [...new Set(items.flatMap((i) => i.project))].sort();
   const stages = [...new Set(items.map((i) => i.stage))];
   // Keep stages in logical order
-  const stageOrder = ["rascunho", "em-andamento", "finalizado", "incrementando"];
+  const stageOrder = [
+    "rascunho",
+    "em-andamento",
+    "finalizado",
+    "incrementando",
+  ];
   stages.sort((a, b) => stageOrder.indexOf(a) - stageOrder.indexOf(b));
   return { tags, projects, stages };
 }

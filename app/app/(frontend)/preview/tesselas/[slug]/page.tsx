@@ -36,13 +36,19 @@ export default async function TesselaPreviewPage({
   const hasContent = Boolean(tessela.content?.trim());
 
   const headings = hasContent ? extractHeadings(tessela.content!) : [];
-  const slideCover = hasContent ? extractSlideCoverProps(tessela.content!) : null;
+  const slideCover = hasContent
+    ? extractSlideCoverProps(tessela.content!)
+    : null;
 
   // Citations
   const citationStyle: CitationStyle =
     (tessela.citationStyle as CitationStyle) ?? "authoryear";
   const citationOrder = hasContent ? extractCiteLabels(tessela.content!) : [];
-  const references = await fetchAndFormatReferences(citationOrder, citationStyle, true);
+  const references = await fetchAndFormatReferences(
+    citationOrder,
+    citationStyle,
+    true,
+  );
 
   // Figures
   const figureOrder = hasContent ? extractFigureLabels(tessela.content!) : [];

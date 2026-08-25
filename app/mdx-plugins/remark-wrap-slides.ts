@@ -180,7 +180,10 @@ const remarkWrapSlides: Plugin = () => {
           const prevHeading = segments[k].find(
             (n: Node) =>
               n.type === "heading" &&
-              (n.depth === 1 || n.depth === 2 || n.depth === 3 || n.depth === 4),
+              (n.depth === 1 ||
+                n.depth === 2 ||
+                n.depth === 3 ||
+                n.depth === 4),
           );
           if (prevHeading) {
             titleText = toString(prevHeading).trim();

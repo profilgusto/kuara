@@ -9,7 +9,10 @@ interface FiguresProviderProps {
   children: ReactNode;
 }
 
-export function FiguresProvider({ figureOrder, children }: FiguresProviderProps) {
+export function FiguresProvider({
+  figureOrder,
+  children,
+}: FiguresProviderProps) {
   // Runtime metadata (src, captionText) registered by KImage on mount.
   // Using a ref avoids re-renders — metadata is only needed at hover time,
   // after all components have already mounted.
@@ -31,8 +34,6 @@ export function FiguresProvider({ figureOrder, children }: FiguresProviderProps)
   }, [figureOrder]);
 
   return (
-    <FiguresContext.Provider value={value}>
-      {children}
-    </FiguresContext.Provider>
+    <FiguresContext.Provider value={value}>{children}</FiguresContext.Provider>
   );
 }

@@ -30,20 +30,12 @@ export default function RefFig({ label }: RefFigProps) {
 
   // Graceful degradation: no provider or unknown label
   if (!ctx) {
-    return (
-      <span className="text-muted-foreground">
-        [Fig.?]
-      </span>
-    );
+    return <span className="text-muted-foreground">[Fig.?]</span>;
   }
 
   const idx = ctx.indexOfLabel(label);
   if (idx === -1) {
-    return (
-      <span className="text-muted-foreground">
-        [Fig.{label}?]
-      </span>
-    );
+    return <span className="text-muted-foreground">[Fig.{label}?]</span>;
   }
 
   const figText = `Fig. ${idx}`;

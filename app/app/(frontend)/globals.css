@@ -693,3 +693,69 @@ mjx-container.eq-highlight-active {
     display: none !important;
   }
 }
+/* ─── Indentação de primeira linha nos parágrafos dos módulos ─────────── */
+/* Só os parágrafos de nível superior do conteúdo recebem o recuo: filhos
+   diretos do <article> ou da <section class="mdx-slide-segment"> em que o
+   remark-wrap-slides embrulha cada segmento no modo texto. Assim, textos
+   dentro de Callout, Question, legendas de imagem, itens de lista e
+   blockquotes continuam alinhados à esquerda. `.mdx-p` é a div que o
+   renderizador MDX emite no lugar de <p>. */
+.mdx-indent-paragraphs > .mdx-p,
+.mdx-indent-paragraphs > p,
+.mdx-indent-paragraphs > section.mdx-slide-segment > .mdx-p,
+.mdx-indent-paragraphs > section.mdx-slide-segment > p {
+  text-indent: 2em;
+}
+
+/* No modo apresentação o recuo atrapalha a leitura dos slides. */
+.presentation-deck .mdx-indent-paragraphs .mdx-p,
+.presentation-deck .mdx-indent-paragraphs p {
+  text-indent: 0;
+}
+
+/* ─── Listas no mesmo ritmo vertical dos parágrafos ───────────────────── */
+/* Com o recuo de primeira linha, parágrafos vizinhos ficam separados apenas
+   pela entrelinha (margem 0). As margens de 1.25em que o Tailwind Typography
+   aplica em ul/ol abriam um vão maior antes e depois das listas. Zeramos as
+   margens das listas de nível superior — e a margem externa do primeiro/último
+   item — para que a lista encoste no texto com o mesmo espaçamento de um
+   parágrafo para outro. O espaço entre itens da lista é preservado. */
+.mdx-indent-paragraphs > ul,
+.mdx-indent-paragraphs > ol,
+.mdx-indent-paragraphs > section.mdx-slide-segment > ul,
+.mdx-indent-paragraphs > section.mdx-slide-segment > ol {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.mdx-indent-paragraphs > ul > li:first-child,
+.mdx-indent-paragraphs > ol > li:first-child,
+.mdx-indent-paragraphs > section.mdx-slide-segment > ul > li:first-child,
+.mdx-indent-paragraphs > section.mdx-slide-segment > ol > li:first-child {
+  margin-top: 0;
+}
+
+.mdx-indent-paragraphs > ul > li:last-child,
+.mdx-indent-paragraphs > ol > li:last-child,
+.mdx-indent-paragraphs > section.mdx-slide-segment > ul > li:last-child,
+.mdx-indent-paragraphs > section.mdx-slide-segment > ol > li:last-child {
+  margin-bottom: 0;
+}
+
+/* ─── Um nível de tabulação a mais em cada lista ──────────────────────── */
+/* Desloca toda lista do conteúdo em 2em — a mesma medida do recuo de
+   primeira linha dos parágrafos — para que a bolinha do primeiro nível
+   fique alinhada ao início do parágrafo. Como a regra também vale para as
+   listas aninhadas, cada nível ganha uma tabulação extra sobre o anterior,
+   preservando o recuo próprio que o Tailwind Typography já aplica. */
+:is(
+  .mdx-indent-paragraphs > *,
+  .mdx-indent-paragraphs > section.mdx-slide-segment > *
+):is(ul, ol),
+:is(
+    .mdx-indent-paragraphs > *,
+    .mdx-indent-paragraphs > section.mdx-slide-segment > *
+  ):is(ul, ol)
+  :is(ul, ol) {
+  margin-left: 2em;
+}

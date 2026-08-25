@@ -21,7 +21,7 @@ import { useTheme } from "next-themes";
 // Everything else uses CSS variables (hsl(var(--*))) so the browser resolves them at
 // paint time via the cascade, immune to JS hydration timing issues.
 const MINIMAP_MASK = {
-  dark:  "hsla(160, 30%, 4%, 0.72)",
+  dark: "hsla(160, 30%, 4%, 0.72)",
   light: "hsla(120, 10%, 60%, 0.25)",
 } as const;
 
@@ -86,7 +86,11 @@ const TesselaNode = ({ data }: { data: NodeData }) => {
       onClick={() => router.push(`/tesselas/${data.slug}`)}
     >
       {/* BT layout: arrows arrive from below (target = this citer node) */}
-      <Handle type="target" position={Position.Bottom} className="w-2 h-2 opacity-0" />
+      <Handle
+        type="target"
+        position={Position.Bottom}
+        className="w-2 h-2 opacity-0"
+      />
 
       {/* Tag chips — top-right corner */}
       {data.tags?.length > 0 && (
@@ -106,7 +110,7 @@ const TesselaNode = ({ data }: { data: NodeData }) => {
               >
                 {tag}
               </span>
-            )
+            ),
           )}
         </div>
       )}
@@ -200,15 +204,23 @@ const TesselaNode = ({ data }: { data: NodeData }) => {
       )}
 
       {/* BT layout: arrows leave upward (source = this cited node) */}
-      <Handle type="source" position={Position.Top} className="w-2 h-2 opacity-0" />
+      <Handle
+        type="source"
+        position={Position.Top}
+        className="w-2 h-2 opacity-0"
+      />
     </div>
   );
 };
 
 const nodeTypes = { tessela: TesselaNode };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildLayoutedElements(filteredData: GraphItem[]): { nodes: any[]; edges: any[] } {
+function buildLayoutedElements(filteredData: GraphItem[]): {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nodes: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  edges: any[];
+} {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
@@ -233,7 +245,9 @@ function buildLayoutedElements(filteredData: GraphItem[]): { nodes: any[]; edges
     position: { x: 0, y: 0 },
   }));
 
-  nodes.forEach((n) => dagreGraph.setNode(n.id, { width: nodeWidth, height: nodeHeight }));
+  nodes.forEach((n) =>
+    dagreGraph.setNode(n.id, { width: nodeWidth, height: nodeHeight }),
+  );
 
   const validNodeIds = new Set(nodes.map((n) => n.id));
   const seenEdges = new Set<string>();
@@ -296,10 +310,7 @@ export function TesselasGraph({ data }: TesselasGraphProps) {
   const isDark = !mounted || resolvedTheme !== "light";
   const maskColor = isDark ? MINIMAP_MASK.dark : MINIMAP_MASK.light;
 
-  const layouted = useMemo(
-    () => buildLayoutedElements(data),
-    [data]
-  );
+  const layouted = useMemo(() => buildLayoutedElements(data), [data]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(layouted.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(layouted.edges);
@@ -317,7 +328,10 @@ export function TesselasGraph({ data }: TesselasGraphProps) {
   return (
     <div className="w-full h-full flex flex-col min-h-[600px]">
       {/* Graph canvas */}
-      <div className="flex-1 bg-background relative" style={{ borderRadius: "0.75rem", overflow: "hidden" }}>
+      <div
+        className="flex-1 bg-background relative"
+        style={{ borderRadius: "0.75rem", overflow: "hidden" }}
+      >
         {/*
           Only CSS that cannot be set via ReactFlow props lives here.
           Background colors for minimap/controls are set via JS style props

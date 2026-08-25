@@ -56,6 +56,7 @@ import {
   Palette,
 } from "lucide-react";
 import { KUARA_COLOR_NAMES } from "@/components/mdx/Colorize";
+import InteractiveSnippetMenu from "./InteractiveSnippetMenu";
 
 // ── Snippet categories include 'citations' now ──
 // Assuming Button component is available or imported from a UI library like shadcn/ui
@@ -71,7 +72,15 @@ interface Snippet {
   template: string;
   description: string;
   /** category for grouping in the toolbar */
-  category: "structure" | "media" | "presentation" | "content" | "citations" | "figures" | "questions" | "authoring";
+  category:
+    | "structure"
+    | "media"
+    | "presentation"
+    | "content"
+    | "citations"
+    | "figures"
+    | "questions"
+    | "authoring";
 }
 
 const SNIPPETS: Snippet[] = [
@@ -233,7 +242,8 @@ const SNIPPETS: Snippet[] = [
     icon: ImagePlus,
     template:
       '<KImage\n  url="${1:/api/media/file/nome-do-arquivo.png}"\n  label="${2:fig-identificador}"\n  alt="${3:descrição para leitores de tela}"\n  width="${4:400}"\n  widthPresentation="${5:auto}"\n  align="${6:|center,left,right|}"\n>\n  ${7:Legenda da figura}\n</KImage>\n',
-    description: 'Figura com numeração automática "Fig. N" e legenda. Requer label único para referências.',
+    description:
+      'Figura com numeração automática "Fig. N" e legenda. Requer label único para referências.',
     category: "figures",
   },
   {
@@ -242,14 +252,15 @@ const SNIPPETS: Snippet[] = [
     template:
       '<ImgInline url="${1:/api/media/file/nome-do-arquivo.png}" alt="${2:descrição}" />',
     description:
-      "Figura pequena embutida na linha do texto (ex.: ícone de um botão). A altura acompanha o tamanho da fonte ao redor. Use height=\"1.6em\" para ajustar.",
+      'Figura pequena embutida na linha do texto (ex.: ícone de um botão). A altura acompanha o tamanho da fonte ao redor. Use height="1.6em" para ajustar.',
     category: "figures",
   },
   {
     label: "Ref. Figura",
     icon: Link2,
     template: '<RefFig label="${1:fig-identificador}" />',
-    description: 'Link inline "Fig. N" que rola até a figura e mostra preview ao hover.',
+    description:
+      'Link inline "Fig. N" que rola até a figura e mostra preview ao hover.',
     category: "figures",
   },
   {
@@ -297,7 +308,8 @@ const SNIPPETS: Snippet[] = [
   {
     label: "Citar Tessela",
     icon: Puzzle,
-    template: '<CiteTessela slug="${1:slug-da-tessela}" label="${2:Texto exibido}" />',
+    template:
+      '<CiteTessela slug="${1:slug-da-tessela}" label="${2:Texto exibido}" />',
     description:
       "Referência cruzada para Tessela com texto personalizado em vez do título da tessela.",
     category: "citations",
@@ -305,7 +317,8 @@ const SNIPPETS: Snippet[] = [
   {
     label: "Citar Módulo",
     icon: BookCheck,
-    template: '<CiteModule slug="${1:slug-do-modulo}" label="${2:Texto exibido}" />',
+    template:
+      '<CiteModule slug="${1:slug-do-modulo}" label="${2:Texto exibido}" />',
     description:
       "Referência cruzada para Módulo com texto personalizado em vez do título do módulo.",
     category: "citations",
@@ -413,15 +426,18 @@ const SNIPPETS: Snippet[] = [
   {
     label: "Comentário",
     icon: MessageSquareDashed,
-    template: "<Comment>\n${1:Nota do autor — não aparece no conteúdo publicado.}\n</Comment>\n",
-    description: "Bloco invisível para notas do autor (não renderizado no conteúdo final)",
+    template:
+      "<Comment>\n${1:Nota do autor — não aparece no conteúdo publicado.}\n</Comment>\n",
+    description:
+      "Bloco invisível para notas do autor (não renderizado no conteúdo final)",
     category: "authoring",
   },
   {
     label: "TODO",
     icon: ListTodo,
     template: "<Todo>\n${1:Descreva o que precisa ser feito aqui.}\n</Todo>\n",
-    description: "Pendência do autor — visível no painel /admin/todos, nunca no conteúdo final",
+    description:
+      "Pendência do autor — visível no painel /admin/todos, nunca no conteúdo final",
     category: "authoring",
   },
 ];
@@ -522,16 +538,18 @@ export const MonacoMDXField: React.FC<MonacoMDXFieldProps> = ({
         if (!model) return;
         const range = e.range ?? e;
         const pasted = model.getValueInRange(range);
-        if (!pasted.endsWith('$0') || range.endColumn < 3) return;
-        model.applyEdits([{
-          range: {
-            startLineNumber: range.endLineNumber,
-            startColumn: range.endColumn - 2,
-            endLineNumber: range.endLineNumber,
-            endColumn: range.endColumn,
+        if (!pasted.endsWith("$0") || range.endColumn < 3) return;
+        model.applyEdits([
+          {
+            range: {
+              startLineNumber: range.endLineNumber,
+              startColumn: range.endColumn - 2,
+              endLineNumber: range.endLineNumber,
+              endColumn: range.endColumn,
+            },
+            text: "",
           },
-          text: '',
-        }]);
+        ]);
       });
     },
     [],
@@ -771,6 +789,30 @@ export const MonacoMDXField: React.FC<MonacoMDXFieldProps> = ({
             ))}
           </React.Fragment>
         ))}
+
+        {/* Interactive widgets — a submenu, not a button per widget: the
+            catalogue is the part of the toolbar meant to keep growing. */}
+        <div
+          style={{
+            width: "1px",
+            height: "24px",
+            background: "#444",
+            margin: "0 6px",
+          }}
+        />
+        <span
+          style={{
+            fontSize: "10px",
+            color: "#888",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+            marginRight: "4px",
+            userSelect: "none",
+          }}
+        >
+          Interativos
+        </span>
+        <InteractiveSnippetMenu onInsert={insertSnippet} />
 
         {/* Sync button — visually separated on the right */}
         <div style={{ marginLeft: "auto" }}>

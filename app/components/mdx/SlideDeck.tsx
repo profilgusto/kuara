@@ -40,12 +40,18 @@ export default function SlideDeck({
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
-        const { index: saved, savedAt } = JSON.parse(raw) as { index: number; savedAt: number };
+        const { index: saved, savedAt } = JSON.parse(raw) as {
+          index: number;
+          savedAt: number;
+        };
         const ONE_DAY = 24 * 60 * 60 * 1000;
         if (Date.now() - savedAt < ONE_DAY && saved > 0) return saved;
-        if (Date.now() - savedAt >= ONE_DAY) localStorage.removeItem(storageKey);
+        if (Date.now() - savedAt >= ONE_DAY)
+          localStorage.removeItem(storageKey);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return 0;
   });
   const [ids, setIds] = useState<string[]>([]);
@@ -54,7 +60,9 @@ export default function SlideDeck({
   const [fsNavOpen, setFsNavOpen] = useState(false);
   const fsNavRef = useRef<HTMLElement | null>(null);
   // heading.id → slide index (built after ids settle, requires DOM lookup)
-  const [headingSlideMap, setHeadingSlideMap] = useState<Map<string, number>>(new Map());
+  const [headingSlideMap, setHeadingSlideMap] = useState<Map<string, number>>(
+    new Map(),
+  );
   const [contentScale, setContentScale] = useState(() => {
     if (typeof window === "undefined") return 1.0;
     const saved = localStorage.getItem("slidedeck:contentScale");
@@ -64,14 +72,19 @@ export default function SlideDeck({
 
   const adjustContentScale = (delta: number) =>
     setContentScale((s) => {
-      const next = Math.min(2.0, Math.max(0.5, Math.round((s + delta) * 10) / 10));
+      const next = Math.min(
+        2.0,
+        Math.max(0.5, Math.round((s + delta) * 10) / 10),
+      );
       localStorage.setItem("slidedeck:contentScale", String(next));
       return next;
     });
 
   // Keep a ref to the latest index so the unmount cleanup can always read it
   const indexRef = useRef(index);
-  useEffect(() => { indexRef.current = index; }, [index]);
+  useEffect(() => {
+    indexRef.current = index;
+  }, [index]);
 
   // Persist slide index to localStorage (expires after 24h).
   // Two mechanisms:
@@ -82,7 +95,10 @@ export default function SlideDeck({
     if (ids.length === 0) return;
     const storageKey = `slidedeck:slide:${window.location.pathname}`;
     try {
-      localStorage.setItem(storageKey, JSON.stringify({ index, savedAt: Date.now() }));
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({ index, savedAt: Date.now() }),
+      );
     } catch {
       // ignore quota errors
     }
@@ -263,7 +279,10 @@ export default function SlideDeck({
       const dx = e.touches[0].clientX - startX;
       const dy = e.touches[0].clientY - startY;
       // Determine swipe direction once we have enough movement
-      if (isHorizontalSwipe === null && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+      if (
+        isHorizontalSwipe === null &&
+        (Math.abs(dx) > 5 || Math.abs(dy) > 5)
+      ) {
         isHorizontalSwipe = Math.abs(dx) > Math.abs(dy);
       }
       // Block native horizontal scroll/pan so the sidebar never becomes visible

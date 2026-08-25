@@ -122,7 +122,8 @@ export const Modules: CollectionConfig = {
       type: "checkbox",
       defaultValue: true,
       admin: {
-        description: "Controla se este módulo é listado na grade da disciplina.",
+        description:
+          "Controla se este módulo é listado na grade da disciplina.",
       },
     },
     {
@@ -130,7 +131,8 @@ export const Modules: CollectionConfig = {
       type: "checkbox",
       defaultValue: true,
       admin: {
-        description: "Habilita o acesso a este módulo através de sua URL direta, mesmo se não estiver visível.",
+        description:
+          "Habilita o acesso a este módulo através de sua URL direta, mesmo se não estiver visível.",
       },
     },
     {
@@ -160,7 +162,8 @@ export const Modules: CollectionConfig = {
       hasMany: true,
       admin: {
         hidden: true,
-        description: "Auto-managed by <CiteModule> usage in content. Do not edit manually.",
+        description:
+          "Auto-managed by <CiteModule> usage in content. Do not edit manually.",
       },
     },
     {
@@ -170,7 +173,8 @@ export const Modules: CollectionConfig = {
       hasMany: true,
       admin: {
         hidden: true,
-        description: "Auto-managed by <CiteTessela> usage in content. Do not edit manually.",
+        description:
+          "Auto-managed by <CiteTessela> usage in content. Do not edit manually.",
       },
     },
     {

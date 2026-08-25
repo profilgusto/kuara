@@ -95,7 +95,9 @@ export default function SlideCover({
               </p>
             )}
             {date && (
-              <p className="text-base opacity-75 tracking-wider !text-white">{date}</p>
+              <p className="text-base opacity-75 tracking-wider !text-white">
+                {date}
+              </p>
             )}
           </div>
         )}

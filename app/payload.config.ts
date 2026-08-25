@@ -56,11 +56,18 @@ export default buildConfig({
     components: {
       views: {
         todos: {
-          Component: "@/admin/views/TodosView",
+          Component: "@/admin/views/TodosPage",
           path: "/todos",
         },
+        interactiveLibrary: {
+          Component: "@/admin/views/InteractiveLibraryPage",
+          path: "/interativos",
+        },
       },
-      afterNavLinks: ["@/admin/components/TodosNavLink"],
+      afterNavLinks: [
+        "@/admin/components/TodosNavLink",
+        "@/admin/components/InteractiveLibraryNavLink",
+      ],
     },
   },
   collections: [

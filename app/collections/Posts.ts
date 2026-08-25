@@ -1,5 +1,8 @@
 import type { CollectionConfig } from "payload";
-import { syncPostMediaRefs, cleanPostMediaRefs } from "../hooks/syncMediaUsedIn.ts";
+import {
+  syncPostMediaRefs,
+  cleanPostMediaRefs,
+} from "../hooks/syncMediaUsedIn.ts";
 
 export const Posts: CollectionConfig = {
   slug: "posts",

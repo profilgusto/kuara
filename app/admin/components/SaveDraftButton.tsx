@@ -43,7 +43,11 @@ export const SaveDraftButton: React.FC = () => {
   const saveDraft = useCallback(async () => {
     if (disabled) return;
 
-    const params = new URLSearchParams({ depth: "0", "fallback-locale": "null", draft: "true" });
+    const params = new URLSearchParams({
+      depth: "0",
+      "fallback-locale": "null",
+      draft: "true",
+    });
     if (locale) params.set("locale", locale);
     const search = `?${params.toString()}`;
     let action: string | undefined;

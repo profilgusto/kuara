@@ -61,10 +61,7 @@ export default function YouTube({
 
   return (
     <div
-      className={[
-        "my-8 mx-auto w-full max-w-4xl",
-        className,
-      ]
+      className={["my-8 mx-auto w-full max-w-4xl", className]
         .filter(Boolean)
         .join(" ")}
     >

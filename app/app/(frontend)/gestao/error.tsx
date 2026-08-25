@@ -15,9 +15,7 @@ export default function Error({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 px-4 text-center">
-      <h2 className="text-xl font-semibold text-foreground">
-        Algo deu errado
-      </h2>
+      <h2 className="text-xl font-semibold text-foreground">Algo deu errado</h2>
       <p className="text-muted-foreground text-sm max-w-md">
         Ocorreu um erro inesperado na área de gestão. Tente novamente ou entre
         em contato se o problema persistir.

@@ -1,6 +1,7 @@
 // mdx-plugins/remark-directive-to-mdx.ts
 // Converts remark-directive container directives into MDX JSX elements.
-// Supports: :::present-only, :::text-only, :::note, :::warning, :::tip, :::slide
+// Supports: :::present-only, :::text-only, :::note, :::warning, :::tip, :::slide,
+//           :::interactive
 import { visit } from "unist-util-visit";
 import type { Plugin } from "unified";
 
@@ -44,6 +45,7 @@ const remarkDirectiveToMdx: Plugin = () => {
       warning: "Callout",
       tip: "Callout",
       slide: "Slide",
+      interactive: "Interactive",
     };
 
     // Directives that need a `type` attribute injected
