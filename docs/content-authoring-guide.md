@@ -1013,15 +1013,78 @@ Triedro cartesiano destro (x vermelho, y verde, z azul) que o aluno rotaciona co
 Caption shown below the block, and in place of it when printing.
 </Interactive>
 ```
+#### `differential-drive` — Robô diferencial: medidas e variáveis
+
+O chassi de um robô diferencial genérico, translúcido e girável, com todos os símbolos da modelagem escritos sobre aquilo que eles medem: o frame {R} na origem do eixo das rodas, o raio r, a bitola d entre os pontos de contato, a velocidade angular de cada roda (ω_l e ω_r) com a velocidade linear que ela produz (v_l e v_r), e as velocidades do chassi ao longo dos eixos em que são expressas (ẋ_R, ẏ_R = 0 pela restrição não-holonômica, e θ̇_R). Cada grupo de anotações pode ser desligado por parâmetro, para usar a mesma figura em pontos diferentes da aula.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `frameName` | `string` | `R` | Nome do frame do robô. Aparece no subscrito dos vetores de base (x̂_R) e das velocidades do chassi (ẋ_R). |
+| `labels` | `boolean` | `true` | Exibe o triedro rotulado: x̂, ŷ e ẑ nas pontas dos eixos e a origem O do frame sobre o eixo das rodas. |
+| `measures` | `boolean` | `true` | Exibe as medidas geométricas: a linha do raio r, do centro de cada roda até o seu bordo, e a linha de cota da bitola d entre os dois pontos de contato com o solo. |
+| `wheelSpeeds` | `boolean` | `true` | Exibe o que cada roda faz: a velocidade angular ω_l e ω_r, como arcos em torno do eixo no sentido positivo (que rola a roda para a frente), e a velocidade linear resultante v_l e v_r, como setas para a frente. |
+| `chassisSpeeds` | `boolean` | `true` | Exibe as velocidades do chassi expressas em {R}: ẋ_R para a frente, θ̇_R em torno de ẑ_R, e ẏ_R tracejada e anulada, que é a restrição não-holonômica. |
+| `grid` | `boolean` | `true` | Desenha o piso graduado sob o robô. Cada quadrado mede uma unidade do mundo, servindo de escala para r e d. |
+| `opacity` | `number` | `0.34` | Opacidade do chassi e das rodas. Valores baixos deixam ver o triedro e a linha de cota através do corpo; 1 desenha o robô sólido. |
+
+```mdx
+<Interactive widget="differential-drive" height="480">
+Caption shown below the block, and in place of it when printing.
+</Interactive>
+```
+#### `differential-kinematics` — Cinemática do robô diferencial
+
+A Eq. (3) do módulo virada objeto manipulável, vista de cima. Dois sliders comandam as velocidades angulares das rodas (ω_l e ω_r) e o robô passa a se deslocar no plano com a velocidade linear e angular resultantes, deixando o rastro do caminho percorrido e o centro instantâneo de rotação em que ele gira. O painel mostra a mesma conta em forma matricial, com os números correntes. Os botões no cabeçalho invertem a relação: em ω→v os sliders são as rodas e o chassi obedece; em v→ω os sliders são as velocidades do chassi e as rodas recebem, pela fórmula inversa, o que precisam fazer para produzi-las. O bloco abre com o robô parado, e o botão reiniciar devolve tudo ao repouso: velocidades zeradas, robô na origem e rastro apagado.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `wheelRadius` | `number` | `0.05` | Raio r das rodas, em metros. Também define o desenho: as rodas vistas de cima têm exatamente 2r de comprimento, para que a figura nunca discorde dos números. |
+| `track` | `number` | `0.3` | Bitola d, em metros — a distância entre os pontos de contato das rodas. Define a escala do robô inteiro e o alcance dos sliders do modo inverso. |
+| `leftSpeed` | `number` | `0` | Velocidade angular inicial da roda esquerda, ω_l, em rad/s. Zero por padrão: o bloco abre com o robô parado, para que o primeiro movimento que o aluno vê seja o que ele mesmo comandou. Limitada a ±10 rad/s, o que o widget assume ser o limite dos motores. |
+| `rightSpeed` | `number` | `0` | Velocidade angular inicial da roda direita, ω_r, em rad/s. Zero por padrão, pelo mesmo motivo de ω_l. Autore as duas com valores diferentes para que o bloco já abra descrevendo uma curva. |
+| `trail` | `boolean` | `true` | Deixa o rastro do caminho percorrido no plano — a trajetória que a seção de odometria vai calcular depois. |
+| `icr` | `boolean` | `true` | Marca o centro instantâneo de rotação, a uma distância v/ω sobre o eixo ŷ_R, e a circunferência que o robô descreve em torno dele. Some quando o caminho é reto, que é o centro no infinito. |
+| `decimals` | `number` | `2` | Casas decimais dos números do painel. |
+| `frameName` | `string` | `R` | Nome do frame do robô. Aparece nos rótulos dos eixos do chassi e no subscrito das velocidades. |
+| `inertialName` | `string` | `I` | Nome do frame inercial fixo, marcado na origem do plano. |
+
+```mdx
+<Interactive widget="differential-kinematics" height="620">
+Caption shown below the block, and in place of it when printing.
+</Interactive>
+```
+#### `frame-mapping` — Mapeando de um frame para o outro
+
+O mesmo ponto m, lido em dois frames. O aluno arrasta m pelo espaço e coloca {B} onde quiser em relação a {A} — transladando e girando — enquanto o painel instancia os três elementos da conta: ᴬp_m, ᴮR_A e ᴮp_A. Abaixo deles a expressão ᴮp_m = ᴮR_A ᴬp_m + ᴮp_A é montada com esses números e resolvida em duas etapas, a rotação primeiro e a soma depois, exatamente como se faz no papel. O detalhe que a figura torna visível é que ᴮp_A não é o simétrico da posição de {B}: é aquele deslocamento resolvido nos eixos de {B}, e por isso ele muda quando só a rotação muda. Os botões 2D/3D alternam entre o plano do exemplo da seção, onde há um único ângulo, e o espaço, com os três — que é onde o bloco abre.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `point` | `"x,y,z"` | `"4,3,2"` | Posição inicial do ponto m, escrita em {A} — o ᴬp_m da conta, no formato "x,y,z". Cada componente é limitada à faixa dos sliders (-7 a 7). |
+| `framePosition` | `"x,y,z"` | `"5,2,0"` | Onde a origem de {B} começa, medida em {A} (ᴬp_B), no formato "x,y,z". É a pose que o aluno enxerga; o ᴮp_A do painel é derivado dela. Limitada à faixa dos sliders (-7 a 7). |
+| `angles` | `"x,y,z"` | `"0,0,-180"` | Orientação inicial de {B} em relação a {A}, em graus, no formato "α,β,γ" — as rotações em torno dos eixos fixos x, y e z de {A}, nessa ordem. No modo 2D só γ é usado. |
+| `step` | `number` | `5` | Incremento dos sliders angulares, em graus. Use 15, 30 ou 90 para ângulos notáveis. |
+| `positionStep` | `number` | `1` | Incremento dos sliders de posição, em vetores de base. O padrão é 1, que mantém m e {B} sobre os nós da malha e as contas em números inteiros. |
+| `decimals` | `number` | `1` | Casas decimais das entradas do painel. |
+| `referenceName` | `string` | `A` | Nome do frame de referência, onde m é conhecido. |
+| `targetName` | `string` | `B` | Nome do frame de destino, para o qual m é mapeado. |
+| `pointLabel` | `string` | `m` | Nome do ponto. Aparece no subscrito dos vetores. |
+| `labels` | `boolean` | `true` | Exibe os rótulos x̂, ŷ, ẑ (com o subscrito do frame) nas pontas dos eixos, o nome de cada origem, o do ponto e o de cada vetor. |
+| `grid` | `boolean` | `true` | Desenha a malha de referência sobre o plano xy de {A}. Cada quadrado mede exatamente um vetor de base, que é a unidade de todos os sliders de posição. |
+
+```mdx
+<Interactive widget="frame-mapping" height="620">
+Caption shown below the block, and in place of it when printing.
+</Interactive>
+```
 #### `homogeneous-transform` — Transformação homogênea
 
-A pose completa de um frame: {R} gira com três sliders angulares e se desloca com três sliders de posição, enquanto o painel monta, entrada por entrada, a matriz ᴵT_R. As quatro colunas são pintadas como no texto — a rotação ᴵR_R no bloco 3×3, a translação ᴵp_R na última coluna e a linha [0 0 0 1] embaixo, apenas para fechar o quadrado. Girar sem transladar mexe só no bloco esquerdo; transladar sem girar mexe só na última coluna, que é o argumento visual de que a matriz não é um objeto novo, e sim dois já conhecidos escritos lado a lado.
+A pose completa de um frame: {R} gira com três sliders angulares e se desloca com três sliders de posição, enquanto o painel monta, entrada por entrada, a matriz ᴵT_R. As quatro colunas são pintadas como no texto — a rotação ᴵR_R no bloco 3×3, a translação ᴵp_R na última coluna e a linha [0 0 0 1] embaixo, apenas para fechar o quadrado. Girar sem transladar mexe só no bloco esquerdo; transladar sem girar mexe só na última coluna, que é o argumento visual de que a matriz não é um objeto novo, e sim dois já conhecidos escritos lado a lado. Como em `rotation-matrix`, a chave `proprio` transforma os sliders angulares numa sequência: cada um gira {R} em torno do próprio eixo a partir de onde o frame está, volta a zero quando solto e deixa um triedro fantasma marcando o passo — os sliders de posição continuam absolutos, porque uma translação não perde o seu eixo. Dois botões desfazem: “alinhar eixos” zera os ângulos sem mexer na posição (o bloco 3×3 vai à identidade e a última coluna fica parada), e “redefinir” devolve a pose inicial inteira.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `angles` | `"x,y,z"` | `"0,0,30"` | Ângulos iniciais em graus, no formato "α,β,γ" — as rotações em torno de x, y e z, nessa ordem. Cada um é limitado à faixa dos sliders (-180 a 180). |
 | `position` | `"x,y,z"` | `"1.2,0.8,0.6"` | Translação inicial ᴵp_R, no formato "x,y,z", medida em vetores de base (um quadrado da malha). Limitada à faixa dos sliders (-2 a 2). O padrão já afasta {R} da origem, para que os dois triedros não nasçam sobrepostos. |
-| `mode` | `inercial` \| `proprio` | `inercial` | Posição inicial da chave: `inercial` gira {R} em torno dos eixos fixos de {I}; `proprio` gira em torno dos eixos do próprio {R}. |
+| `mode` | `inercial` \| `proprio` | `inercial` | Posição inicial da chave: `inercial` gira {R} em torno dos eixos fixos de {I}, com três ângulos absolutos; `proprio` gira em torno dos eixos do próprio {R}, como uma sequência de passos com fantasmas. |
 | `step` | `number` | `5` | Incremento dos sliders angulares, em graus. Use 15 ou 30 para ângulos notáveis. |
 | `positionStep` | `number` | `0.1` | Incremento dos sliders de translação, em vetores de base. Use 0.5 ou 1 para posições sobre os nós da malha. |
 | `decimals` | `number` | `2` | Casas decimais das entradas da matriz. |
@@ -1032,6 +1095,28 @@ A pose completa de um frame: {R} gira com três sliders angulares e se desloca c
 
 ```mdx
 <Interactive widget="homogeneous-transform" height="620">
+Caption shown below the block, and in place of it when printing.
+</Interactive>
+```
+#### `inertial-odometry` — Velocidades e odometria no frame inercial
+
+O robô diferencial visto de cima, agora com o frame inercial {I} fixo no centro do plano: a câmera não acompanha o robô, ela abre à medida que ele se afasta, para que a origem contra a qual tudo é medido nunca saia de vista. Os sliders comandam as rodas (ω_l e ω_r) ou, pelos botões do cabeçalho, diretamente as velocidades do chassi. Enquanto o robô anda, o painel mostra as duas contas da seção: a transformada que leva ᴿξ̇_R para {I}, com a matriz de rotação preenchida pelo θ corrente, e o somatório discreto que acumula a pose ᴵξ_R(T) a partir dessas velocidades. Na cena aparecem o rastro do percurso, o vetor posição ᴵp_R, o ângulo θ entre os dois frames, as componentes ẋ_I e ẏ_I da velocidade, e — em traço pontilhado — a estimativa da odometria, que se descola do robô quanto maior for o passo Δt da integração.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `wheelRadius` | `number` | `0.05` | Raio r das rodas, em metros. Também define o desenho: as rodas vistas de cima têm exatamente 2r de comprimento. |
+| `track` | `number` | `0.3` | Bitola d, em metros — a distância entre os pontos de contato das rodas. Define a escala do robô e o alcance dos sliders do modo inverso. |
+| `leftSpeed` | `number` | `0` | Velocidade angular inicial da roda esquerda, ω_l, em rad/s. Zero por padrão: o bloco abre parado, para que o primeiro movimento seja o que o aluno comandou. |
+| `rightSpeed` | `number` | `0` | Velocidade angular inicial da roda direita, ω_r, em rad/s. Zero por padrão, pelo mesmo motivo. |
+| `step` | `number` | `0.1` | Passo Δt da integração da odometria, em segundos. É o Δt do somatório da seção: com 0,1 s a estimativa já se descola visivelmente do robô numa curva fechada, e valores maiores tornam o erro tão grande quanto o texto avisa. |
+| `trail` | `boolean` | `true` | Desenha o rastro do percurso real do robô, em linha cheia, e o da estimativa da odometria, pontilhado. |
+| `components` | `boolean` | `true` | Decompõe a velocidade do robô nas componentes ẋ_I e ẏ_I do frame inercial, como catetos tracejados sob a seta de velocidade — o conteúdo geométrico da transformada. |
+| `decimals` | `number` | `2` | Casas decimais dos números do painel. |
+| `frameName` | `string` | `R` | Nome do frame do robô. Aparece nos rótulos dos eixos do chassi e no subscrito das velocidades. |
+| `inertialName` | `string` | `I` | Nome do frame inercial fixo, marcado na origem do plano. |
+
+```mdx
+<Interactive widget="inertial-odometry" height="680">
 Caption shown below the block, and in place of it when printing.
 </Interactive>
 ```
@@ -1056,12 +1141,12 @@ Caption shown below the block, and in place of it when printing.
 ```
 #### `rotation-matrix` — Matriz de rotação
 
-Dois sistemas de coordenadas de mesma origem — o inercial {I}, fixo, e {R}, que o aluno gira com três sliders (um por eixo). Uma chave seletora alterna entre girar em torno dos eixos do próprio {R} (rotação intrínseca) e em torno dos eixos inerciais de {I} (extrínseca), mostrando que os mesmos ângulos em ordens diferentes dão orientações diferentes. O painel exibe, a todo momento, a matriz de rotação ᴵR_R, cujas colunas são os vetores de base de {R} escritos em {I}.
+Dois sistemas de coordenadas de mesma origem — o inercial {I}, fixo, e {R}, que o aluno gira com três sliders (um por eixo). Uma chave seletora escolhe o que os sliders significam. Em `inercial` (extrínseca) eles são três ângulos absolutos em torno dos eixos fixos de {I}. Em `proprio` (intrínseca) cada slider gira {R} em torno do próprio eixo, a partir de onde o frame está, e volta a zero quando solto: a rotação vira um passo da sequência e deixa um triedro fantasma marcando por onde {R} passou. Assim o aluno pode girar duas vezes em torno do mesmo eixo e ver que, da segunda vez, esse eixo já não é o mesmo. O botão “alinhar eixos” zera tudo e apaga os fantasmas, e trocar de modo também. O painel exibe, a todo momento, a matriz de rotação ᴵR_R, cujas colunas são os vetores de base de {R} escritos em {I}. Os botões 1D/2D/3D no cabeçalho trocam a dimensão dos dois frames, e com ela quantas rotações existem: nenhuma na reta (ᴵR_R = [1]), uma no plano (em torno do ẑ que sai da página, onde as duas convenções coincidem) e três no espaço.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `angles` | `"x,y,z"` | `"0,0,30"` | Ângulos iniciais em graus, no formato "α,β,γ" — as rotações em torno de x, y e z, nessa ordem. Cada um é limitado à faixa dos sliders (-180 a 180). O padrão já deixa {R} levemente girado, para que os dois triedros não nasçam sobrepostos. |
-| `mode` | `inercial` \| `proprio` | `inercial` | Posição inicial da chave: `inercial` gira {R} em torno dos eixos fixos de {I}; `proprio` gira em torno dos eixos do próprio {R}. |
+| `angles` | `"x,y,z"` | `"0,0,30"` | Ângulos iniciais em graus, no formato "α,β,γ" — as rotações em torno de x, y e z, nessa ordem. Cada um é limitado à faixa dos sliders (-180 a 180). Nas vistas 1D e 2D, os ângulos cujo eixo não existe ali são lidos como zero. O padrão já deixa {R} levemente girado, para que os dois triedros não nasçam sobrepostos. |
+| `mode` | `inercial` \| `proprio` | `inercial` | Posição inicial da chave: `inercial` gira {R} em torno dos eixos fixos de {I}; `proprio` gira em torno dos eixos do próprio {R}. Só aparece na vista 3D — com uma rotação só, as duas dão o mesmo resultado. |
 | `step` | `number` | `5` | Incremento dos sliders, em graus. Use 15 ou 30 para ângulos notáveis. |
 | `decimals` | `number` | `2` | Casas decimais das entradas da matriz. |
 | `inertialName` | `string` | `I` | Nome do frame inercial (o fixo). |

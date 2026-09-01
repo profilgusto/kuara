@@ -70,7 +70,11 @@ export interface WidgetMeta {
 }
 
 import coordFrame3d from "./widgets/coord-frame-3d/meta";
+import differentialDrive from "./widgets/differential-drive/meta";
+import differentialKinematics from "./widgets/differential-kinematics/meta";
+import frameMapping from "./widgets/frame-mapping/meta";
 import homogeneousTransform from "./widgets/homogeneous-transform/meta";
+import inertialOdometry from "./widgets/inertial-odometry/meta";
 import positionVector from "./widgets/position-vector/meta";
 import rotationMatrix from "./widgets/rotation-matrix/meta";
 
@@ -79,6 +83,10 @@ export const catalog: Record<string, WidgetMeta> = {
   [positionVector.id]: positionVector,
   [rotationMatrix.id]: rotationMatrix,
   [homogeneousTransform.id]: homogeneousTransform,
+  [differentialDrive.id]: differentialDrive,
+  [differentialKinematics.id]: differentialKinematics,
+  [inertialOdometry.id]: inertialOdometry,
+  [frameMapping.id]: frameMapping,
 };
 
 /**

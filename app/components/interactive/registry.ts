@@ -62,6 +62,34 @@ const implementations: Record<string, Implementation> = {
     }),
     PrintFallback: getPreview("homogeneous-transform"),
   },
+  "differential-drive": {
+    Component: dynamic(() => import("./widgets/differential-drive"), {
+      ssr: false,
+      loading: WidgetLoading,
+    }),
+    PrintFallback: getPreview("differential-drive"),
+  },
+  "inertial-odometry": {
+    Component: dynamic(() => import("./widgets/inertial-odometry"), {
+      ssr: false,
+      loading: WidgetLoading,
+    }),
+    PrintFallback: getPreview("inertial-odometry"),
+  },
+  "differential-kinematics": {
+    Component: dynamic(() => import("./widgets/differential-kinematics"), {
+      ssr: false,
+      loading: WidgetLoading,
+    }),
+    PrintFallback: getPreview("differential-kinematics"),
+  },
+  "frame-mapping": {
+    Component: dynamic(() => import("./widgets/frame-mapping"), {
+      ssr: false,
+      loading: WidgetLoading,
+    }),
+    PrintFallback: getPreview("frame-mapping"),
+  },
 };
 
 export interface WidgetEntry {

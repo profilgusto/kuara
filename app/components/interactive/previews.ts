@@ -15,6 +15,10 @@ import CoordFrame3DPrint from "./widgets/coord-frame-3d/PrintFallback";
 import PositionVectorPrint from "./widgets/position-vector/PrintFallback";
 import RotationMatrixPrint from "./widgets/rotation-matrix/PrintFallback";
 import HomogeneousTransformPrint from "./widgets/homogeneous-transform/PrintFallback";
+import DifferentialDrivePrint from "./widgets/differential-drive/PrintFallback";
+import DifferentialKinematicsPrint from "./widgets/differential-kinematics/PrintFallback";
+import InertialOdometryPrint from "./widgets/inertial-odometry/PrintFallback";
+import FrameMappingPrint from "./widgets/frame-mapping/PrintFallback";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const previews: Record<string, ComponentType<any>> = {
@@ -22,6 +26,10 @@ export const previews: Record<string, ComponentType<any>> = {
   "position-vector": PositionVectorPrint,
   "rotation-matrix": RotationMatrixPrint,
   "homogeneous-transform": HomogeneousTransformPrint,
+  "differential-drive": DifferentialDrivePrint,
+  "differential-kinematics": DifferentialKinematicsPrint,
+  "inertial-odometry": InertialOdometryPrint,
+  "frame-mapping": FrameMappingPrint,
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
