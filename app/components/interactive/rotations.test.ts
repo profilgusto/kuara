@@ -10,6 +10,7 @@
 import { describe, it, expect } from "vitest";
 import type { Vec3 } from "./props";
 import {
+  ALIGNED_ANGLES,
   ANGLE_AXES,
   ANGLE_MAX,
   ANGLE_MIN,
@@ -17,15 +18,22 @@ import {
   clampAngle,
   clampAngles,
   column,
+  commitStep,
+  composeIntrinsic,
   elementary,
   factorOrder,
   formatEntry,
   formatMatrix,
   identity,
+  intrinsicTrail,
+  isAligned,
   matrixToQuaternion,
   multiply,
   rotationMatrix,
+  sliderAngles,
+  stepsFromAngles,
   toRotationMode,
+  type IntrinsicStep,
   type Mat3,
 } from "./rotations";
 
@@ -197,6 +205,153 @@ describe("rotationMatrix", () => {
   });
 });
 
+describe("the intrinsic session", () => {
+  const close = (m: Mat3, want: Mat3) =>
+    m.forEach((row, i) =>
+      row.forEach((entry, j) => expect(entry).toBeCloseTo(want[i][j], 12)),
+    );
+
+  it("opens on the orientation the authored angles describe", () => {
+    // The seam with everything that came before: the print fallback and the
+    // catalogue preview keep drawing the classic product, and the live widget
+    // must mount on the very same frame.
+    for (const angles of [
+      [0, 0, 30],
+      [20, -35, 90],
+      [180, 180, 180],
+    ] as Vec3[]) {
+      close(
+        composeIntrinsic(stepsFromAngles(angles)),
+        rotationMatrix(angles, "proprio"),
+      );
+    }
+  });
+
+  it("drops the angles that turn nothing, so they leave no ghost", () => {
+    expect(stepsFromAngles([0, 0, 30])).toEqual([{ axis: "z", deg: 30 }]);
+    expect(stepsFromAngles([0, 0, 0])).toEqual([]);
+    expect(stepsFromAngles([10, 0, -20])).toEqual([
+      { axis: "x", deg: 10 },
+      { axis: "z", deg: -20 },
+    ]);
+  });
+
+  it("clamps an authored angle no slider could reach", () => {
+    expect(stepsFromAngles([400, NaN, -999])).toEqual([
+      { axis: "x", deg: ANGLE_MAX },
+      { axis: "z", deg: ANGLE_MIN },
+    ]);
+  });
+
+  it("turns a repeated axis about where that axis is *now*", () => {
+    // The whole point of the sequence. Turn about x, then about y, then about
+    // x again: the second x is {R}'s x, which the y step has moved, so the
+    // result is not the same as having asked for 50° about the first x.
+    const steps = [
+      { axis: "x", deg: 30 },
+      { axis: "y", deg: 40 },
+      { axis: "x", deg: 20 },
+    ] as const;
+    const result = composeIntrinsic(steps);
+
+    // Where the third step's axis actually was: {R}'s x̂ after the first two,
+    // which is the first column of the orientation at that moment.
+    const before = composeIntrinsic(steps.slice(0, 2));
+    const axisNow = column(before, 0);
+    // That axis is the one the last step leaves untouched — a rotation fixes
+    // its own axis, whichever frame it is written in.
+    const moved = apply(multiply(before, elementary("x", 20)), [1, 0, 0]);
+    axisNow.forEach((c, i) => expect(moved[i]).toBeCloseTo(c, 12));
+    // …and it is genuinely a different axis from the inertial x by then.
+    expect(Math.abs(axisNow[0] - 1)).toBeGreaterThan(0.1);
+
+    // The old model could only read the two x steps as one, about the first x.
+    const asOneAngle = rotationMatrix([50, 40, 0], "proprio");
+    const same = result.every((row, i) =>
+      row.every((entry, j) => Math.abs(entry - asOneAngle[i][j]) < 1e-9),
+    );
+    expect(same).toBe(false);
+  });
+
+  it("still folds a single axis' repeats into one turn", () => {
+    // Two steps about the same axis with nothing in between *do* add up: the
+    // axis has not moved, so this is the one case where the old reading was
+    // right, and a student checking it must not find a surprise.
+    close(
+      composeIntrinsic([
+        { axis: "y", deg: 25 },
+        { axis: "y", deg: 35 },
+      ]),
+      elementary("y", 60),
+    );
+  });
+
+  it("is the identity before the first step", () => {
+    close(composeIntrinsic([]), identity());
+    expect(intrinsicTrail([])).toEqual([]);
+  });
+
+  it("leaves one ghost per step, ending on the current frame", () => {
+    const steps: IntrinsicStep[] = [
+      { axis: "x", deg: 30 },
+      { axis: "y", deg: 40 },
+      { axis: "z", deg: 15 },
+    ];
+    const trail = intrinsicTrail(steps);
+    expect(trail).toHaveLength(steps.length);
+    // Each ghost is where the frame stood when that step was released…
+    trail.forEach((ghost, i) =>
+      close(ghost, composeIntrinsic(steps.slice(0, i + 1))),
+    );
+    // …so the newest one is exactly the frame the student is looking at.
+    close(trail[trail.length - 1], composeIntrinsic(steps));
+  });
+});
+
+describe("releasing a slider", () => {
+  const steps: IntrinsicStep[] = [{ axis: "x", deg: 30 }];
+
+  it("writes the turn into the sequence", () => {
+    expect(commitStep(steps, { axis: "y", deg: -15 })).toEqual([
+      { axis: "x", deg: 30 },
+      { axis: "y", deg: -15 },
+    ]);
+  });
+
+  it("commits nothing when the drag ended where it started", () => {
+    // Dragged out and back: the frame did not move, so a ghost there would
+    // mark a step the student never took.
+    expect(commitStep(steps, { axis: "y", deg: 0 })).toEqual(steps);
+  });
+
+  it("is a no-op with nothing in flight, so repeat events are harmless", () => {
+    // Pointer up and lost capture both fire for one mouse drag.
+    const once = commitStep(steps, { axis: "z", deg: 45 });
+    expect(commitStep(once, null)).toEqual(once);
+  });
+
+  it("never hands back the array it was given", () => {
+    // The caller holds this in React state; mutating the previous value in
+    // place would leave the scene a render behind its own history.
+    expect(commitStep(steps, null)).not.toBe(steps);
+    expect(commitStep(steps, { axis: "z", deg: 5 })).not.toBe(steps);
+    expect(steps).toEqual([{ axis: "x", deg: 30 }]);
+  });
+});
+
+describe("sliderAngles", () => {
+  it("puts the drag on its own slider and rests the others", () => {
+    expect(sliderAngles({ axis: "y", deg: 40 })).toEqual([0, 40, 0]);
+    expect(sliderAngles({ axis: "x", deg: -90 })).toEqual([-90, 0, 0]);
+    expect(sliderAngles({ axis: "z", deg: 12 })).toEqual([0, 0, 12]);
+  });
+
+  it("rests all three between drags", () => {
+    expect(sliderAngles(null)).toEqual(ALIGNED_ANGLES);
+    expect(isAligned(sliderAngles(null))).toBe(true);
+  });
+});
+
 describe("factorOrder", () => {
   it("reads the product left to right, per mode", () => {
     expect(factorOrder("inercial")).toEqual(["z", "y", "x"]);
@@ -240,6 +395,44 @@ describe("clampAngle", () => {
   it("reads NaN as no rotation rather than poisoning the matrix", () => {
     expect(clampAngle(NaN)).toBe(0);
     expect(clampAngles([NaN, 400, -400])).toEqual([0, ANGLE_MAX, ANGLE_MIN]);
+  });
+});
+
+describe("the aligned orientation", () => {
+  it("is the one every mode agrees is no rotation at all", () => {
+    // The point of the button: whichever axes the angles are read about, all
+    // zeros must leave {R} lying on {I} — the identity, to floating point.
+    for (const mode of ["inercial", "proprio"] as const) {
+      const m = rotationMatrix(ALIGNED_ANGLES, mode);
+      identity().forEach((row, i) =>
+        row.forEach((want, j) => expect(m[i][j]).toBeCloseTo(want, 12)),
+      );
+    }
+  });
+
+  it("sits inside the sliders' own track", () => {
+    expect(clampAngles(ALIGNED_ANGLES)).toEqual(ALIGNED_ANGLES);
+    expect(ALIGNED_ANGLES).toHaveLength(ANGLE_AXES.length);
+  });
+
+  it("recognises the aligned frame, and only it", () => {
+    expect(isAligned(ALIGNED_ANGLES)).toBe(true);
+    expect(isAligned([0, 0, 0])).toBe(true);
+    // A slider dragged down through the middle lands on -0.
+    expect(isAligned([-0, 0, -0])).toBe(true);
+    expect(isAligned([0, 0, 5])).toBe(false);
+    expect(isAligned([0, -5, 0])).toBe(false);
+    expect(isAligned([180, 0, 0])).toBe(false);
+    // 360° is the same orientation, but not the same slider position: the
+    // button still has work to do, and the sliders could not show it anyway.
+    expect(isAligned([360, 0, 0])).toBe(false);
+  });
+
+  it("does not call an unusable angle aligned", () => {
+    // NaN only reaches the state from an authored `angles`, which is the case
+    // the button exists to rescue; calling it aligned would grey the button
+    // out over a scene that is not aligned at all.
+    expect(isAligned([NaN, 0, 0])).toBe(false);
   });
 });
 

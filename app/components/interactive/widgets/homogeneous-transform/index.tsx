@@ -20,7 +20,7 @@
  * fonts.gstatic.com, which Kuara's CSP blocks) — and every number the scene
  * depends on comes from `./transform`.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Html, Line, OrbitControls } from "@react-three/drei";
 import type { Vec3 } from "../../props";
@@ -33,7 +33,6 @@ import {
   CAMERA,
   GRID_DIVISIONS,
   GRID_SIZE,
-  INTERACTION_HINT,
   MAX_DISTANCE,
   MIN_DISTANCE,
   POSITION_MAX,
@@ -41,22 +40,18 @@ import {
   arrowQuaternion,
   axisLabelAnchor,
   blockOf,
-  clampAngle,
-  clampAngles,
-  clampCoord,
-  clampPosition,
   factorOrder,
   formatCoord,
-  formatMatrix4,
-  homogeneous,
+  interactionHint,
+  shownFactors,
   isDrawableTranslation,
-  rotationMatrix,
-  toRotationMode,
-  transformQuaternion,
   translationLabelAnchor,
   type AxisKey,
+  type IntrinsicStep,
+  type Quaternion,
   type RotationMode,
 } from "./transform";
+import { useTransformSession } from "./session";
 
 export interface HomogeneousTransformProps {
   angles: Vec3 | null;
@@ -128,13 +123,16 @@ function Arrow({
   color,
   opacity = 1,
   radiusScale = 1,
+  headless = false,
 }: {
   axis: AxisKey;
   color: string;
   opacity?: number;
   radiusScale?: number;
+  /** A shaft with no head: for the ghosts, which mark a pose, not a vector. */
+  headless?: boolean;
 }) {
-  const shaftLength = AXIS_LENGTH - HEAD_LENGTH;
+  const shaftLength = AXIS_LENGTH - (headless ? 0 : HEAD_LENGTH);
   return (
     <group rotation={AXIS_ROTATION[axis]}>
       <mesh position={[0, shaftLength / 2, 0]}>
@@ -153,15 +151,17 @@ function Arrow({
           opacity={opacity}
         />
       </mesh>
-      <mesh position={[0, shaftLength + HEAD_LENGTH / 2, 0]}>
-        <coneGeometry args={[HEAD_RADIUS * radiusScale, HEAD_LENGTH, 20]} />
-        <meshStandardMaterial
-          color={color}
-          roughness={0.45}
-          transparent={opacity < 1}
-          opacity={opacity}
-        />
-      </mesh>
+      {!headless && (
+        <mesh position={[0, shaftLength + HEAD_LENGTH / 2, 0]}>
+          <coneGeometry args={[HEAD_RADIUS * radiusScale, HEAD_LENGTH, 20]} />
+          <meshStandardMaterial
+            color={color}
+            roughness={0.45}
+            transparent={opacity < 1}
+            opacity={opacity}
+          />
+        </mesh>
+      )}
     </group>
   );
 }
@@ -223,6 +223,40 @@ function OriginLabel({
         o<sub className="text-[0.62em] font-semibold">{frameName}</sub>
       </span>
     </Html>
+  );
+}
+
+/**
+ * The orientations {R} has already been through this session, drawn faint at
+ * wherever it stands now.
+ *
+ * They mark turns, not places: the translation is an absolute slider that the
+ * student can move afterwards, so pinning a ghost to the position it was
+ * committed at would claim the sequence had recorded something it did not.
+ * Thin, unlabelled and headless — a trail behind the frame, never a third
+ * thing competing with it.
+ */
+function GhostTrail({ orientations }: { orientations: Quaternion[] }) {
+  return (
+    <>
+      {orientations.map((quaternion, i) => (
+        <group key={i} quaternion={quaternion}>
+          {ANGLE_AXES.map((axis) => (
+            <Arrow
+              key={axis}
+              axis={axis}
+              color={ROTATED[axis]}
+              // The oldest steps fade the furthest, so a long session reads as
+              // a trail with a direction rather than a thicket — but never to
+              // nothing, which would hide a step the student took.
+              opacity={0.18 + (0.22 * (i + 1)) / orientations.length}
+              radiusScale={0.5}
+              headless
+            />
+          ))}
+        </group>
+      ))}
+    </>
   );
 }
 
@@ -493,10 +527,16 @@ function MatrixPanel({
  */
 function BlockLegend({
   mode,
+  steps,
+  live,
+  intrinsic,
   inertialName,
   rotatedName,
 }: {
   mode: RotationMode;
+  steps: IntrinsicStep[];
+  live: IntrinsicStep | null;
+  intrinsic: boolean;
   inertialName: string;
   rotatedName: string;
 }) {
@@ -508,12 +548,17 @@ function BlockLegend({
         rotatedName={rotatedName}
       />
       {" = "}
-      {factorOrder(mode).map((axis) => (
-        <span key={axis} style={{ color: ROTATED[axis] }}>
-          <strong className="font-bold not-italic">R</strong>
-          <sub className="text-[0.7em]">{axis}</sub>({ANGLE_SYMBOLS[axis]}){" "}
-        </span>
-      ))}
+      {intrinsic ? (
+        <SessionFactors steps={steps} live={live} />
+      ) : (
+        factorOrder(mode).map((axis) => (
+          <span key={axis} style={{ color: ROTATED[axis] }}>
+            <strong className="font-bold not-italic">R</strong>
+            <sub className="text-[0.7em]">{axis}</sub>({ANGLE_SYMBOLS[axis]}
+            ){" "}
+          </span>
+        ))
+      )}
       <span className="mx-1 opacity-50">·</span>
       <PoseSymbol
         letter="p"
@@ -594,18 +639,113 @@ function ModeSwitch({
 }
 
 /** One angle's slider, labelled with its Greek letter and its axis. */
+/**
+ * The two ways back, and they are not the same question.
+ *
+ * "Alinhar eixos" answers *which way is {R} facing* — it zeroes the three
+ * angles and leaves the translation exactly where the student put it, so the
+ * left block of ᴵT_R goes to the identity while the last column sits still.
+ * That contrast is the figure's whole argument, and it is worth a button.
+ *
+ * "Redefinir" answers *let me start over*: the authored pose, both halves of
+ * it. A student who has driven the frame somewhere unreadable needs one
+ * button, not six sliders dragged back by eye.
+ *
+ * Each is disabled once it has nothing to do, so the pair also reports where
+ * the pose stands rather than only changing it.
+ */
+function PoseButton({
+  children,
+  disabled,
+  hint,
+  onClick,
+}: {
+  children: React.ReactNode;
+  disabled: boolean;
+  hint: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={hint}
+      title={hint}
+      className={[
+        "rounded-md border border-border px-2 py-0.5 text-xs font-medium transition-colors",
+        disabled
+          ? "cursor-default text-muted-foreground/50"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * The same equation for an own-axis session: not three fixed slots, but the
+ * product as it was actually built, one factor per released step and the drag
+ * in flight on the right — which is what post-multiplication looks like.
+ */
+function SessionFactors({
+  steps,
+  live,
+}: {
+  steps: IntrinsicStep[];
+  live: IntrinsicStep | null;
+}) {
+  const all = live && live.deg !== 0 ? [...steps, live] : steps;
+  const { shown, elided } = shownFactors(all);
+  return (
+    <>
+      {shown.length === 0 && <span className="italic">I</span>}
+      {elided && <span aria-hidden>⋯ </span>}
+      {shown.map((step, i) => (
+        <span
+          // Position in the product, not the axis: the same axis can appear in
+          // it more than once, which is the whole reason this mode exists.
+          key={all.length - shown.length + i}
+          style={{ color: ROTATED[step.axis] }}
+          className={
+            live && live.deg !== 0 && i === shown.length - 1
+              ? "underline decoration-dotted underline-offset-2"
+              : undefined
+          }
+        >
+          <strong className="font-bold not-italic">R</strong>
+          <sub className="text-[0.7em]">{step.axis}</sub>({step.deg}°){" "}
+        </span>
+      ))}
+    </>
+  );
+}
+
 function AngleSlider({
   axis,
   value,
   step,
+  incremental,
+  rotatedName,
   onChange,
+  onPress,
+  onRelease,
 }: {
   axis: AxisKey;
   value: number;
   step: number;
+  /** Own-axis mode: the slider is a turn from here, not an absolute angle. */
+  incremental: boolean;
+  rotatedName: string;
   onChange: (value: number) => void;
+  onPress: () => void;
+  onRelease: () => void;
 }) {
   const color = ROTATED[axis];
+  const label = incremental
+    ? `Girar {${rotatedName}} em torno do próprio eixo ${axis}: solte para fixar o passo`
+    : `Ângulo ${ANGLE_SYMBOLS[axis]} em torno do eixo ${axis}, em graus`;
   return (
     <label className="flex items-center gap-1.5 text-xs">
       <span
@@ -625,13 +765,26 @@ function AngleSlider({
         max={ANGLE_MAX}
         step={step}
         value={value}
-        aria-label={`Ângulo ${ANGLE_SYMBOLS[axis]} em torno do eixo ${axis}, em graus`}
+        aria-label={label}
+        title={incremental ? label : undefined}
         onChange={(e) => onChange(Number(e.target.value))}
+        // A gesture is bracketed by a press and a release, and the session
+        // takes only the turns that fall inside one — see
+        // `components/interactive/orientation-session.ts` for why guessing
+        // from the release alone is not enough.
+        onPointerDown={incremental ? onPress : undefined}
+        onKeyDown={incremental ? onPress : undefined}
+        onPointerUp={incremental ? onRelease : undefined}
+        onLostPointerCapture={incremental ? onRelease : undefined}
+        onKeyUp={incremental ? onRelease : undefined}
+        onBlur={incremental ? onRelease : undefined}
         className="h-1 w-24 cursor-pointer sm:w-28"
         style={{ accentColor: color }}
       />
       <span className="w-11 text-right tabular-nums text-muted-foreground">
-        {value}°
+        {/* A sign while the turn is still in the student's hand: it is being
+            added to what the frame already has, not replacing it. */}
+        {incremental && value > 0 ? `+${value}°` : `${value}°`}
       </span>
     </label>
   );
@@ -690,37 +843,26 @@ export default function HomogeneousTransform({
   labels,
   grid,
 }: HomogeneousTransformProps) {
-  // The authored values are only a starting point; from then on the controls
-  // own them. Clamped on the way in, because `vec3` will happily parse a
-  // "400,0,0" that no slider could ever bring back.
-  const [deg, setDeg] = useState<Vec3>(() => clampAngles(angles ?? [0, 0, 0]));
-  const [pos, setPos] = useState<Vec3>(() =>
-    clampPosition(position ?? [0, 0, 0]),
-  );
-  const [rotation, setRotation] = useState<RotationMode>(() =>
-    toRotationMode(mode),
-  );
-
-  const transform = useMemo(
-    () => homogeneous(rotationMatrix(deg, rotation), pos),
-    [deg, pos, rotation],
-  );
-  const quaternion = useMemo(() => transformQuaternion(transform), [transform]);
-  const rows = formatMatrix4(transform, decimals);
-
-  const setAngle = (index: number, value: number) =>
-    setDeg((prev) => {
-      const next: Vec3 = [...prev];
-      next[index] = clampAngle(value);
-      return next;
-    });
-
-  const setCoord = (index: number, value: number) =>
-    setPos((prev) => {
-      const next: Vec3 = [...prev];
-      next[index] = clampCoord(value);
-      return next;
-    });
+  const {
+    mode: rotation,
+    intrinsic,
+    deg,
+    pos,
+    quaternion,
+    ghostQuaternions,
+    steps,
+    live,
+    aligned,
+    rows,
+    atInitialPose,
+    setAngle,
+    setCoord,
+    beginGesture,
+    commitLive,
+    selectMode,
+    align,
+    resetPose,
+  } = useTransformSession({ angles, position, mode, decimals });
 
   const columnColors = [
     ROTATED.x,
@@ -741,7 +883,13 @@ export default function HomogeneousTransform({
           style={{ touchAction: "none" }}
         >
           <CameraRig />
-          <Redraw on={transform} />
+          {/* A commit lands on the orientation the drag already reached, so
+              the transform alone would not tell the renderer a ghost had
+              appeared. A string, not an array: a fresh array every render
+              would invalidate on every render. */}
+          <Redraw
+            on={`${quaternion.join()}|${pos.join()}|${ghostQuaternions.length}`}
+          />
 
           <ambientLight intensity={1.1} />
           <directionalLight position={[4, -6, 8]} intensity={1.6} />
@@ -786,6 +934,12 @@ export default function HomogeneousTransform({
             </>
           )}
 
+          {/* Where {R} has been this session, faintest first, at the origin
+              it stands on now. */}
+          <group position={pos}>
+            <GhostTrail orientations={ghostQuaternions} />
+          </group>
+
           {/* The matrix, applied: {R} is {I} turned by the rotation block and
               carried out to the translation one — which is all ᴵT_R says. */}
           <group position={pos} quaternion={quaternion}>
@@ -811,7 +965,7 @@ export default function HomogeneousTransform({
         </Canvas>
 
         <p className="pointer-events-none absolute bottom-1 left-0 w-full text-center text-xs text-muted-foreground">
-          {INTERACTION_HINT}
+          {interactionHint(rotation)}
         </p>
       </div>
 
@@ -825,6 +979,9 @@ export default function HomogeneousTransform({
         <div className="flex flex-col items-center gap-1">
           <BlockLegend
             mode={rotation}
+            steps={steps}
+            live={live}
+            intrinsic={intrinsic}
             inertialName={inertialName}
             rotatedName={rotatedName}
           />
@@ -840,12 +997,28 @@ export default function HomogeneousTransform({
         </div>
 
         <div className="flex flex-col items-start gap-1.5">
-          <ModeSwitch
-            mode={rotation}
-            inertialName={inertialName}
-            rotatedName={rotatedName}
-            onSelect={setRotation}
-          />
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+            <ModeSwitch
+              mode={rotation}
+              inertialName={inertialName}
+              rotatedName={rotatedName}
+              onSelect={selectMode}
+            />
+            <PoseButton
+              disabled={aligned}
+              hint={`Zerar os três ângulos, alinhando os eixos de {${rotatedName}} com os de {${inertialName}}. A posição não muda.`}
+              onClick={align}
+            >
+              alinhar eixos
+            </PoseButton>
+            <PoseButton
+              disabled={atInitialPose}
+              hint={`Voltar {${rotatedName}} à pose inicial do bloco: orientação e posição`}
+              onClick={resetPose}
+            >
+              redefinir
+            </PoseButton>
+          </div>
           <div className="flex flex-wrap gap-x-5 gap-y-1.5">
             <div className="flex flex-col gap-1.5">
               {ANGLE_AXES.map((axis, i) => (
@@ -854,7 +1027,11 @@ export default function HomogeneousTransform({
                   axis={axis}
                   value={deg[i]}
                   step={step}
+                  incremental={intrinsic}
+                  rotatedName={rotatedName}
                   onChange={(value) => setAngle(i, value)}
+                  onPress={() => beginGesture(i)}
+                  onRelease={() => commitLive(i)}
                 />
               ))}
             </div>

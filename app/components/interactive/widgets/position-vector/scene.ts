@@ -97,9 +97,9 @@ export function sliderAxes(dim: Dimension): AxisKey[] {
 }
 
 /**
- * Cameras far enough back to hold the whole ±5 graduation, aimed a little
- * above the origin in 3D so the vertical half of the scene the vector reaches
- * into is not crowded against the top edge.
+ * The flat views stand far enough back to hold the whole ±5 graduation; the
+ * 3D one trades that coverage for a close, readable frame — see its own note
+ * below.
  *
  * As in `coord-frame-3d`, the flat views look straight down an axis rather
  * than at a foreshortened scene, and the 2D view takes +y as up because
@@ -118,12 +118,20 @@ export const VIEW_CAMERA: Record<Dimension, Camera> = {
     up: [0, 1, 0],
     fov: 40,
   },
-  // Aimed a unit above the plane rather than at the origin: half of what the
-  // student can dial lies above the grid, so centring on it wasted the top of
-  // the stage and clipped the label of a point dialled up to z = 5.
+  // The 3D view is the exception to the paragraph above, deliberately: it
+  // opens close in, six units out — the nearest `MIN_DISTANCE` allows — with
+  // the frame and the vector filling the stage instead of the whole ±5 grid.
+  // A view that holds the entire graduation renders the basis arrows, the
+  // thing the coordinates are actually read against, barely longer than their
+  // own labels. The cost is that the far corners of the dial-able world start
+  // off-stage; the student scrolls out to meet them, which is the gesture the
+  // hint already names.
   "3d": {
-    position: [10.7, -12.4, 10],
-    target: [0, 0, 1],
+    position: [1.73, -4.63, 4.81],
+    // Aimed above the plane rather than at the origin: half of what the
+    // student can dial lies above the grid, so centring on it wasted the top
+    // of the stage and crowded the ẑ label against the ceiling.
+    target: [0, 0, 1.4],
     up: [0, 0, 1],
     fov: 40,
   },

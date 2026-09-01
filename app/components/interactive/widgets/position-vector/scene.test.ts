@@ -33,6 +33,7 @@ import {
   type Quaternion,
 } from "./scene";
 import { DIMENSIONS, type Dimension } from "../../dimensions";
+import { project } from "../../projection";
 
 /**
  * Rotate `v` by the quaternion, the long way round (q · v · q⁻¹ expanded).
@@ -246,18 +247,69 @@ describe("label placement", () => {
 });
 
 describe("the cameras", () => {
-  it.each(DIMENSIONS)("%s: stands far enough back to hold the grid", (dim) => {
+  const standoff = (dim: Dimension) => {
     const { position, target } = VIEW_CAMERA[dim];
-    const distance = Math.hypot(
+    return Math.hypot(
       position[0] - target[0],
       position[1] - target[1],
       position[2] - target[2],
     );
-    // Half of a 10-unit world at a 40° vertical fov needs ~13.7 units of
-    // standoff; anything nearer crops the graduation the point is read off.
-    expect(distance).toBeGreaterThan(RANGE / Math.tan((40 * Math.PI) / 360));
-    expect(distance).toBeGreaterThanOrEqual(MIN_DISTANCE);
-    expect(distance).toBeLessThanOrEqual(MAX_DISTANCE);
+  };
+
+  it.each(DIMENSIONS)("%s: opens somewhere the student can zoom", (dim) => {
+    // Outside the wheel's range the first scroll jumps the scene: the control
+    // clamps the distance before it has moved a notch.
+    expect(standoff(dim)).toBeGreaterThanOrEqual(MIN_DISTANCE);
+    expect(standoff(dim)).toBeLessThanOrEqual(MAX_DISTANCE);
+  });
+
+  it.each(["1d", "2d"] as Dimension[])(
+    "%s: stands far enough back to hold the whole graduation",
+    (dim) => {
+      // Half of a 10-unit world at a 40° vertical fov needs ~13.7 units of
+      // standoff; anything nearer crops the graduation the point is read off.
+      // The flat views are the ones that promise the whole ruler at a glance.
+      expect(standoff(dim)).toBeGreaterThan(
+        RANGE / Math.tan((40 * Math.PI) / 360),
+      );
+    },
+  );
+
+  it("opens the 3D view close in, on the frame rather than on the grid", () => {
+    // The deliberate exception: 3D trades whole-grid coverage for arrows big
+    // enough to read. Measured on the widget's own stage, the drop from the ẑ
+    // label to the origin has to cover a real slice of the height — it was a
+    // ninth of it from eighteen units out, which is where this started.
+    const viewport = { width: 774, height: 270 };
+    const camera = VIEW_CAMERA["3d"];
+    expect(standoff("3d")).toBeCloseTo(MIN_DISTANCE, 1);
+
+    const origin = project([0, 0, 0], viewport, camera)!;
+    const zLabel = project(axisLabelAnchor("z", "3d"), viewport, camera)!;
+    expect((origin[1] - zLabel[1]) / viewport.height).toBeGreaterThan(0.15);
+
+    // …and the vector the sliders open on stays whole: tip, label and origin
+    // all on the stage, with the tip up and to the right of the origin.
+    const tip = project([3, 2, 1], viewport, camera)!;
+    const tipLabel = project(labelAnchor([3, 2, 1], "3d"), viewport, camera)!;
+    for (const [x, y] of [origin, tip, tipLabel]) {
+      expect(x).toBeGreaterThan(0);
+      expect(x).toBeLessThan(viewport.width);
+      expect(y).toBeGreaterThan(0);
+      expect(y).toBeLessThan(viewport.height);
+    }
+    expect(tip[0]).toBeGreaterThan(origin[0]);
+    expect(tip[1]).toBeLessThan(origin[1]);
+
+    // The orientation is part of the framing, not a free choice: x̂ runs
+    // almost level across the stage and ŷ climbs into the depth, which is
+    // what keeps the three arrows from overlapping each other's labels.
+    const xLabel = project(axisLabelAnchor("x", "3d"), viewport, camera)!;
+    const yLabel = project(axisLabelAnchor("y", "3d"), viewport, camera)!;
+    const run = xLabel[0] - origin[0];
+    expect(run).toBeGreaterThan(0);
+    expect(Math.abs(xLabel[1] - origin[1]) / run).toBeLessThan(0.35);
+    expect(origin[1] - yLabel[1]).toBeGreaterThan(Math.abs(run) / 2);
   });
 
   it("looks along an axis in the flat views, so they read as flat", () => {

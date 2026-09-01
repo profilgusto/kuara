@@ -12,20 +12,29 @@ import { arrowHead, project, type Camera } from "../../projection";
 import type { Vec3 } from "../../props";
 import type { RotationMatrixProps } from "./index";
 import {
-  ANGLE_AXES,
   AXIS_LENGTH,
   AXIS_UNIT,
-  CAMERA,
   GRID_HALF,
   GRID_STEP,
+  VIEW_CAMERA,
+  anglesFor,
   apply,
   axisLabelAnchor,
   clampAngles,
+  dimensionNote,
   factorOrder,
-  formatMatrix,
+  formatEntry,
+  referenceKind,
   rotationMatrix,
+  rulerTicks,
+  showsModeSwitch,
+  submatrix,
+  toDimension,
   toRotationMode,
+  visibleAxes,
+  wrapText,
   type AxisKey,
+  type Dimension,
   type Mat3,
 } from "./rotation";
 
@@ -137,6 +146,7 @@ function Triad({
   frameName,
   labels,
   orientation,
+  axes,
   width,
   head,
 }: {
@@ -145,6 +155,7 @@ function Triad({
   frameName: string;
   labels: boolean;
   orientation: Mat3 | null;
+  axes: AxisKey[];
   width: number;
   head: number;
 }) {
@@ -152,7 +163,7 @@ function Triad({
 
   return (
     <g>
-      {ANGLE_AXES.map((axis) => {
+      {axes.map((axis) => {
         const tip = place(scaled(AXIS_UNIT[axis], AXIS_LENGTH));
         const labelAt = to2d(place(axisLabelAnchor(axis)));
         return (
@@ -188,8 +199,34 @@ function Triad({
   );
 }
 
-/** The xy plane of {I}, one square per basis vector. */
-function Grid({ to2d }: { to2d: To2d }) {
+/**
+ * The graduated reference: the xy plane of {I} where the view has one, and a
+ * ruler along x on the line, which has no plane to lie on.
+ */
+function Reference({ to2d, dim }: { to2d: To2d; dim: Dimension }) {
+  if (referenceKind(dim) === "ruler") {
+    const tickHalf = 0.05;
+    return (
+      <g>
+        <Segment
+          to2d={to2d}
+          from={[-GRID_HALF, 0, 0]}
+          to={[GRID_HALF, 0, 0]}
+          color={INK.grid}
+        />
+        {rulerTicks().map((t) => (
+          <Segment
+            key={t}
+            to2d={to2d}
+            from={[t, 0, -tickHalf]}
+            to={[t, 0, tickHalf]}
+            color={INK.grid}
+          />
+        ))}
+      </g>
+    );
+  }
+
   const ticks: number[] = [];
   for (let t = -GRID_HALF; t <= GRID_HALF + 1e-9; t += GRID_STEP) {
     ticks.push(Number(t.toFixed(4)));
@@ -225,22 +262,27 @@ function Grid({ to2d }: { to2d: To2d }) {
 function MatrixReadout({
   rows,
   mode,
+  dim,
   inertialName,
   rotatedName,
 }: {
   rows: string[][];
   mode: ReturnType<typeof toRotationMode>;
+  dim: Dimension;
   inertialName: string;
   rotatedName: string;
 }) {
   const x = 22;
-  const top = VIEW.height - 122;
+  const order = rows.length;
   const rowHeight = 26;
   const colWidth = 62;
-  const boxHeight = rowHeight * 3 + 10;
+  const boxHeight = rowHeight * order + 10;
+  // Bottom-anchored, so a 1×1 and a 3×3 sit on the same line of the page
+  // instead of the smaller one floating in the middle of the corner.
+  const top = VIEW.height - 32 - boxHeight;
   const nameWidth = 46;
   const bracketX = x + nameWidth + 26;
-  const boxWidth = colWidth * 3 + 16;
+  const boxWidth = colWidth * order + 16;
 
   return (
     <g>
@@ -274,9 +316,13 @@ function MatrixReadout({
           {rotatedName}
         </tspan>
         <tspan dy={-5}>
-          {` = ${factorOrder(mode)
-            .map((axis) => `R${axis}`)
-            .join(" · ")}`}
+          {/* The product is worth spelling out only where its order can
+              differ; on a plane there is one factor and on a line none. */}
+          {showsModeSwitch(dim)
+            ? ` = ${factorOrder(mode)
+                .map((axis) => `R${axis}`)
+                .join(" · ")}`
+            : ""}
         </tspan>
       </text>
 
@@ -324,7 +370,7 @@ function MatrixReadout({
             y={top + 14 + rowHeight * r}
             // Columns tinted by the axis they are: column c of ᴵR_R is the
             // basis vector of {R} of that colour, resolved in {I}.
-            fill={INK.rotated[ANGLE_AXES[c]]}
+            fill={INK.rotated[visibleAxes(dim)[c]]}
             fontSize={15}
             textAnchor="end"
             dominantBaseline="middle"
@@ -345,13 +391,20 @@ export default function RotationMatrixPrint({
   rotatedName,
   labels,
   grid,
+  variant,
 }: RotationMatrixProps) {
-  const to2d = projector(CAMERA);
+  const dim = toDimension(variant);
+  const axes = visibleAxes(dim);
+  const to2d = projector(VIEW_CAMERA[dim]);
   const rotation = toRotationMode(mode);
-  const deg = clampAngles(angles ?? [0, 0, 0]);
+  // Only the turns this view has an axis for, exactly as on screen.
+  const deg = anglesFor(dim, clampAngles(angles ?? [0, 0, 0]));
   const matrix = rotationMatrix(deg, rotation);
-  const rows = formatMatrix(matrix, decimals);
+  const rows = submatrix(matrix, dim).map((row) =>
+    row.map((entry) => formatEntry(entry, decimals)),
+  );
   const origin = to2d([0, 0, 0]);
+  const note = dimensionNote(dim);
 
   return (
     <svg
@@ -360,7 +413,7 @@ export default function RotationMatrixPrint({
       role="img"
       aria-label={`Matriz de rotação do frame {${rotatedName}} em relação ao frame inercial {${inertialName}}`}
     >
-      {grid && <Grid to2d={to2d} />}
+      {grid && <Reference to2d={to2d} dim={dim} />}
 
       <Triad
         to2d={to2d}
@@ -368,6 +421,7 @@ export default function RotationMatrixPrint({
         frameName={inertialName}
         labels={labels}
         orientation={null}
+        axes={axes}
         width={1.8}
         head={9}
       />
@@ -378,6 +432,7 @@ export default function RotationMatrixPrint({
         frameName={rotatedName}
         labels={labels}
         orientation={matrix}
+        axes={axes}
         width={2.4}
         head={11}
       />
@@ -405,9 +460,29 @@ export default function RotationMatrixPrint({
       <MatrixReadout
         rows={rows}
         mode={rotation}
+        dim={dim}
         inertialName={inertialName}
         rotatedName={rotatedName}
       />
+
+      {/* Why a flat view has no controls to speak of — the sliders are not on
+          paper to explain themselves. */}
+      {note && (
+        <text x={VIEW.width - 22} y={26} fill={INK.origin} fontSize={12}>
+          {wrapText(note, 64).map((line, i) => (
+            <tspan
+              key={i}
+              // Right-aligned block: each line is re-anchored at the same x,
+              // which `dy` alone would not do.
+              x={VIEW.width - 22}
+              dy={i === 0 ? 0 : 16}
+              textAnchor="end"
+            >
+              {line}
+            </tspan>
+          ))}
+        </text>
+      )}
     </svg>
   );
 }

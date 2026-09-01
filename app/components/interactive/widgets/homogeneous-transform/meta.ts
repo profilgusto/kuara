@@ -19,7 +19,15 @@ const meta: WidgetMeta = {
     "coluna e a linha [0 0 0 1] embaixo, apenas para fechar o quadrado. " +
     "Girar sem transladar mexe só no bloco esquerdo; transladar sem girar " +
     "mexe só na última coluna, que é o argumento visual de que a matriz não " +
-    "é um objeto novo, e sim dois já conhecidos escritos lado a lado.",
+    "é um objeto novo, e sim dois já conhecidos escritos lado a lado. " +
+    "Como em `rotation-matrix`, a chave `proprio` transforma os sliders " +
+    "angulares numa sequência: cada um gira {R} em torno do próprio eixo a " +
+    "partir de onde o frame está, volta a zero quando solto e deixa um " +
+    "triedro fantasma marcando o passo — os sliders de posição continuam " +
+    "absolutos, porque uma translação não perde o seu eixo. Dois botões " +
+    "desfazem: “alinhar eixos” zera os ângulos sem mexer na posição (o " +
+    "bloco 3×3 vai à identidade e a última coluna fica parada), e " +
+    "“redefinir” devolve a pose inicial inteira.",
   defaultHeight: 620,
   props: {
     angles: vec3(
@@ -33,7 +41,7 @@ const meta: WidgetMeta = {
     mode: enumOf(
       ["inercial", "proprio"],
       "inercial",
-      "Posição inicial da chave: `inercial` gira {R} em torno dos eixos fixos de {I}; `proprio` gira em torno dos eixos do próprio {R}.",
+      "Posição inicial da chave: `inercial` gira {R} em torno dos eixos fixos de {I}, com três ângulos absolutos; `proprio` gira em torno dos eixos do próprio {R}, como uma sequência de passos com fantasmas.",
     ),
     step: num(
       5,

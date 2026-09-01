@@ -76,6 +76,29 @@ export function clampAngles(angles: Vec3): Vec3 {
   return [clampAngle(angles[0]), clampAngle(angles[1]), clampAngle(angles[2])];
 }
 
+/**
+ * Every elementary angle at zero: the one orientation in which the rotated
+ * frame lies exactly on the inertial one and the matrix is the identity.
+ *
+ * Getting back here by hand is genuinely hard — three sliders, each with a
+ * five-degree step and no detent at the middle — so the widgets offer it as a
+ * single control, and a student who has tangled the frame up can always find
+ * the way home.
+ */
+export const ALIGNED_ANGLES: Vec3 = [0, 0, 0];
+
+/**
+ * Whether the frames are already aligned, whichever axes the angles are read
+ * about: no elementary rotation means no rotation in either convention.
+ *
+ * A -0 counts as aligned — a slider dragged down through zero lands there —
+ * and a NaN does not, even though `clampAngle` would read it as zero: it can
+ * only arrive from an authored angle, and the button is exactly what fixes it.
+ */
+export function isAligned(angles: Vec3): boolean {
+  return angles.every((deg) => deg === 0);
+}
+
 const toRadians = (deg: number) => (deg * Math.PI) / 180;
 
 export function identity(): Mat3 {
@@ -148,6 +171,128 @@ export function rotationMatrix(anglesDeg: Vec3, mode: RotationMode): Mat3 {
       mode === "inercial" ? multiply(factor, acc) : multiply(acc, factor),
     identity(),
   );
+}
+
+// ─── the intrinsic session ────────────────────────────────────────────────────
+
+/**
+ * One released drag: so many degrees about one of {R}'s *own* axes, taken at
+ * the orientation the frame had when the drag began.
+ *
+ * The three sliders of `rotationMatrix` cannot express this. There α, β and γ
+ * are fixed slots in a fixed product, so the α slider always rotates about the
+ * frame's first x — turn about x, then about y, then reach for x again and the
+ * widget re-does the *first* rotation, about an x the frame left behind two
+ * moves ago. A student following the section's own "now turn about your new
+ * x̂" has no way to ask for it. A sequence of steps has: each one is applied
+ * after the ones before it, so its axis is whatever {R}'s axis is by then.
+ */
+export interface IntrinsicStep {
+  axis: AxisKey;
+  deg: number;
+}
+
+/**
+ * ᴵR_R for a sequence of own-axis steps: every step post-multiplies, because
+ * post-multiplication is what "about the frame's own axes" *means*.
+ *
+ * An empty sequence is the identity — the frames aligned, which is where a
+ * session starts.
+ */
+export function composeIntrinsic(steps: readonly IntrinsicStep[]): Mat3 {
+  return steps.reduce(
+    (acc, step) => multiply(acc, elementary(step.axis, step.deg)),
+    identity(),
+  );
+}
+
+/**
+ * The orientation after each step, oldest first — the trail of frames the
+ * student walked through, which the widget leaves behind as ghosts.
+ *
+ * The last entry is the current orientation, so a live drag is drawn from
+ * there and the newest ghost is the one it lifts off.
+ */
+export function intrinsicTrail(steps: readonly IntrinsicStep[]): Mat3[] {
+  const trail: Mat3[] = [];
+  let acc = identity();
+  for (const step of steps) {
+    acc = multiply(acc, elementary(step.axis, step.deg));
+    trail.push(acc);
+  }
+  return trail;
+}
+
+/**
+ * The authored `angles` read as a sequence: about x, then y, then z, which is
+ * the order the classic product applies them in.
+ *
+ * `composeIntrinsic(stepsFromAngles(a))` is `rotationMatrix(a, "proprio")` —
+ * the session opens on exactly the orientation the authored props describe,
+ * and the print fallback stays honest without knowing any of this. Angles left
+ * at zero are dropped: they turn nothing, and each one would otherwise leave a
+ * ghost on top of its neighbour.
+ */
+export function stepsFromAngles(angles: Vec3): IntrinsicStep[] {
+  return ANGLE_AXES.map((axis, i) => ({
+    axis,
+    deg: clampAngle(angles[i]),
+  })).filter((step) => step.deg !== 0);
+}
+
+/**
+ * The sequence after a drag is released: the step joins it, unless the drag
+ * ended where it started.
+ *
+ * A drag back to zero commits nothing — there is no turn to write into the
+ * product and no ghost worth leaving on a frame that did not move. Passing no
+ * live step is also a no-op, which is what makes the call idempotent: it is
+ * wired to every event that can end a drag, and browsers disagree about which
+ * of them fire.
+ */
+export function commitStep(
+  steps: readonly IntrinsicStep[],
+  live: IntrinsicStep | null,
+): IntrinsicStep[] {
+  if (!live || live.deg === 0) return [...steps];
+  return [...steps, live];
+}
+
+/**
+ * What the three sliders read during a session: the drag in flight on its own
+ * axis, the other two resting at zero.
+ *
+ * Only one can be off zero, and that is the model, not a UI detail — a step is
+ * a turn about one axis of a frame that the next step will have moved.
+ */
+export function sliderAngles(live: IntrinsicStep | null): Vec3 {
+  return ANGLE_AXES.map((axis) =>
+    live && live.axis === axis ? live.deg : 0,
+  ) as Vec3;
+}
+
+/**
+ * How many factors the formula spells out before it starts eliding.
+ *
+ * A session can run to any length, and the panel sits on one line under a
+ * stage that is often only a phone wide; the recent factors are the ones the
+ * student is reasoning about, so the old ones give way to an ellipsis rather
+ * than pushing the matrix off the screen.
+ */
+export const MAX_SHOWN_FACTORS = 4;
+
+/**
+ * The tail of a sequence the formula can actually fit, and whether anything
+ * was dropped off the front.
+ */
+export function shownFactors<T>(
+  steps: readonly T[],
+  max = MAX_SHOWN_FACTORS,
+): { shown: T[]; elided: boolean } {
+  return {
+    shown: steps.slice(Math.max(0, steps.length - max)),
+    elided: steps.length > max,
+  };
 }
 
 /**

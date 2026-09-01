@@ -24,6 +24,7 @@ import {
   type AxisKey,
   type Mat3,
   type Quaternion,
+  type RotationMode,
 } from "../../rotations";
 
 export {
@@ -33,16 +34,26 @@ export {
   ANGLE_SYMBOLS,
   ROTATION_MODES,
   apply,
+  ALIGNED_ANGLES,
   clampAngle,
   clampAngles,
   column,
+  commitStep,
+  composeIntrinsic,
+  elementary,
   factorOrder,
   formatEntry,
   identity,
+  intrinsicTrail,
+  isAligned,
   matrixToQuaternion,
   rotationMatrix,
+  shownFactors,
+  sliderAngles,
+  stepsFromAngles,
   toRotationMode,
   type AxisKey,
+  type IntrinsicStep,
   type Mat3,
   type Quaternion,
   type RotationMode,
@@ -267,5 +278,15 @@ export function arrowQuaternion(direction: Vec3): Quaternion {
   return [q[0] / n, q[1] / n, q[2] / n, q[3] / n];
 }
 
-export const INTERACTION_HINT =
-  "Arraste para girar a câmera · gire {R} com α, β, γ e desloque-o com os sliders de posição";
+/**
+ * The hint under the stage. It changes with the mode because the angle sliders
+ * do: about the inertial axes they are three angles the student holds wherever
+ * they like, and about {R}'s own axes each is a gesture that is spent when
+ * released. The position sliders are absolute either way — a translation has
+ * no axis to lose.
+ */
+export function interactionHint(mode: RotationMode): string {
+  return mode === "proprio"
+    ? "Arraste para girar a câmera · cada slider angular gira {R} em torno do próprio eixo e volta a zero, deixando o passo marcado · a posição continua absoluta"
+    : "Arraste para girar a câmera · gire {R} com α, β, γ e desloque-o com os sliders de posição";
+}

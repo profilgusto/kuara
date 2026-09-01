@@ -22,7 +22,13 @@ export interface Camera {
 }
 
 export const DEFAULT_CAMERA: Camera = {
-  position: [3.4, -3.9, 2.8],
+  // Three and a half units out along the same diagonal the triedro is drawn
+  // from. The frame is a unit one, so standing further back than this spends
+  // most of a wide stage on empty grid and leaves the arrows — the whole
+  // subject of the figure — small enough that the label glyphs carry it.
+  // Anything nearer starts to foreshorten the triedro into something that
+  // reads as a perspective trick rather than as three orthogonal axes.
+  position: [2.07, -2.38, 1.82],
   // Aimed a little above the origin: the triedro sits in the grid's upper
   // half, so centring on the origin leaves dead space below it and crowds the
   // ẑ label against the top edge.

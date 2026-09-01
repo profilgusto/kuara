@@ -29,7 +29,7 @@ import {
   toDimension,
   visibleAxes,
 } from "./views";
-import { DEFAULT_CAMERA } from "../../projection";
+import { DEFAULT_CAMERA, project } from "../../projection";
 
 describe("toDimension", () => {
   it("accepts the three declared ids", () => {
@@ -287,6 +287,24 @@ describe("VIEW_CAMERA", () => {
     // vector: the projection would come out NaN and print nothing at all.
     expect(VIEW_CAMERA["2d"].up).toEqual([0, 1, 0]);
     expect(VIEW_CAMERA["1d"].up).toEqual([0, 0, 1]);
+  });
+
+  it("frames the 3D triedro large enough to read as the subject", () => {
+    // The unit frame is what the figure is about, so it has to own the stage:
+    // measured on the widget's own aspect, the drop from the ẑ label to the
+    // origin covers most of the height. It stood at barely a quarter of it
+    // when the camera was 5.7 units out.
+    const viewport = { width: 780, height: 250 };
+    const origin = project([0, 0, 0], viewport, VIEW_CAMERA["3d"])!;
+    const zLabel = project(
+      axisLabelAnchor("z", "3d"),
+      viewport,
+      VIEW_CAMERA["3d"],
+    )!;
+    const span = (origin[1] - zLabel[1]) / viewport.height;
+    expect(span).toBeGreaterThan(0.4);
+    // …without pushing the label off the top of the stage.
+    expect(zLabel[1]).toBeGreaterThan(0);
   });
 
   it("stands the camera clear of the origin in every view", () => {

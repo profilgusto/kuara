@@ -20,31 +20,40 @@
  * its font from fonts.gstatic.com, which Kuara's CSP blocks) — and every
  * number the scene depends on comes from `./rotation`.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { Html, OrbitControls } from "@react-three/drei";
+import { Html, Line, OrbitControls } from "@react-three/drei";
 import type { Vec3 } from "../../props";
+import { useRotationSession } from "./session";
 import {
   ANGLE_AXES,
   ANGLE_MAX,
   ANGLE_MIN,
   ANGLE_SYMBOLS,
   AXIS_LENGTH,
-  CAMERA,
   GRID_DIVISIONS,
+  GRID_HALF,
   GRID_SIZE,
-  INTERACTION_HINT,
+  VIEW_CAMERA,
   MAX_DISTANCE,
   MIN_DISTANCE,
   axisLabelAnchor,
-  clampAngle,
-  clampAngles,
+  dimensionNote,
+  dragMode,
   factorOrder,
-  formatMatrix,
-  matrixToQuaternion,
-  rotationMatrix,
-  toRotationMode,
+  interactionHint,
+  referenceKind,
+  rollUp,
+  rulerTicks,
+  shortestAngleDelta,
+  showsModeSwitch,
+  shownFactors,
+  turnAxes,
+  visibleAxes,
   type AxisKey,
+  type Camera,
+  type IntrinsicStep,
+  type Quaternion,
   type RotationMode,
 } from "./rotation";
 
@@ -57,6 +66,8 @@ export interface RotationMatrixProps {
   rotatedName: string;
   labels: boolean;
   grid: boolean;
+  /** Which of the header's 1D/2D/3D buttons is active. */
+  variant?: string;
 }
 
 /** Proportions of the unit basis arrows. The two frames share them. */
@@ -103,13 +114,16 @@ function Arrow({
   color,
   opacity = 1,
   radiusScale = 1,
+  headless = false,
 }: {
   axis: AxisKey;
   color: string;
   opacity?: number;
   radiusScale?: number;
+  /** A shaft with no head: for the ghosts, which mark a pose, not a vector. */
+  headless?: boolean;
 }) {
-  const shaftLength = AXIS_LENGTH - HEAD_LENGTH;
+  const shaftLength = AXIS_LENGTH - (headless ? 0 : HEAD_LENGTH);
   return (
     <group rotation={AXIS_ROTATION[axis]}>
       <mesh position={[0, shaftLength / 2, 0]}>
@@ -128,15 +142,17 @@ function Arrow({
           opacity={opacity}
         />
       </mesh>
-      <mesh position={[0, shaftLength + HEAD_LENGTH / 2, 0]}>
-        <coneGeometry args={[HEAD_RADIUS * radiusScale, HEAD_LENGTH, 20]} />
-        <meshStandardMaterial
-          color={color}
-          roughness={0.45}
-          transparent={opacity < 1}
-          opacity={opacity}
-        />
-      </mesh>
+      {!headless && (
+        <mesh position={[0, shaftLength + HEAD_LENGTH / 2, 0]}>
+          <coneGeometry args={[HEAD_RADIUS * radiusScale, HEAD_LENGTH, 20]} />
+          <meshStandardMaterial
+            color={color}
+            roughness={0.45}
+            transparent={opacity < 1}
+            opacity={opacity}
+          />
+        </mesh>
+      )}
     </group>
   );
 }
@@ -200,16 +216,19 @@ function Triad({
   colors,
   frameName,
   labels,
+  axes,
   muted = false,
 }: {
   colors: Record<AxisKey, string>;
   frameName: string;
   labels: boolean;
+  /** The axes this view has: x̂ on a line, x̂ ŷ on a plane, all three in space. */
+  axes: AxisKey[];
   muted?: boolean;
 }) {
   return (
     <group>
-      {ANGLE_AXES.map((axis) => (
+      {axes.map((axis) => (
         <Arrow
           key={axis}
           axis={axis}
@@ -221,7 +240,7 @@ function Triad({
         />
       ))}
       {labels &&
-        ANGLE_AXES.map((axis) => (
+        axes.map((axis) => (
           <AxisLabel
             key={axis}
             axis={axis}
@@ -232,6 +251,147 @@ function Triad({
         ))}
     </group>
   );
+}
+
+/**
+ * The frames the student has already left: one faint triad per released step.
+ *
+ * They are what makes an own-axis session readable. Without them the arrows
+ * simply arrive somewhere and the sequence that got them there is gone, which
+ * is the same thing as not being able to see that the third turn happened
+ * about an axis the second turn had moved. Drawn thin, unlabelled and without
+ * heads: a trail behind the frame, never a fourth thing competing with it.
+ */
+function GhostTrail({
+  orientations,
+  axes,
+}: {
+  orientations: Quaternion[];
+  axes: AxisKey[];
+}) {
+  return (
+    <>
+      {orientations.map((quaternion, i) => (
+        <group key={i} quaternion={quaternion}>
+          {axes.map((axis) => (
+            <Arrow
+              key={axis}
+              axis={axis}
+              color={ROTATED[axis]}
+              // The oldest steps fade the furthest, so a long session reads as
+              // a trail with a direction rather than a thicket. Never to
+              // nothing, though: an invisible ghost is a step the student took
+              // and can no longer find.
+              opacity={0.18 + (0.22 * (i + 1)) / orientations.length}
+              radiusScale={0.5}
+              headless
+            />
+          ))}
+        </group>
+      ))}
+    </>
+  );
+}
+
+/**
+ * The 1D reference: a graduated line where the other views lay a grid.
+ *
+ * A line has no plane to sit on, but it still deserves something to be read
+ * off — and its graduation is the same unit as every grid square elsewhere.
+ */
+function Ruler() {
+  const tickHalf = 0.05;
+  return (
+    <group>
+      <Line
+        points={[
+          [-GRID_HALF, 0, 0],
+          [GRID_HALF, 0, 0],
+        ]}
+        color={NEUTRAL}
+        lineWidth={1}
+      />
+      {rulerTicks().map((t) => (
+        <Line
+          key={t}
+          // Ticks stand along +z: the 1D camera looks down -y, so this is the
+          // one direction that reads as "across the ruler" on screen.
+          points={[
+            [t, 0, -tickHalf],
+            [t, 0, tickHalf],
+          ]}
+          color={NEUTRAL}
+          lineWidth={1}
+        />
+      ))}
+    </group>
+  );
+}
+
+/**
+ * The drag a plane answers with: a roll of the camera about the view axis.
+ *
+ * Orbiting a 2D view would tip the page and show the student a rotation the
+ * plane cannot have. Rolling the *camera* rather than turning the scene keeps
+ * every object at the world coordinates the print fallback projects from, and
+ * keeps the label DOM upright and readable however far the view has spun.
+ */
+function PlaneRoll({ enabled, view }: { enabled: boolean; view: Camera }) {
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+  const invalidate = useThree((s) => s.invalidate);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const el = gl.domElement;
+    // Starts square to the plane on every entry into the view, so switching
+    // away and back is a clean slate rather than a resumed half-turn.
+    let angle = 0;
+    let last: number | null = null;
+
+    const angleAt = (e: PointerEvent) => {
+      const r = el.getBoundingClientRect();
+      return Math.atan2(
+        e.clientY - (r.top + r.height / 2),
+        e.clientX - (r.left + r.width / 2),
+      );
+    };
+
+    const down = (e: PointerEvent) => {
+      last = angleAt(e);
+      el.setPointerCapture(e.pointerId);
+    };
+
+    const move = (e: PointerEvent) => {
+      if (last === null) return;
+      const now = angleAt(e);
+      angle += shortestAngleDelta(last, now);
+      last = now;
+      const up = rollUp(angle);
+      camera.up.set(up[0], up[1], up[2]);
+      camera.lookAt(view.target[0], view.target[1], view.target[2]);
+      invalidate();
+    };
+
+    const release = (e: PointerEvent) => {
+      last = null;
+      if (el.hasPointerCapture(e.pointerId))
+        el.releasePointerCapture(e.pointerId);
+    };
+
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", release);
+    el.addEventListener("pointercancel", release);
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", release);
+      el.removeEventListener("pointercancel", release);
+    };
+  }, [enabled, gl, camera, invalidate, view]);
+
+  return null;
 }
 
 /**
@@ -255,19 +415,20 @@ function Redraw({ on }: { on: unknown }) {
  * Applied only once, so a re-render from a slider does not throw away the
  * angle the student has orbited to.
  */
-function CameraRig() {
+function CameraRig({ view }: { view: Camera }) {
   const camera = useThree((s) => s.camera);
-  const applied = useRef(false);
+  const applied = useRef<Camera | null>(null);
 
-  if (!applied.current) {
-    applied.current = true;
-    camera.up.set(CAMERA.up[0], CAMERA.up[1], CAMERA.up[2]);
-    camera.position.set(
-      CAMERA.position[0],
-      CAMERA.position[1],
-      CAMERA.position[2],
-    );
-    camera.lookAt(CAMERA.target[0], CAMERA.target[1], CAMERA.target[2]);
+  // Only on an actual change of view. Re-aiming on every render would snap the
+  // camera back to its default framing the next time anything above this
+  // widget re-rendered, throwing away an orbit the student had just dragged.
+  // The entries of `VIEW_CAMERA` are module constants, so identity is the
+  // right comparison.
+  if (applied.current !== view) {
+    applied.current = view;
+    camera.up.set(view.up[0], view.up[1], view.up[2]);
+    camera.position.set(view.position[0], view.position[1], view.position[2]);
+    camera.lookAt(view.target[0], view.target[1], view.target[2]);
     camera.updateProjectionMatrix();
   }
 
@@ -357,6 +518,54 @@ function FactorFormula({
 }
 
 /**
+ * The same equation for an own-axis session: not three fixed slots, but the
+ * product as it was actually built, one factor per released step and the drag
+ * in flight on the right.
+ *
+ * Writing each step with the angle the student chose, rather than with α, β
+ * and γ, is the honest reading — the sequence is the state now, and the new
+ * factor joining on the right *is* what post-multiplication looks like.
+ */
+function SessionFormula({
+  steps,
+  live,
+  inertialName,
+  rotatedName,
+}: {
+  steps: IntrinsicStep[];
+  live: IntrinsicStep | null;
+  inertialName: string;
+  rotatedName: string;
+}) {
+  const all = live && live.deg !== 0 ? [...steps, live] : steps;
+  const { shown, elided } = shownFactors(all);
+  return (
+    <span className="whitespace-nowrap text-xs text-muted-foreground">
+      <MatrixName inertialName={inertialName} rotatedName={rotatedName} />
+      {" = "}
+      {shown.length === 0 && <span className="italic">I</span>}
+      {elided && <span aria-hidden>⋯ </span>}
+      {shown.map((step, i) => (
+        <span
+          // Position in the product, not the axis: the same axis can appear
+          // in it more than once, which is the whole reason this mode exists.
+          key={all.length - shown.length + i}
+          style={{ color: ROTATED[step.axis] }}
+          className={
+            live && live.deg !== 0 && i === shown.length - 1
+              ? "underline decoration-dotted underline-offset-2"
+              : undefined
+          }
+        >
+          <strong className="font-bold not-italic">R</strong>
+          <sub className="text-[0.7em]">{step.axis}</sub>({step.deg}°){" "}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/**
  * The selector. `radiogroup` rather than two buttons: the choices are mutually
  * exclusive readings of the same three angles, which is what a screen reader
  * should hear.
@@ -423,19 +632,72 @@ function ModeSwitch({
   );
 }
 
+/**
+ * The escape hatch back to the identity.
+ *
+ * Three sliders stepping in fives, with nothing to catch them at the middle,
+ * make zero a position the student can aim at and miss; the interesting
+ * question the widget asks — what the same angles do in a different order —
+ * is much easier to ask again from a frame that starts aligned. Disabled once
+ * there is nothing to undo, so the control also *reports* alignment rather
+ * than only causing it.
+ */
+function AlignButton({
+  disabled,
+  rotatedName,
+  inertialName,
+  onAlign,
+}: {
+  disabled: boolean;
+  rotatedName: string;
+  inertialName: string;
+  onAlign: () => void;
+}) {
+  const hint = `Zerar os três ângulos, alinhando {${rotatedName}} com {${inertialName}}`;
+  return (
+    <button
+      type="button"
+      onClick={onAlign}
+      disabled={disabled}
+      aria-label={hint}
+      title={hint}
+      className={[
+        "rounded-md border border-border px-2 py-0.5 text-xs font-medium transition-colors",
+        disabled
+          ? "cursor-default text-muted-foreground/50"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+      ].join(" ")}
+    >
+      alinhar eixos
+    </button>
+  );
+}
+
 /** One angle's slider, labelled with its Greek letter and its axis. */
 function AngleSlider({
   axis,
   value,
   step,
+  incremental,
+  rotatedName,
   onChange,
+  onPress,
+  onRelease,
 }: {
   axis: AxisKey;
   value: number;
   step: number;
+  /** Own-axis mode: the slider is a turn from here, not an absolute angle. */
+  incremental: boolean;
+  rotatedName: string;
   onChange: (value: number) => void;
+  onPress: () => void;
+  onRelease: () => void;
 }) {
   const color = ROTATED[axis];
+  const label = incremental
+    ? `Girar {${rotatedName}} em torno do próprio eixo ${axis}: solte para fixar o passo`
+    : `Ângulo ${ANGLE_SYMBOLS[axis]} em torno do eixo ${axis}, em graus`;
   return (
     <label className="flex items-center gap-1.5 text-xs">
       <span
@@ -455,13 +717,31 @@ function AngleSlider({
         max={ANGLE_MAX}
         step={step}
         value={value}
-        aria-label={`Ângulo ${ANGLE_SYMBOLS[axis]} em torno do eixo ${axis}, em graus`}
+        aria-label={label}
+        title={incremental ? label : undefined}
         onChange={(e) => onChange(Number(e.target.value))}
+        // A gesture is bracketed by a press and a release, and the session
+        // takes only the turns that fall inside one. The press matters as much
+        // as the release: React's `onChange` also fires for the native
+        // `change` event, which Firefox emits *after* the drag is over, and
+        // that stray value must not be mistaken for a new turn.
+        onPointerDown={incremental ? onPress : undefined}
+        onKeyDown={incremental ? onPress : undefined}
+        // Every way a drag can end. They overlap — a mouse fires both pointer
+        // up and lost capture — and the gesture is spent by whichever arrives
+        // first. A keyboard user gets one step per key, which is the same
+        // gesture, bracketed the same way.
+        onPointerUp={incremental ? onRelease : undefined}
+        onLostPointerCapture={incremental ? onRelease : undefined}
+        onKeyUp={incremental ? onRelease : undefined}
+        onBlur={incremental ? onRelease : undefined}
         className="h-1 w-24 cursor-pointer sm:w-32"
         style={{ accentColor: color }}
       />
       <span className="w-11 text-right tabular-nums text-muted-foreground">
-        {value}°
+        {/* A sign while the turn is still in the student's hand: it is being
+            added to what the frame already has, not replacing it. */}
+        {incremental && value > 0 ? `+${value}°` : `${value}°`}
       </span>
     </label>
   );
@@ -476,25 +756,31 @@ export default function RotationMatrix({
   rotatedName,
   labels,
   grid,
+  variant,
 }: RotationMatrixProps) {
-  // The authored values are only a starting point; from then on the controls
-  // own them. Clamped on the way in, because `vec3` will happily parse a
-  // "400,0,0" that no slider could ever bring back.
-  const [deg, setDeg] = useState<Vec3>(() => clampAngles(angles ?? [0, 0, 0]));
-  const [rotation, setRotation] = useState<RotationMode>(() =>
-    toRotationMode(mode),
-  );
+  const {
+    dim,
+    mode: rotation,
+    intrinsic,
+    deg,
+    quaternion,
+    ghostQuaternions,
+    steps,
+    live,
+    aligned,
+    rows,
+    setAngle,
+    beginGesture,
+    commitLive,
+    selectMode,
+    align,
+  } = useRotationSession({ angles, mode, variant, decimals });
 
-  const matrix = useMemo(() => rotationMatrix(deg, rotation), [deg, rotation]);
-  const quaternion = useMemo(() => matrixToQuaternion(matrix), [matrix]);
-  const rows = formatMatrix(matrix, decimals);
-
-  const setAngle = (index: number, value: number) =>
-    setDeg((prev) => {
-      const next: Vec3 = [...prev];
-      next[index] = clampAngle(value);
-      return next;
-    });
+  const view = VIEW_CAMERA[dim];
+  const axes = visibleAxes(dim);
+  const drag = dragMode(dim);
+  const turning = turnAxes(dim);
+  const note = dimensionNote(dim);
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -502,39 +788,56 @@ export default function RotationMatrix({
         <Canvas
           frameloop="demand"
           // Initial framing only; `CameraRig` owns the aim after mount.
-          camera={{ position: CAMERA.position, fov: CAMERA.fov, up: CAMERA.up }}
+          camera={{ position: view.position, fov: view.fov, up: view.up }}
           gl={{ antialias: true }}
           style={{ touchAction: "none" }}
         >
-          <CameraRig />
-          <Redraw on={quaternion} />
+          <CameraRig view={view} />
+          <PlaneRoll enabled={drag === "roll"} view={view} />
+          {/* A commit lands on the orientation the drag already reached, so
+              the quaternion alone would not tell the renderer a ghost had
+              appeared. A string, not an array: a fresh array every render
+              would invalidate on every render. */}
+          <Redraw on={`${quaternion.join()}|${ghostQuaternions.length}`} />
 
           <ambientLight intensity={1.1} />
           <directionalLight position={[4, -6, 8]} intensity={1.6} />
           <directionalLight position={[-5, 4, -3]} intensity={0.4} />
 
-          {grid && (
-            <gridHelper
-              // One square per basis vector, two squares out from the origin
-              // in each direction.
-              args={[GRID_SIZE, GRID_DIVISIONS, NEUTRAL, NEUTRAL]}
-              // three.js lays the grid on xz; robotics wants it on the xy
-              // plane of {I}.
-              rotation={[Math.PI / 2, 0, 0]}
-            />
-          )}
+          {grid &&
+            (referenceKind(dim) === "ruler" ? (
+              <Ruler />
+            ) : (
+              <gridHelper
+                // One square per basis vector, two squares out from the origin
+                // in each direction.
+                args={[GRID_SIZE, GRID_DIVISIONS, NEUTRAL, NEUTRAL]}
+                // three.js lays the grid on xz; robotics wants it on the xy
+                // plane of {I}.
+                rotation={[Math.PI / 2, 0, 0]}
+              />
+            ))}
 
           <Triad
             colors={INERTIAL}
             frameName={inertialName}
             labels={labels}
+            axes={axes}
             muted
           />
+
+          {/* Where {R} has been this session, faintest first. */}
+          <GhostTrail orientations={ghostQuaternions} axes={axes} />
 
           {/* The matrix, applied: {R} is {I} turned by ᴵR_R, which is exactly
               what makes the columns of the panel the arrows in the scene. */}
           <group quaternion={quaternion}>
-            <Triad colors={ROTATED} frameName={rotatedName} labels={labels} />
+            <Triad
+              colors={ROTATED}
+              frameName={rotatedName}
+              labels={labels}
+              axes={axes}
+            />
           </group>
 
           <mesh>
@@ -545,9 +848,14 @@ export default function RotationMatrix({
           {labels && <OriginLabel />}
 
           <OrbitControls
+            // Fresh instance per view: the orbit axis is fixed at construction,
+            // and a stale one carries the previous view's rotation into this.
+            key={dim}
             makeDefault
             enablePan={false}
-            target={CAMERA.target}
+            // A plane rolls and a line does neither: only space orbits.
+            enableRotate={drag === "orbit"}
+            target={view.target}
             minDistance={MIN_DISTANCE}
             maxDistance={MAX_DISTANCE}
             enableDamping
@@ -556,7 +864,7 @@ export default function RotationMatrix({
         </Canvas>
 
         <p className="pointer-events-none absolute bottom-1 left-0 w-full text-center text-xs text-muted-foreground">
-          {INTERACTION_HINT}
+          {interactionHint(dim, rotation)}
         </p>
       </div>
 
@@ -568,37 +876,77 @@ export default function RotationMatrix({
       */}
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 border-t border-border bg-muted/30 px-3 py-2">
         <div className="flex flex-col items-center gap-1">
-          <FactorFormula
-            mode={rotation}
-            inertialName={inertialName}
-            rotatedName={rotatedName}
-          />
+          {!showsModeSwitch(dim) ? null : intrinsic ? (
+            <SessionFormula
+              steps={steps}
+              live={live}
+              inertialName={inertialName}
+              rotatedName={rotatedName}
+            />
+          ) : (
+            <FactorFormula
+              mode={rotation}
+              inertialName={inertialName}
+              rotatedName={rotatedName}
+            />
+          )}
           <div className="flex items-center gap-1.5">
             <MatrixName inertialName={inertialName} rotatedName={rotatedName} />
             <span aria-hidden>=</span>
             <MatrixPanel
               rows={rows}
-              columnColors={ANGLE_AXES.map((axis) => ROTATED[axis])}
+              // One tint per column of the block this view prints: column c is
+              // the basis vector of {R} of that colour, resolved in {I}.
+              columnColors={axes.map((axis) => ROTATED[axis])}
             />
           </div>
         </div>
 
-        <div className="flex flex-col items-start gap-1.5">
-          <ModeSwitch
-            mode={rotation}
-            inertialName={inertialName}
-            rotatedName={rotatedName}
-            onSelect={setRotation}
-          />
-          {ANGLE_AXES.map((axis, i) => (
-            <AngleSlider
-              key={axis}
-              axis={axis}
-              value={deg[i]}
-              step={step}
-              onChange={(value) => setAngle(i, value)}
-            />
-          ))}
+        <div className="flex max-w-xs flex-col items-start gap-1.5">
+          {/* A line has nothing to drive, so it gets the reason instead of a
+              row of controls that could not do anything. */}
+          {note && (
+            <p className="max-w-xs text-xs leading-snug text-muted-foreground">
+              {note}
+            </p>
+          )}
+
+          {turning.length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+              {showsModeSwitch(dim) && (
+                <ModeSwitch
+                  mode={rotation}
+                  inertialName={inertialName}
+                  rotatedName={rotatedName}
+                  onSelect={selectMode}
+                />
+              )}
+              <AlignButton
+                disabled={aligned}
+                rotatedName={rotatedName}
+                inertialName={inertialName}
+                onAlign={align}
+              />
+            </div>
+          )}
+
+          {/* One slider per axis this view can turn about — which in 2D is the
+              ẑ it does not draw, and in 1D is none at all. */}
+          {ANGLE_AXES.map((axis, i) =>
+            turning.includes(axis) ? (
+              <AngleSlider
+                key={axis}
+                axis={axis}
+                value={deg[i]}
+                step={step}
+                incremental={intrinsic}
+                rotatedName={rotatedName}
+                onChange={(value) => setAngle(i, value)}
+                onPress={() => beginGesture(i)}
+                onRelease={() => commitLive(i)}
+              />
+            ) : null,
+          )}
         </div>
       </div>
     </div>
