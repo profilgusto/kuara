@@ -92,19 +92,22 @@ export default buildConfig({
     s3Storage({
       collections: {
         media: {
-          // Keep URLs on your own domain — Nginx proxies /media/ → MinIO
+          // Keep URLs on your own domain — next.config.mjs proxies /media/*
+          // to Garage's web endpoint.
           generateFileURL: ({ filename }) => `/media/${filename}`,
         },
       },
       bucket: process.env.S3_BUCKET || "kuara-media",
       config: {
-        endpoint: process.env.S3_ENDPOINT || "http://minio:9000",
+        endpoint: process.env.S3_ENDPOINT || "http://garage:3900",
         credentials: {
           accessKeyId: process.env.S3_ACCESS_KEY || "",
           secretAccessKey: process.env.S3_SECRET_KEY || "",
         },
-        region: "us-east-1",
-        forcePathStyle: true, // required for MinIO path-style URLs
+        // Must equal s3_region in garage/garage.toml — Garage rejects any
+        // other region with AuthorizationHeaderMalformed.
+        region: process.env.S3_REGION || "garage",
+        forcePathStyle: true, // Garage is addressed by path, not by subdomain
       },
     }),
   ],

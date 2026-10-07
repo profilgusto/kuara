@@ -70,16 +70,24 @@ const nextConfig = {
     ];
   },
 
-  // Proxy /media/* → MinIO so media URLs work in dev and production.
+  // Proxy /media/* → Garage so media URLs work in dev and production.
   // Traefik passes all traffic through to the web service, so Next.js
   // handles this rewrite directly in production.
+  //
+  // The target is Garage's web endpoint (3902), not its S3 API (3900): the
+  // S3 API never answers unauthenticated requests. The web endpoint picks the
+  // bucket from the Host header, and Next's proxy sets Host to the target's,
+  // so the hostname here must be the bucket name — the garage container
+  // carries it as a network alias in both compose files.
+  //
+  // This is evaluated at build time and baked into the production image, so
+  // the default below is what production actually runs.
   async rewrites() {
-    const s3Endpoint = process.env.S3_ENDPOINT || "http://minio:9000";
-    const s3Bucket = process.env.S3_BUCKET || "kuara-media";
+    const mediaOrigin = process.env.MEDIA_ORIGIN || "http://kuara-media:3902";
     return [
       {
         source: "/media/:path*",
-        destination: `${s3Endpoint}/${s3Bucket}/:path*`,
+        destination: `${mediaOrigin}/:path*`,
         // Existing media URLs are stored unprefixed in the database
         // (see payload.config.ts generateFileURL) — keep matching them
         // as-is regardless of basePath, instead of requiring a migration.

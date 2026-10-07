@@ -11,7 +11,7 @@ Kuara is an educational content platform built with:
 - **Next.js 15** (App Router) + **React 19** — frontend and API routes
 - **Payload CMS 3** — headless CMS backed by PostgreSQL, served at `/kuara/payload`
 - **PostgreSQL 16** — primary database (runs in Docker)
-- **MinIO** — S3-compatible object storage for media files (runs in Docker)
+- **Garage** — S3-compatible object storage for media files (runs in Docker)
 - **Traefik v3** — reverse proxy / TLS termination (Let's Encrypt)
 - **MDX** with custom plugins (rehype-mathjax, dnd-kit, Monaco Editor)
 
@@ -29,7 +29,7 @@ The entire production stack runs via **Docker Compose**. You must never run `npm
 │   ├── payload.config.ts    ← Payload configuration
 │   └── app/                 ← Next.js App Router pages & API
 ├── docker-compose.yml       ← Local development compose (do NOT use in production)
-├── docker-compose.prod.yml  ← Production app services (postgres, minio, migrate, web)
+├── docker-compose.prod.yml  ← Production app services (postgres, garage, migrate, web)
 ├── docker-compose.traefik.yml ← Traefik reverse proxy (separate project)
 ├── .env.prod.example        ← Template for production environment variables
 ├── scripts/
@@ -73,8 +73,9 @@ Then fill in every `CHANGE_ME_*` value. Required variables:
 - `NEXT_PUBLIC_SERVER_URL` — e.g. `https://kuara.ufsj.edu.br`
 - `PAYLOAD_SECRET` — generate: `openssl rand -hex 64`
 - `POSTGRES_PASSWORD` — generate: `openssl rand -hex 32`
-- `MINIO_ROOT_USER` — e.g. `kuara-admin`
-- `MINIO_ROOT_PASSWORD` — generate: `openssl rand -hex 32`
+- `GARAGE_RPC_SECRET` — generate: `openssl rand -hex 32`
+- `S3_ACCESS_KEY` — generate: `echo "GK$(openssl rand -hex 12)"` (Garage requires this exact shape)
+- `S3_SECRET_KEY` — generate: `openssl rand -hex 32`
 - `TRAEFIK_DOMAIN` — e.g. `kuara.ufsj.edu.br` (no https://)
 - `TRAEFIK_ACME_EMAIL` — e.g. `admin@ufsj.edu.br`
 
@@ -102,9 +103,9 @@ The script does these steps in order:
 2. Pulls latest code from `origin/main`
 3. Starts Traefik (cleans up port conflicts and stale networks if needed)
 4. Builds Docker images: `migrate` and `web` (multi-stage, no cache)
-5. Starts `postgres` and `minio`, waits for PostgreSQL to be healthy
+5. Starts `postgres` and `garage`, waits for PostgreSQL to be healthy
 6. Runs database migrations (`npx payload migrate` via the `migrate` container)
-7. Starts all services (`web`, `createbuckets`, etc.)
+7. Starts all services (`web`, `garage-init`, etc.)
 8. Waits up to 3 minutes for the web health check at `http://localhost:3000/api/health`
 9. Prunes dangling images
 
@@ -118,7 +119,7 @@ When the app code has changed (e.g. after a `git pull`):
 ```bash
 ./scripts/update-app-in-server.sh
 ```
-This rebuilds only `migrate` and `web` images, runs migrations, and restarts the web service. It does NOT touch Traefik, PostgreSQL, or MinIO.
+This rebuilds only `migrate` and `web` images, runs migrations, and restarts the web service. It does NOT touch Traefik, PostgreSQL, or Garage.
 
 ---
 
@@ -144,8 +145,8 @@ docker compose -f docker-compose.traefik.yml logs --tail=50 traefik
 # PostgreSQL
 docker compose -f docker-compose.prod.yml logs --tail=50 postgres
 
-# MinIO
-docker compose -f docker-compose.prod.yml logs --tail=50 minio
+# Garage
+docker compose -f docker-compose.prod.yml logs --tail=50 garage
 ```
 
 ### Health check manually
@@ -205,14 +206,14 @@ After pushing, the remote origin will have your fixes and the next `git pull` fr
 Internet → Traefik (:80/:443) → [traefik-net] → web container (:3000)
                                                        ↓
                                                postgres (:5432) [kuara-net]
-                                               minio (:9000)    [kuara-net]
+                                               garage (:3900 S3, :3902 web) [kuara-net]
 ```
 
 - Traefik terminates TLS and proxies `https://TRAEFIK_DOMAIN` → `web:3000`
 - `web` is both the Next.js frontend and the Payload CMS admin (`/kuara/payload`)
 - `migrate` is a one-shot container that runs DB migrations on every deploy
-- `createbuckets` is a one-shot container that initializes the MinIO bucket
-- All app data persists in Docker named volumes: `kuara-pgdata` and `kuara-minio-data`
+- `garage` creates its own bucket and access key on first boot; `garage-init` is a one-shot container that enables public read on the web endpoint, which `/media/*` is proxied to
+- All app data persists in Docker named volumes: `kuara-pgdata`, `kuara-garage-meta` and `kuara-garage-data`
 
 ---
 

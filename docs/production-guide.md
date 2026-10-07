@@ -37,10 +37,11 @@ Add `--all` to also prune every unrelated Docker object on the machine
 | Follow web logs | `docker compose -f docker-compose.prod.yml logs -f web` |
 | Follow last migration run | `docker compose -f docker-compose.prod.yml logs migrate` |
 | Manual DB backup | `./scripts/backup-db.sh` |
+| Full backup (DB + media + `.env.prod`) | `./scripts/backup-prod-full.sh` — run from the **dev machine** |
 | Restart web only | `docker compose -f docker-compose.prod.yml restart web` |
 | Open postgres shell | `docker compose -f docker-compose.prod.yml exec postgres psql -U kuara -d kuara` |
 | Check migration state | `SELECT id, name, batch FROM payload_migrations ORDER BY id;` (inside psql) |
-| Restore from backup | See [Section 7.4](#74-restore-from-backup) |
+| Restore from backup | See [Section 7.5](#75-restore-from-backup) |
 
 ---
 
@@ -78,7 +79,8 @@ Ubuntu Server 24.04  (Tailscale: 100.84.212.53)
    │
    ├── postgres :5432  (internal network only)
    │
-   └── minio  :9000  (S3-compatible media storage, internal only)
+   └── garage :3900 S3 API / :3902 public web endpoint
+                (S3-compatible media storage, internal only)
 ```
 
 **Key rules:**
@@ -128,7 +130,14 @@ openssl rand -base64 32   # use once for POSTGRES_PASSWORD, once for PAYLOAD_SEC
 POSTGRES_PASSWORD=<strong-random-password>
 PAYLOAD_SECRET=<min-32-char-random-secret>
 NEXT_PUBLIC_SERVER_URL=https://kuara.filgusto.com
+GARAGE_RPC_SECRET=<openssl rand -hex 32>
+S3_ACCESS_KEY=<echo "GK$(openssl rand -hex 12)">
+S3_SECRET_KEY=<openssl rand -hex 32>
 ```
+
+The two `S3_*` values are not free-form: Garage only accepts an access key
+shaped `GK` + 24 hex characters and a 64-hex-character secret. It creates the
+key and the `kuara-media` bucket from them on first boot.
 
 ### 2.4 Make Scripts Executable
 
@@ -318,7 +327,7 @@ What the script does, in order:
 2. Builds `migrator` and `web` Docker images (migration files are baked in here).
 3. Runs `docker compose run --rm migrate` — applies any pending migrations.
    **If this exits non-zero, the deploy aborts before touching the web service.**
-4. `docker compose up -d --no-deps web` — restarts only the web service; postgres, minio, and Traefik are left untouched.
+4. `docker compose up -d --no-deps web` — restarts only the web service; postgres, garage, and Traefik are left untouched.
 5. Waits up to 3 min for the web health check (`/api/health`) to pass.
 6. Prunes dangling Docker images.
 
@@ -465,7 +474,30 @@ Then set `RCLONE_REMOTE` in the cron entry:
 0 2 * * * RCLONE_REMOTE="b2:my-bucket/kuara" /opt/kuara/scripts/backup-db.sh >> /var/log/kuara-backup.log 2>&1
 ```
 
-### 7.4 Restore from Backup
+### 7.4 Full Backup (database + media + secrets)
+
+`backup-db.sh` covers the database only. `backup-prod-full.sh` runs on the
+**dev machine**, reads production over SSH and writes nothing to the server's
+disk:
+
+```bash
+./scripts/backup-prod-full.sh            # → ~/kuara-backups/prod_<timestamp>/
+```
+
+The folder holds `kuara.dump` (`pg_dump -Fc`), `kuara-media.tar` (every object
+in the bucket), `env.prod`, `SHA256SUMS` and a `MANIFEST.txt`. Do not unpack
+the tar on macOS and upload the files by hand — accented filenames come back
+in a different Unicode form and stop matching the database. The script fails if
+the number of files downloaded differs from the number of objects in the
+bucket.
+
+To prove a backup restores — and to get a local stack with its contents:
+
+```bash
+./scripts/refresh-local-from-prod.sh --from-backup ~/kuara-backups/prod_<timestamp>
+```
+
+### 7.5 Restore from Backup
 
 ```bash
 # List available backups
@@ -601,20 +633,35 @@ If data is corrupted, restore from the latest backup:
 docker compose -f docker-compose.prod.yml down
 docker volume rm kuara-website_kuara-pgdata
 docker compose -f docker-compose.prod.yml up -d postgres
-# wait for healthy, then restore from backup (see Section 7.4)
+# wait for healthy, then restore from backup (see Section 7.5)
 ```
 
 ### Media uploads are missing after rebuild
 
-Media files are stored in the `kuara-media` Docker named volume mounted at
-`/app/public/media` inside the container. As long as `docker compose down` is
-used without `-v`, the volume persists. If you accidentally used `-v`:
+Media files live in Garage, in the `kuara-garage-data` (objects) and
+`kuara-garage-meta` (index) named volumes — both are needed, neither is usable
+alone. As long as `docker compose down` is used without `-v`, they persist. If
+you accidentally used `-v`:
 
 ```bash
-# Check if the volume still exists
-docker volume ls | grep kuara-media
+# Check if the volumes still exist
+docker volume ls | grep kuara-garage
 
-# If missing, restore from a media backup (set up separately with rclone)
+# If missing: bring the stack up (Garage recreates the empty bucket), copy
+# kuara-media.tar from the latest full backup (Section 7.4) to the server, and
+# load it. The database must be in place first — each file's Content-Type is
+# read from its row in `media`.
+set -a; source .env.prod; set +a
+COMPOSE_FILE=docker-compose.prod.yml ./scripts/restore-media.sh /path/to/kuara-media.tar
+```
+
+A page that renders with broken images while the volumes exist is a different
+problem — public read is off. `/media/*` is proxied to Garage's web endpoint,
+which only answers for buckets with website access enabled:
+
+```bash
+docker compose -f docker-compose.prod.yml exec garage \
+    /garage bucket website --allow kuara-media
 ```
 
 To avoid accidental volume deletion, **never use** `docker compose down -v` in

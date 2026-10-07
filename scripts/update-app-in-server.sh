@@ -4,7 +4,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # Updates only the Kuara application (web service) without touching
-# Traefik, PostgreSQL, or MinIO infrastructure.
+# Traefik, PostgreSQL, or Garage infrastructure.
 #
 # Run this for every subsequent deploy after the initial setup with deploy.sh.
 #
@@ -130,7 +130,7 @@ log "Migrations complete."
 
 # ── Step 5: Restart web service with the new image ───────────────────────────
 step "Restarting web service"
-# --no-deps: only restart web, leave postgres/minio/traefik untouched.
+# --no-deps: only restart web, leave postgres/garage/traefik untouched.
 docker compose -f "$COMPOSE_APP" up -d --no-deps web
 log "Web service restarted."
 

@@ -4,54 +4,80 @@
 # Differences from docker-compose.prod.yml (intentional):
 #   - Dockerfile target: dev  (hot-reload via next dev, no build step)
 #   - Source code mounted for live edits
-#   - Ports 3000 / 9000 / 9001 bound to 0.0.0.0 (localhost access)
+#   - Ports 3000 / 3900 bound to 0.0.0.0 (localhost access)
+#   - Fixed throwaway Garage credentials as defaults (override in .env)
 #   - No Nginx reverse proxy (connect directly to web:3000)
 #   - No migrate service (Payload uses push:true in dev)
 #   - No restart:always / resource limits (dev convenience)
 
 services:
 
-  # ── MinIO object storage ──────────────────────────────────────────────────────
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
+  # ── Garage object storage ─────────────────────────────────────────────────────
+  # --single-node configures the one-node layout; --default-bucket creates the
+  # access key and bucket from the GARAGE_DEFAULT_* variables on first boot.
+  garage:
+    image: dxflrs/garage:v2.4.1
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
     ports:
-      - "9000:9000"   # S3 API  (http://localhost:9000)
-      - "9001:9001"   # Console (http://localhost:9001)
+      - "3900:3900"   # S3 API (http://localhost:3900) — Garage has no web console
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kuara}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-kuara_dev_secret}
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:-00000000000000000000000000000000000000000000000000000000000000de}
+      GARAGE_DEFAULT_ACCESS_KEY: ${S3_ACCESS_KEY:-GK0123456789abcdef01234567}
+      GARAGE_DEFAULT_SECRET_KEY: ${S3_SECRET_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      GARAGE_DEFAULT_BUCKET: kuara-media
     volumes:
-      - kuara-minio-data:/data
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - kuara-garage-meta:/var/lib/garage/meta
+      - kuara-garage-data:/var/lib/garage/data
     networks:
-      - kuara-net
+      kuara-net:
+        aliases:
+          # The web endpoint (3902) picks the bucket from the Host header, so
+          # the bucket name must resolve to this container. See garage.toml.
+          - kuara-media
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      # The image is built from scratch: no shell, no curl — only /garage.
+      test: ["CMD", "/garage", "status"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 15s
 
-  # ── MinIO bucket initialisation (runs once, then exits) ───────────────────────
-  createbuckets:
-    image: minio/minio:latest   # same image as minio — mc is guaranteed available
+  # ── Public-read switch (runs once, then exits) ────────────────────────────────
+  # Enables anonymous GET on the web endpoint — the one step --default-bucket
+  # does not cover. Shares garage's network namespace and volumes so the CLI
+  # reaches the daemon exactly as `docker exec` would.
+  garage-init:
+    image: dxflrs/garage:v2.4.1
+    command: ["/garage", "bucket", "website", "--allow", "kuara-media"]
     depends_on:
-      minio:
+      garage:
         condition: service_healthy
+    network_mode: "service:garage"
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:-00000000000000000000000000000000000000000000000000000000000000de}
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - kuara-garage-meta:/var/lib/garage/meta
+      - kuara-garage-data:/var/lib/garage/data
+    restart: on-failure:5
+
+  # ── rclone (on demand: docker compose run --rm rclone …) ──────────────────────
+  # The one tool for copying media in and out of the bucket; used by
+  # scripts/refresh-local-from-prod.sh.
+  rclone:
+    image: rclone/rclone:1
+    profiles: ["tools"]
+    environment:
+      RCLONE_CONFIG_GARAGE_TYPE: s3
+      RCLONE_CONFIG_GARAGE_PROVIDER: Other
+      RCLONE_CONFIG_GARAGE_ENDPOINT: http://garage:3900
+      RCLONE_CONFIG_GARAGE_REGION: garage
+      RCLONE_CONFIG_GARAGE_FORCE_PATH_STYLE: "true"
+      RCLONE_CONFIG_GARAGE_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-GK0123456789abcdef01234567}
+      RCLONE_CONFIG_GARAGE_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
     networks:
       - kuara-net
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-kuara}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-kuara_dev_secret}
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        mc alias set minio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
-        mc mb --ignore-existing minio/kuara-media &&
-        mc anonymous set download minio/kuara-media &&
-        echo 'Bucket kuara-media ready.'
-    restart: "no"
 
   # ── PostgreSQL ───────────────────────────────────────────────────────────────
   postgres:
@@ -85,14 +111,15 @@ services:
       DATABASE_URL: postgresql://kuara:${POSTGRES_PASSWORD}@postgres:5432/kuara
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       NEXT_PUBLIC_SERVER_URL: http://localhost:3000
-      S3_ENDPOINT: http://minio:9000
+      S3_ENDPOINT: http://garage:3900
+      S3_REGION: garage
       S3_BUCKET: kuara-media
-      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-kuara}
-      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-kuara_dev_secret}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-GK0123456789abcdef01234567}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
     depends_on:
       postgres:
         condition: service_healthy
-      createbuckets:
+      garage-init:
         condition: service_completed_successfully
     networks:
       - kuara-net
@@ -106,7 +133,9 @@ services:
 volumes:
   kuara-pgdata:
     driver: local
-  kuara-minio-data:
+  kuara-garage-meta:
+    driver: local
+  kuara-garage-data:
     driver: local
 
 # ── Networks ──────────────────────────────────────────────────────────────────

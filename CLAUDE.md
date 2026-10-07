@@ -42,7 +42,7 @@ they cover**: `lib/slides.ts` → `lib/slides.test.ts`. There is no separate
 the MDX extractors (`extractCiteLabels`, `extractHeadings`, the
 cross-reference scanners), the basePath helpers, the open-redirect guard, and
 presentational components with no data fetching. Anything needing Postgres,
-MinIO, or a live Payload instance is Phase 2 territory; do not mock a database
+Garage, or a live Payload instance is Phase 2 territory; do not mock a database
 to force it into Phase 1.
 
 **When you add code, add tests.** Any new exported pure function, or a bug fix

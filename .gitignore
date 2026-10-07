@@ -1,7 +1,8 @@
 .env
 .env.prod
+.env.prod.pre-garage
 .claude
-# Payload CMS media uploads — stored in MinIO, not git
+# Payload CMS media uploads — stored in Garage, not git
 app/media/
 # Next.js
 app/.next/

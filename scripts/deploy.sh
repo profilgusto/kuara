@@ -53,7 +53,7 @@ docker compose version &>/dev/null || fail "Docker Compose plugin is not install
 
 # Validate required vars exist and have no placeholder values
 for var in NEXT_PUBLIC_SERVER_URL PAYLOAD_SECRET POSTGRES_PASSWORD \
-           MINIO_ROOT_USER MINIO_ROOT_PASSWORD TRAEFIK_DOMAIN TRAEFIK_ACME_EMAIL; do
+           GARAGE_RPC_SECRET S3_ACCESS_KEY S3_SECRET_KEY TRAEFIK_DOMAIN TRAEFIK_ACME_EMAIL; do
     val="$(get_env "$var")"
     [[ -n "$val" ]]               || fail "$var is not set in .env.prod"
     [[ "$val" != *"CHANGE_ME"* ]] || fail "$var still has a placeholder value — set a real value in .env.prod"
@@ -129,8 +129,8 @@ docker compose -f "$COMPOSE_APP" build --pull migrate web
 log "Images built successfully."
 
 # ── Step 4: Start infrastructure services ────────────────────────────────────
-step "Starting PostgreSQL and MinIO"
-docker compose -f "$COMPOSE_APP" up -d postgres minio
+step "Starting PostgreSQL and Garage"
+docker compose -f "$COMPOSE_APP" up -d postgres garage
 
 log "Waiting for PostgreSQL to be healthy …"
 ELAPSED=0

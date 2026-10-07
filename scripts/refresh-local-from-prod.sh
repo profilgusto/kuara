@@ -16,6 +16,11 @@
 #   ./scripts/refresh-local-from-prod.sh --all        # ALSO prune every other
 #                                                     # container/image/volume
 #                                                     # on this machine
+#   ./scripts/refresh-local-from-prod.sh --from-backup ~/kuara-backups/prod_<ts>
+#                                                     # load a folder written by
+#                                                     # backup-prod-full.sh
+#                                                     # instead of reading
+#                                                     # production
 #
 # Overridable via environment:
 #   KUARA_SSH_HOST   default kuara.ufsj.edu.br
@@ -23,9 +28,9 @@
 #   KUARA_SSH_PORT   default 22691
 #   KUARA_REMOTE_DIR default ~/kuara-house/kuara
 #
-# Production is only ever read from: the script runs pg_dump and `mc mirror`
-# against it and deletes its own staging files afterwards. It never writes to
-# the production database, bucket, or containers.
+# Production is only ever read from: the script runs pg_dump and an rclone
+# export against it, both streamed over SSH. It never writes to the
+# production database, bucket, or disk.
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -43,7 +48,7 @@ BUCKET="kuara-media"
 # into these calls, so detaching stdin is free.
 SSH=(ssh -n -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}")
 STAGING="$(mktemp -d "${TMPDIR:-/tmp}/kuara-clone.XXXXXX")"
-REMOTE_STAGING="/tmp/kuara-clone-$$"
+FROM_BACKUP=""
 
 PRUNE_ALL=0
 NO_CACHE=0
@@ -57,9 +62,6 @@ die()  { echo "ERROR: $*" >&2; exit 1; }
 
 cleanup() {
     local rc=$?
-    # Always drop the staging copy on the production server, even on failure —
-    # its disk sits near capacity and these files are ~220 MB per run.
-    "${SSH[@]}" "rm -rf $REMOTE_STAGING" 2>/dev/null || true
     if [[ $KEEP_STAGING -eq 0 ]]; then
         rm -rf "$STAGING"
     else
@@ -74,8 +76,9 @@ while [[ $# -gt 0 ]]; do
         --all)          PRUNE_ALL=1 ;;
         --no-cache)     NO_CACHE=1 ;;
         --keep-staging) KEEP_STAGING=1 ;;
+        --from-backup)  FROM_BACKUP="${2:-}"; shift ;;
         -y|--yes)       ASSUME_YES=1 ;;
-        -h|--help)      sed -n '2,28p' "$0"; exit 0 ;;
+        -h|--help)      sed -n '2,33p' "$0"; exit 0 ;;
         *)              die "Unknown option: $1 (try --help)" ;;
     esac
     shift
@@ -88,19 +91,26 @@ step "Pre-flight"
 
 docker info >/dev/null 2>&1 || die "Docker is not running. Start Docker Desktop and retry."
 [[ -f "$REPO_DIR/.env" ]] || die ".env not found at repo root. Copy .env.example and fill it in."
-command -v rsync >/dev/null || die "rsync is required but not installed."
 
-for var in POSTGRES_PASSWORD MINIO_ROOT_USER MINIO_ROOT_PASSWORD; do
-    grep -qE "^${var}=.+" "$REPO_DIR/.env" || die "$var is empty in .env"
-done
+grep -qE "^POSTGRES_PASSWORD=.+" "$REPO_DIR/.env" || die "POSTGRES_PASSWORD is empty in .env"
 
-"${SSH[@]}" -o ConnectTimeout=15 true 2>/dev/null \
-    || die "Cannot reach ${SSH_USER}@${SSH_HOST}:${SSH_PORT} over SSH."
+if [[ -n "$FROM_BACKUP" ]]; then
+    [[ -s "$FROM_BACKUP/kuara.dump" && -s "$FROM_BACKUP/$BUCKET.tar" ]] \
+        || die "$FROM_BACKUP is not a backup-prod-full.sh folder (needs kuara.dump and $BUCKET.tar)."
+    # Load straight from the backup and never delete it.
+    rmdir "$STAGING"
+    STAGING="$(cd "$FROM_BACKUP" && pwd)"
+    KEEP_STAGING=1
+    log "Docker OK · .env OK · loading from backup $STAGING"
+else
+    "${SSH[@]}" -o ConnectTimeout=15 true 2>/dev/null \
+        || die "Cannot reach ${SSH_USER}@${SSH_HOST}:${SSH_PORT} over SSH."
 
-"${SSH[@]}" "cd $REMOTE_DIR && $REMOTE_COMPOSE ps -q --status running postgres" 2>/dev/null | grep -q . \
-    || die "Production postgres is not running — refusing to clone from a stopped database."
+    "${SSH[@]}" "cd $REMOTE_DIR && $REMOTE_COMPOSE ps -q --status running postgres" 2>/dev/null | grep -q . \
+        || die "Production postgres is not running — refusing to clone from a stopped database."
 
-log "Docker OK · .env OK · production reachable and healthy"
+    log "Docker OK · .env OK · production reachable and healthy"
+fi
 
 # ── Confirmation ─────────────────────────────────────────────────────────────
 if [[ $PRUNE_ALL -eq 1 ]]; then
@@ -128,6 +138,12 @@ fi
 # ── 1. Dump production ───────────────────────────────────────────────────────
 step "1/6 · Dumping production"
 
+if [[ -n "$FROM_BACKUP" ]]; then
+    log "Skipped — using $STAGING"
+    REMOTE_MIGRATIONS="$(tr -d ' \r\n' < "$STAGING/remote-migrations")"
+    REMOTE_OBJECTS="$(tr -d ' \r\n' < "$STAGING/remote-count")"
+else
+
 # Streamed straight to a local file: nothing lands on the production disk.
 # -Fc (custom format) so pg_restore can drop ownership and ACLs on the way in.
 log "Dumping database…"
@@ -150,38 +166,30 @@ log "Database dumped ($(du -h "$STAGING/kuara.dump" | cut -f1)), archive verifie
     > "$STAGING/remote-migrations" 2>/dev/null
 REMOTE_MIGRATIONS="$(tr -d ' \r\n' < "$STAGING/remote-migrations")"
 
-# Media goes through `mc mirror` (an S3-level export) rather than a raw copy of
-# MinIO's data volume: the on-disk layout is version-specific, the object API
-# is not.
+# Media goes through rclone (an S3-level export) rather than a raw copy of
+# Garage's data volume: the on-disk layout is content-addressed blocks plus an
+# LMDB index, the object API is plain files. The export is tarred inside the
+# throwaway rclone container and streamed here, so nothing lands on the
+# production disk, which sits near capacity. It stays a tar on this side too:
+# unpacked on macOS, accented filenames change Unicode form and stop matching
+# the database (see restore-media.sh).
 log "Exporting media objects…"
-"${SSH[@]}" "set -e
-    cd $REMOTE_DIR
-    mkdir -p $REMOTE_STAGING
-    $REMOTE_COMPOSE exec -T minio sh -c '
-        set -e
-        rm -rf /tmp/kuara-export && mkdir -p /tmp/kuara-export
-        mc alias set src http://127.0.0.1:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-        mc mirror --quiet --overwrite src/$BUCKET /tmp/kuara-export/$BUCKET >/dev/null
-    '
-    $REMOTE_COMPOSE cp minio:/tmp/kuara-export/$BUCKET $REMOTE_STAGING/$BUCKET
-    $REMOTE_COMPOSE exec -T minio rm -rf /tmp/kuara-export
-" 2>/dev/null
+"${SSH[@]}" "cd $REMOTE_DIR && $REMOTE_COMPOSE run --rm -T --entrypoint sh rclone -c \
+    'rclone copy garage:$BUCKET /tmp/$BUCKET -q && tar -C /tmp -cf - $BUCKET'" \
+    2>/dev/null > "$STAGING/$BUCKET.tar"
 
-rsync -a -e "ssh -p $SSH_PORT" \
-    "${SSH_USER}@${SSH_HOST}:$REMOTE_STAGING/$BUCKET" "$STAGING/"
+"${SSH[@]}" "cd $REMOTE_DIR && $REMOTE_COMPOSE run --rm -T rclone \
+    lsf -R --files-only garage:$BUCKET | wc -l" > "$STAGING/remote-count" 2>/dev/null
 
-# Counted via a temp file rather than $(...): bash's command-substitution
-# parser mis-reads a single quote nested inside a double-quoted remote command.
-"${SSH[@]}" "cd $REMOTE_DIR && $REMOTE_COMPOSE exec -T minio sh -c '
-    mc alias set src http://127.0.0.1:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-    mc ls --recursive src/$BUCKET | wc -l'" > "$STAGING/remote-count" 2>/dev/null
+REMOTE_OBJECTS="$(tr -d ' \r\n' < "$STAGING/remote-count")"
+fi
 
-REMOTE_OBJECTS="$(tr -d ' \r' < "$STAGING/remote-count")"
-LOCAL_FILES="$(find "$STAGING/$BUCKET" -type f | wc -l | tr -d ' ')"
+# Entries that are not directories. Only counted, never compared by name.
+LOCAL_FILES="$(tar -tf "$STAGING/$BUCKET.tar" | grep -vc '/$' || true)"
 
 [[ "$REMOTE_OBJECTS" == "$LOCAL_FILES" ]] \
     || die "Media transfer incomplete: production has $REMOTE_OBJECTS objects, downloaded $LOCAL_FILES."
-log "Media exported ($LOCAL_FILES objects, $(du -sh "$STAGING/$BUCKET" | cut -f1))"
+log "Media ready ($LOCAL_FILES objects, $(du -h "$STAGING/$BUCKET.tar" | cut -f1))"
 
 # ── 2. Clean ─────────────────────────────────────────────────────────────────
 step "2/6 · Removing the local stack"
@@ -206,11 +214,11 @@ docker compose build "${BUILD_ARGS[@]}" web 2>&1 | tail -5 | sed 's/^/  /'
 log "Image built"
 
 # ── 4. Start data services ───────────────────────────────────────────────────
-step "4/6 · Starting postgres + minio"
+step "4/6 · Starting postgres + garage"
 
 # Data services come up first and get loaded before `web` ever connects, so
 # Payload never initialises a schema against an empty database.
-docker compose up -d postgres minio createbuckets 2>&1 | tail -3 | sed 's/^/  /'
+docker compose up -d postgres garage garage-init 2>&1 | tail -3 | sed 's/^/  /'
 
 log "Waiting for postgres…"
 for _ in $(seq 1 60); do
@@ -221,12 +229,18 @@ done
     || die "postgres did not become healthy in 120s."
 
 log "Waiting for the bucket to be created…"
+BUCKET_READY=0
 for _ in $(seq 1 30); do
-    # -a: `docker compose ps` hides exited containers by default, and this
-    # one is expected to have exited — that is exactly the success signal.
-    docker compose ps -a createbuckets --format '{{.State}}' 2>/dev/null | grep -q exited && break
+    if docker compose exec -T garage /garage bucket info "$BUCKET" >/dev/null 2>&1; then
+        BUCKET_READY=1; break
+    fi
     sleep 2
 done
+[[ $BUCKET_READY -eq 1 ]] || die "Garage did not create the $BUCKET bucket in 60s. Check: docker compose logs garage"
+# Idempotent, and repeated here on purpose: garage-init does the same, but a
+# bucket without public read is the broken-images failure this script exists
+# to avoid, so it does not rest on a one-shot container having won a race.
+docker compose exec -T garage /garage bucket website --allow "$BUCKET" >/dev/null
 log "Data services ready"
 
 # ── 5. Load the data ─────────────────────────────────────────────────────────
@@ -242,13 +256,8 @@ docker compose exec -T postgres pg_restore -U kuara -d kuara \
 docker compose exec -T postgres rm -f /tmp/kuara.dump
 log "Database restored"
 
-docker compose cp "$STAGING/$BUCKET" minio:/tmp/kuara-import
-docker compose exec -T minio sh -c "
-    set -e
-    mc alias set dst http://127.0.0.1:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-    mc mirror --quiet --overwrite /tmp/kuara-import dst/$BUCKET >/dev/null
-    rm -rf /tmp/kuara-import
-"
+# After the database on purpose: each object's Content-Type comes from its row.
+"$REPO_DIR/scripts/restore-media.sh" "$STAGING/$BUCKET.tar"
 log "Media uploaded"
 
 # ── 6. Start the app ─────────────────────────────────────────────────────────
@@ -277,15 +286,12 @@ MEDIA_ROWS="$(sql 'SELECT count(*) FROM media;')"
 # push:true inserts a sentinel row named "dev" (batch -1) that is not a
 # migration; excluding it keeps the comparison against production honest.
 MIGRATIONS="$(sql "SELECT count(*) FROM payload_migrations WHERE name <> 'dev';")"
-docker compose exec -T minio sh -c "
-    mc alias set dst http://127.0.0.1:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-    mc ls --recursive dst/$BUCKET | wc -l" > "$STAGING/local-count" 2>/dev/null
-OBJECTS="$(tr -d ' \r' < "$STAGING/local-count")"
+OBJECTS="$(docker compose run --rm -T rclone lsf -R --files-only "garage:$BUCKET" 2>/dev/null | wc -l | tr -d ' \r')"
 
 echo "  courses .................. $COURSES"
 echo "  modules .................. $MODULES"
 echo "  media rows ............... $MEDIA_ROWS"
-echo "  media objects in MinIO ... $OBJECTS  (production: $REMOTE_OBJECTS)"
+echo "  media objects in Garage .. $OBJECTS  (production: $REMOTE_OBJECTS)"
 echo "  migrations applied ....... $MIGRATIONS  (production: $REMOTE_MIGRATIONS)"
 
 # A media row without its object is the failure this whole script exists to
@@ -310,7 +316,7 @@ cat <<DONE
 
     App .............. http://localhost:3000
     Payload admin .... http://localhost:3000/payload
-    MinIO console .... http://localhost:9001
+    Garage S3 API .... http://localhost:3900
 
   Log in with the production credentials — password hashes
   carry over. Logs: docker compose logs -f web

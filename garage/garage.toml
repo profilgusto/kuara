@@ -1,0 +1,32 @@
+# Garage — single-node object storage for Kuara media
+#
+# Mounted read-only at /etc/garage.toml by both compose files. No secrets live
+# here: the RPC secret comes from GARAGE_RPC_SECRET, and the access key and
+# bucket are created on first boot by `garage server --single-node
+# --default-bucket` from the GARAGE_DEFAULT_* variables set in compose.
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "lmdb"
+
+# One node, one copy. Durability comes from the volume plus the backups in
+# scripts/backup-prod-full.sh, not from replication.
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+# S3 API — authenticated only. Payload reads and writes through this.
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+
+# Web endpoint — the only way Garage serves objects without credentials.
+# The bucket is picked from the Host header, so the garage container carries
+# the network alias `kuara-media` and next.config.mjs proxies /media/* to
+# http://kuara-media:3902. Requires `garage bucket website --allow kuara-media`
+# (the garage-init service).
+[s3_web]
+bind_addr = "[::]:3902"
+root_domain = ".web.garage"
+index = "index.html"
