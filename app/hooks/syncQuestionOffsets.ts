@@ -78,15 +78,22 @@ export const syncQuestionOffsets: CollectionAfterChangeHook = async ({
         definition: 0,
       };
 
-      const updates: Array<{ id: string | number; offsets: QuestionCounts }> =
-        [];
+      const updates: Array<{
+        id: string | number;
+        offsets: QuestionCounts;
+        draft: boolean;
+      }> = [];
 
       for (const mod of modulesResult.docs as {
         id: string | number;
         _status?: string | null;
         content?: string | null;
       }[]) {
-        updates.push({ id: mod.id, offsets: { ...running } });
+        updates.push({
+          id: mod.id,
+          offsets: { ...running },
+          draft: mod._status !== "published",
+        });
 
         if (mod._status === "published" && mod.content) {
           const counts = countQuestions(mod.content);
@@ -97,11 +104,15 @@ export const syncQuestionOffsets: CollectionAfterChangeHook = async ({
       }
 
       await Promise.all(
-        updates.map(({ id, offsets }) =>
+        updates.map(({ id, offsets, draft }) =>
           req.payload.update({
             collection: "modules",
             id,
             data: { questionOffsets: offsets },
+            // A module that was never published may still lack required
+            // fields (one just created from the course page has no type
+            // yet); saved as a draft it is not validated against them.
+            draft,
             depth: 0,
             overrideAccess: true,
             context: { ...context, skipQuestionOffsets: true },

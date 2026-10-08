@@ -33,16 +33,10 @@ export default function LoginPage() {
         );
       }
 
-      const data = await res.json();
-      const role = data.user?.role;
-
-      if (role === "professor" || role === "admin") {
-        router.push("/gestao");
-      } else {
-        router.push("/aluno");
-      }
-    } catch (err: any) {
-      setError(err.message || "Algo deu errado. Tente novamente.");
+      router.push("/");
+      router.refresh();
+    } catch (err) {
+      setError((err instanceof Error && err.message) || "Algo deu errado. Tente novamente.");
     } finally {
       setLoading(false);
     }

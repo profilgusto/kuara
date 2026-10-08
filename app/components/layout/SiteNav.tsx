@@ -7,13 +7,12 @@ import { Sun, Moon, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { useNav } from "./NavContext";
+import { UserMenu } from "./UserMenu";
+import { EditModeButton } from "./EditModeButton";
 import { comBasePath } from "@/lib/base-path";
 
 // Sorted alphabetically
-const NAV_LINKS = [
-  { label: "Disciplinas", href: "/disciplinas" },
-  { label: "Tesselas", href: "/tesselas" },
-];
+const NAV_LINKS = [{ label: "Disciplinas", href: "/disciplinas" }];
 
 export function SiteNav() {
   const { theme, setTheme } = useTheme();
@@ -110,6 +109,8 @@ export function SiteNav() {
               )}
             </button>
           )}
+          <EditModeButton />
+          <UserMenu />
           {hasSidebar && (
             <button
               onClick={() => setSidebarOpen((v) => !v)}

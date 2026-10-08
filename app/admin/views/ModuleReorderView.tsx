@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useDocumentInfo, useConfig } from "@payloadcms/ui";
+import { formatAdminURL } from "payload/shared";
 import {
   DndContext,
   closestCenter,
@@ -198,7 +199,13 @@ const SortableItem: React.FC<SortableItemProps> = ({
 
       {/* Edit link */}
       <a
-        href={`${adminRoute}/collections/modules/${module.id}`}
+        href={formatAdminURL({
+          adminRoute,
+          path: `/collections/modules/${module.id}`,
+          // Plain <a>, not a Next <Link>: nothing prefixes the basePath
+          // downstream, so ask formatAdminURL for it explicitly.
+          includeBasePath: true,
+        })}
         title="Editar módulo"
         target="_blank"
         rel="noopener noreferrer"
@@ -265,7 +272,10 @@ export const ModuleReorderView: React.FC = () => {
     if (!courseId) return;
     setLoading(true);
     fetch(
-      `${api}/modules?where[course][equals]=${courseId}&sort=order&depth=0&limit=100`,
+      formatAdminURL({
+        apiRoute: api,
+        path: `/modules?where[course][equals]=${courseId}&sort=order&depth=0&limit=100`,
+      }),
       { credentials: "include" },
     )
       .then((r) => r.json())
@@ -294,12 +304,15 @@ export const ModuleReorderView: React.FC = () => {
     try {
       await Promise.all(
         modules.map((module, index) =>
-          fetch(`${api}/modules/${module.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ order: index + 1 }),
-          }),
+          fetch(
+            formatAdminURL({ apiRoute: api, path: `/modules/${module.id}` }),
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ order: index + 1 }),
+            },
+          ),
         ),
       );
       setHasChanges(false);

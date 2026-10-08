@@ -2,6 +2,7 @@ import { buildConfig } from "payload";
 import { postgresAdapter } from "@payloadcms/db-postgres";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
 import { s3Storage } from "@payloadcms/storage-s3";
+import { nodemailerAdapter } from "@payloadcms/email-nodemailer";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -16,6 +17,8 @@ import { Activities } from "./collections/Activities.ts";
 import { StudentGroups } from "./collections/StudentGroups.ts";
 import { Scores } from "./collections/Scores.ts";
 import { References } from "./collections/References.ts";
+import { AccountRequests } from "./collections/AccountRequests.ts";
+import { Enrollments } from "./collections/Enrollments.ts";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -24,6 +27,24 @@ const dirname = path.dirname(filename);
 // Do NOT add a module-level guard here — payload.config.ts is imported during
 // `next build` (NODE_ENV=production) before runtime secrets are available,
 // and a top-level throw would break static page collection.
+
+// `next build` imports this file with NODE_ENV=production but without the
+// runtime secrets, so the guard must not fire in that phase. At runtime (the
+// server and the migrator) a missing secret would silently sign sessions with
+// a publicly known key, so refuse to start instead.
+function resolveSecret(): string {
+  const secret = process.env.PAYLOAD_SECRET;
+  if (secret) return secret;
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PHASE !== "phase-production-build"
+  ) {
+    throw new Error(
+      "PAYLOAD_SECRET is not set; refusing to start in production.",
+    );
+  }
+  return "CHANGE-ME-IN-PRODUCTION";
+}
 
 export default buildConfig({
   defaultMaxTextLength: 800000, // ~800 KB — allows large MDX module content (default is 40,000)
@@ -82,9 +103,38 @@ export default buildConfig({
     StudentGroups,
     Scores,
     References,
+    AccountRequests,
+    Enrollments,
   ],
+  // Outgoing mail (password recovery, account approval). Configured only when
+  // SMTP_HOST is set: `next build` runs without runtime env, and without an
+  // adapter Payload logs "Email attempted without being configured" instead
+  // of sending. Dev points at the Mailpit container (docker-compose.yml).
+  email: process.env.SMTP_HOST
+    ? nodemailerAdapter({
+        defaultFromAddress:
+          process.env.SMTP_FROM_ADDRESS || "noreply-sigra-cap@ufsj.edu.br",
+        defaultFromName: process.env.SMTP_FROM_NAME || "Kuara",
+        // Verifying opens a connection at startup; an SMTP outage should
+        // fail the e-mail being sent, not the whole app boot.
+        skipVerify: true,
+        transportOptions: {
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT || 587),
+          // 465 is implicit TLS; on other ports nodemailer upgrades with
+          // STARTTLS when the server offers it.
+          secure: Number(process.env.SMTP_PORT || 587) === 465,
+          auth: process.env.SMTP_USER
+            ? {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS || "",
+              }
+            : undefined,
+        },
+      })
+    : undefined,
   editor: lexicalEditor(),
-  secret: process.env.PAYLOAD_SECRET || "CHANGE-ME-IN-PRODUCTION",
+  secret: resolveSecret(),
   typescript: {
     outputFile: path.resolve(dirname, "payload-types.ts"),
   },

@@ -71,6 +71,8 @@ set -a
 source "$ENV_FILE"
 set +a
 
+[[ -n "${PAYLOAD_SECRET:-}" ]]     || fail "PAYLOAD_SECRET is empty in .env.prod."
+
 log "Pre-flight checks passed."
 
 # ── Step 1: Pull latest code ──────────────────────────────────────────────────

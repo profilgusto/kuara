@@ -15,12 +15,14 @@ This guide is the authoritative reference for writing MDX content for Kuara modu
    - [YouTube](#youtube)
    - [PDF](#pdf)
    - [KImage](#kimage)
+   - [ImgInline](#imginline)
+   - [Colorize](#colorize)
    - [ExternalLink](#externallink)
    - [Download](#download)
    - [Code Blocks](#code-blocks)
    - [SlideCover](#slidecover)
    - [SlideSecondColumnContent](#slidesecondcolumncontent)
-   - [PresentOnly / TextOnly / HideInPresentation](#presentonly--textonly--hideinpresentation)
+   - [PresentOnly / TextOnly](#presentonly--textonly)
    - [Question / Answer / Hint](#question--answer--hint)
    - [Cite](#cite)
    - [CiteTessela](#citetessela)
@@ -49,7 +51,6 @@ Every module is rendered from a single MDX source. The reader can toggle between
 | **Navigation** | Scroll | Arrow keys, swipe, click |
 | **`<PresentOnly>`** | Hidden | Visible |
 | **`<TextOnly>`** | Visible | Hidden |
-| **`<HideInPresentation>`** | Visible | Hidden |
 | **Two-column layout** | Stacked / inline | Side-by-side |
 | **`<SlideCover>`** | Styled hero section | Full-screen title slide |
 | **Mobile** | Always active | Not available |
@@ -283,6 +284,59 @@ As shown in <RefFig label="cell-structure" />, the nucleus contains…
 
 ---
 
+### ImgInline
+
+A small figure embedded flush with the running text — for a toolbar button or icon referenced mid-sentence. Unlike `<KImage>`, it is inline (not a block), carries no caption or figure number, and is never referenced by `<RefFig>`.
+
+```mdx
+Para salvar o código, clique no botão salvar <ImgInline url="/api/media/file/botao-salvar.png" alt="botão salvar" /> que fica na barra superior esquerda.
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `url` / `src` | string | Image path or URL (interchangeable) |
+| `alt` | string | Alt text for accessibility |
+| `height` | string \| number | Height relative to the surrounding text. A bare number is treated as an `em` multiple (e.g. `1.6` → `"1.6em"`). Default: `"1.4em"`. Width is derived automatically from the image's aspect ratio. |
+
+> Use this only for small inline glyphs (icons, buttons). For any figure that deserves a caption, numbering, or stands on its own line, use `<KImage>` instead.
+
+---
+
+### Colorize
+
+Recolors a span of inline text.
+
+```mdx
+Este termo é <Colorize color="cyan">especialmente importante</Colorize> para o restante do módulo.
+
+<!-- A raw CSS color also works -->
+<Colorize color="#FF8800">texto em laranja customizado</Colorize>
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `color` | string | A named Kuara color (below) or any raw CSS color value (hex, `rgb(...)`, CSS color name). Default: `"green"`. |
+
+**Named Kuara colors** (tuned to stay legible on both the dark and light reading backgrounds):
+
+| Name | Hex |
+|------|-----|
+| `red` | `#E5484D` |
+| `orange` | `#E8833A` |
+| `yellow` | `#E0B341` |
+| `green` | `#3FAF5C` (Kuara primary) |
+| `cyan` | `#2FA8B8` (Kuara secondary) |
+| `blue` | `#4078F2` |
+| `magenta` | `#C44CC4` |
+
+> Use sparingly, for genuine emphasis — not as a substitute for `**bold**` or `<Callout>`. Prefer the named colors over raw hex values so highlighted terms stay visually consistent across modules.
+
+---
+
 ### ExternalLink
 
 A styled card that links to an external resource. Preferred over raw hyperlinks for important references:
@@ -403,7 +457,7 @@ The left column takes the remaining width (here, 55%). Use percentages or pixel 
 
 ---
 
-### PresentOnly / TextOnly / HideInPresentation
+### PresentOnly / TextOnly
 
 Render content conditionally based on the active mode. Use sparingly.
 
@@ -419,20 +473,14 @@ Render content conditionally based on the active mode. Use sparingly.
 > For deeper reading, see the references section at the end of this module.
 
 </TextOnly>
-
-<HideInPresentation>
-
-This paragraph is visible in Text Mode and hidden in Presentation Mode.
-Functionally identical to TextOnly.
-
-</HideInPresentation>
 ```
 
 | Component | Text Mode | Presentation Mode |
 |-----------|-----------|-------------------|
 | `<PresentOnly>` | Hidden | Visible |
 | `<TextOnly>` | Visible | Hidden |
-| `<HideInPresentation>` | Visible | Hidden |
+
+> **`HideInPresentation` is not an authorable MDX component.** It exists in the codebase (`components/mdx/HideInPresentation.tsx`) but is wired directly into the module/tessela page templates to hide the authors/date/tags/references footer in Presentation Mode — it is not registered in the MDX component map, so writing `<HideInPresentation>` in content will fail to resolve. Use `<TextOnly>` for the equivalent effect in authored content.
 
 The directive shorthand also works (see [Section 4](#4-directive-shorthand-syntax)):
 
@@ -650,9 +698,11 @@ Some components have a `:::` directive alias for completeness. The mapping is:
 | `:::warning` | `<Callout type="warning">` |
 | `:::present-only` or `:::po` | `<PresentOnly>` |
 | `:::text-only` or `:::to` | `<TextOnly>` |
-| `:::slide{layout="..."}` | `<Slide layout="...">` |
+| `:::slide` | `<Slide>` |
 
 > **Important:** `:::danger` does NOT have a directive alias. Use `<Callout type="danger">` directly.
+
+> **`<Slide>` / `:::slide` are not meant to be hand-authored.** Slides are created automatically from headings (see [Section 2](#2-how-slides-are-created)); `<Slide>` takes no `layout` prop — the two-column layout is switched on automatically whenever a `<SlideSecondColumnContent>` appears inside it (see below).
 
 **Do this:**
 
@@ -845,12 +895,15 @@ The following components **work well in both modes** and must be placed **outsid
 | Component | Reason |
 |-----------|--------|
 | `<KImage>` | Adapts its width automatically per mode |
+| `<ImgInline>` | A small inline glyph, unaffected by view mode |
+| `<Colorize>` | Inline text recoloring, unaffected by view mode |
 | `<YouTube>` | Embeds in both; shows a plain link in print |
 | `<PDF>` | Embeds in both; shows a plain link in print |
 | `<Download>` | Relevant in both modes |
 | `<ExternalLink>` | Relevant in both modes |
 | `<Question>` / `<Answer>` / `<Hint>` | Interactive in both; collapses cleanly in slides |
 | `<Callout>` | Highlights key information in both modes |
+| `<Interactive>` | Renders live in both; falls back to a static drawing in print |
 | Math (`$$...$$`) | Renders in both modes |
 | Code blocks | Render in both modes |
 
@@ -963,6 +1016,16 @@ These work on every widget, regardless of which one you chose:
 | `title` | `string` | widget's title | Overrides the heading shown in the block's header bar. |
 | `height` | `number` | widget's default | Stage height in px, clamped to 160–900. Presentation mode caps it further so the block fits a slide. |
 | `poster` | `string` | — | Image printed in place of the live widget (e.g. `/media/frame.png`). Only needed to override what the widget already prints — see below. |
+
+### View switcher (variants)
+
+Some widgets show a small button group in the header — e.g. the 1D/2D/3D
+buttons on `coord-frame-3d`, or ω→v / v→ω on `differential-kinematics`. This
+is declared by the widget itself (its `variants` metadata), not something an
+author turns on or off, and it is **not settable as an attribute** — the box
+owns the active choice as UI state and always opens on the widget's declared
+default (or its first button). Switching the view also renames the block's
+header, unless the author supplied an explicit `title`.
 
 ### Behaviour in the other modes
 

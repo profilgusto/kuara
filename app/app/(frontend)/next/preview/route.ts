@@ -14,9 +14,14 @@ export async function GET(req: Request): Promise<Response> {
   }
 
   // Verify the user is logged in
-  const { user } = await payload.auth({ headers: req.headers as any });
+  const { user } = await payload.auth({ headers: req.headers });
   if (!user) {
     return new Response("Unauthorized", { status: 401 });
+  }
+  // Drafts are staff-only (see the Modules read access): a student must not
+  // be able to switch draft mode on and read unpublished content.
+  if (user.role !== "admin" && user.role !== "professor") {
+    return new Response("Forbidden", { status: 403 });
   }
 
   if (collection === "modules") {

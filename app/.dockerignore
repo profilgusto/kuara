@@ -1,0 +1,11 @@
+# The image installs its own dependencies (Dockerfile `deps` stage). Copying the
+# host's node_modules over them replaces Linux binaries with macOS ones
+# (esbuild, sharp, swc) and bloats the build context.
+node_modules
+.next
+out
+.env
+.env.*
+*.log
+tsconfig.tsbuildinfo
+payload.config.mjs

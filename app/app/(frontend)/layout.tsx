@@ -4,7 +4,10 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Footer } from "@/components/layout/footer";
 import { SiteNav } from "@/components/layout/SiteNav";
+import { IconTooltips } from "@/components/layout/IconTooltips";
 import { NavProvider } from "@/components/layout/NavContext";
+import { SessionProvider } from "@/components/layout/SessionContext";
+import { EditModeProvider } from "@/components/layout/EditModeContext";
 import { comBasePath } from "@/lib/base-path";
 
 const fraunces = Fraunces({
@@ -73,9 +76,14 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <NavProvider>
-            <SiteNav />
-            <main className="flex-1">{children}</main>
-            <Footer />
+            <SessionProvider>
+              <EditModeProvider>
+                <SiteNav />
+                <main className="flex-1">{children}</main>
+                <Footer />
+                <IconTooltips />
+              </EditModeProvider>
+            </SessionProvider>
           </NavProvider>
         </ThemeProvider>
       </body>

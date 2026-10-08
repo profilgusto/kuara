@@ -9,6 +9,7 @@
 #   - No Nginx reverse proxy (connect directly to web:3000)
 #   - No migrate service (Payload uses push:true in dev)
 #   - No restart:always / resource limits (dev convenience)
+#   - Mailpit catches every outgoing e-mail (nothing leaves the machine)
 
 services:
 
@@ -79,6 +80,17 @@ services:
     networks:
       - kuara-net
 
+  # ── Mailpit (development SMTP) ────────────────────────────────────────────────
+  # Receives every e-mail the app sends (password recovery, account approval)
+  # and shows it in a web inbox at http://localhost:8025 — nothing is actually
+  # delivered. SMTP is mailpit:1025 inside the network.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"   # Web inbox
+    networks:
+      - kuara-net
+
   # ── PostgreSQL ───────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
@@ -116,7 +128,11 @@ services:
       S3_BUCKET: kuara-media
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-GK0123456789abcdef01234567}
       S3_SECRET_KEY: ${S3_SECRET_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
     depends_on:
+      mailpit:
+        condition: service_started
       postgres:
         condition: service_healthy
       garage-init:

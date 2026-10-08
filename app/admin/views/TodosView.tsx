@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useConfig } from "@payloadcms/ui";
+import { formatAdminURL } from "payload/shared";
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -57,7 +58,7 @@ function groupByCourse(modules: ModuleTodos[]): [string, CourseGroup][] {
 export const TodosView: React.FC = () => {
   const {
     config: {
-      routes: { api },
+      routes: { api, admin: adminRoute },
     },
   } = useConfig();
 
@@ -71,15 +72,22 @@ export const TodosView: React.FC = () => {
     setLoading(true);
     setError(null);
 
-    const fetchModules = fetch(`${api}/modules?limit=500&depth=1&draft=true`, {
-      credentials: "include",
-    }).then((r) => {
+    const fetchModules = fetch(
+      formatAdminURL({
+        apiRoute: api,
+        path: "/modules?limit=500&depth=1&draft=true",
+      }),
+      { credentials: "include" },
+    ).then((r) => {
       if (!r.ok) throw new Error(`HTTP ${r.status} (modules)`);
       return r.json();
     });
 
     const fetchTesselas = fetch(
-      `${api}/tesselas?limit=500&depth=0&draft=true`,
+      formatAdminURL({
+        apiRoute: api,
+        path: "/tesselas?limit=500&depth=0&draft=true",
+      }),
       { credentials: "include" },
     ).then((r) => {
       if (!r.ok) throw new Error(`HTTP ${r.status} (tesselas)`);
@@ -325,7 +333,11 @@ export const TodosView: React.FC = () => {
                       Módulo: {mod.title}
                     </span>
                     <a
-                      href={`/payload/collections/modules/${mod.id}`}
+                      href={formatAdminURL({
+                        adminRoute,
+                        path: `/collections/modules/${mod.id}`,
+                        includeBasePath: true,
+                      })}
                       style={{
                         fontSize: "11px",
                         color: "#2FA8B8",
@@ -412,7 +424,11 @@ export const TodosView: React.FC = () => {
                   Tessela: {tessela.title}
                 </span>
                 <a
-                  href={`/payload/collections/tesselas/${tessela.id}`}
+                  href={formatAdminURL({
+                    adminRoute,
+                    path: `/collections/tesselas/${tessela.id}`,
+                    includeBasePath: true,
+                  })}
                   style={{
                     fontSize: "11px",
                     color: "#2FA8B8",

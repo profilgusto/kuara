@@ -67,7 +67,7 @@ export default function CodeBlock({ code, className }: Props) {
             ref={codeRef}
             className={[className, "hljs", "!p-0"].filter(Boolean).join(" ")}
           >
-            {typeof code === "string" ? code : (code as any)}
+            {code}
           </code>
         </pre>
       </div>

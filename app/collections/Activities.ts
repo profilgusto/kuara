@@ -1,4 +1,59 @@
-import type { CollectionConfig } from "payload";
+import { ValidationError } from "payload";
+import type { CollectionBeforeValidateHook, CollectionConfig } from "payload";
+
+const relationId = (value: unknown): unknown =>
+  typeof value === "object" && value !== null
+    ? (value as { id?: unknown }).id
+    : value;
+
+/**
+ * Stores the code trimmed and in upper case, and keeps it unique within the
+ * offer. The site's table checks this too, but only against the rows it has
+ * on screen; this is the rule that holds for every way in.
+ */
+const normalizeAndRejectDuplicateCode: CollectionBeforeValidateHook = async ({
+  data,
+  originalDoc,
+  req,
+}) => {
+  if (!data) return data;
+  if (typeof data.acronym === "string") {
+    data.acronym = data.acronym.replace(/\s+/g, "").toLocaleUpperCase("pt-BR");
+  }
+  if (typeof data.description === "string") {
+    data.description = data.description.trim().replace(/\s+/g, " ");
+  }
+
+  const acronym = data.acronym ?? originalDoc?.acronym;
+  const offer = relationId(data.offer ?? originalDoc?.offer);
+  if (!acronym || offer === undefined || offer === null) return data;
+
+  const clash = await req.payload.find({
+    collection: "activities",
+    where: {
+      and: [
+        { offer: { equals: offer } },
+        { acronym: { equals: acronym } },
+        ...(originalDoc?.id ? [{ id: { not_equals: originalDoc.id } }] : []),
+      ],
+    },
+    depth: 0,
+    limit: 1,
+    req,
+  });
+  if (clash.totalDocs > 0) {
+    throw new ValidationError({
+      collection: "activities",
+      errors: [
+        {
+          path: "acronym",
+          message: `This offer already has an activity with the code ${acronym}.`,
+        },
+      ],
+    });
+  }
+  return data;
+};
 
 export const Activities: CollectionConfig = {
   slug: "activities",
@@ -92,6 +147,9 @@ export const Activities: CollectionConfig = {
       }
     },
   },
+  hooks: {
+    beforeValidate: [normalizeAndRejectDuplicateCode],
+  },
   fields: [
     {
       name: "offer",
@@ -126,8 +184,75 @@ export const Activities: CollectionConfig = {
       max: 10,
       admin: {
         description:
-          "Weight of this activity (all weights in an offer must sum to 10.0)",
+          "Points this activity is worth. The regular activities of an offer should sum to 10.0; extra ones come on top.",
         step: 0.1,
+      },
+    },
+    {
+      name: "mode",
+      type: "select",
+      required: true,
+      defaultValue: "graded",
+      options: [
+        { label: "Graded", value: "graded" },
+        { label: "Checklist", value: "checklist" },
+      ],
+      admin: {
+        description:
+          "Graded: each student gets a percentage of the points. Checklist: the points are split across the tasks below, and a student earns the share of the tasks marked as done.",
+      },
+    },
+    {
+      name: "tasks",
+      type: "array",
+      admin: {
+        description:
+          "The tasks of a checklist activity. Each can be marked done per student.",
+        condition: (data) => data?.mode === "checklist",
+      },
+      fields: [
+        {
+          name: "code",
+          type: "text",
+          admin: {
+            description: "Short acronym for the table heading (optional).",
+          },
+        },
+        {
+          name: "name",
+          type: "text",
+          required: true,
+        },
+      ],
+    },
+    {
+      name: "dueDate",
+      type: "date",
+      admin: {
+        description: "Day the work is due (optional).",
+        date: { pickerAppearance: "dayOnly" },
+      },
+    },
+    {
+      name: "comment",
+      type: "textarea",
+      maxLength: 500,
+      admin: {
+        description: "Notes about this activity (optional).",
+      },
+    },
+    {
+      name: "category",
+      type: "select",
+      required: true,
+      defaultValue: "regular",
+      options: [
+        { label: "Regular", value: "regular" },
+        { label: "Extra", value: "extra" },
+      ],
+      admin: {
+        description:
+          "Regular activities add up to the semester's 10.0 points; extra ones are bonus points.",
       },
     },
     {

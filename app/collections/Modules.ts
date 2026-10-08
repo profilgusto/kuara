@@ -5,6 +5,7 @@ import {
 } from "../hooks/syncMediaUsedIn.ts";
 import { syncModuleCrossRefs } from "../hooks/syncModuleCrossRefs.ts";
 import { syncQuestionOffsets } from "../hooks/syncQuestionOffsets.ts";
+import { assignModuleOrder } from "../hooks/assignModuleOrder.ts";
 
 export const Modules: CollectionConfig = {
   slug: "modules",
@@ -41,7 +42,7 @@ export const Modules: CollectionConfig = {
     delete: ({ req: { user } }) => user?.role === "admin",
   },
   hooks: {
-    beforeChange: [syncModuleCrossRefs],
+    beforeChange: [assignModuleOrder, syncModuleCrossRefs],
     afterChange: [syncModuleMediaRefs, syncQuestionOffsets],
     afterDelete: [cleanModuleMediaRefs],
   },
@@ -71,6 +72,9 @@ export const Modules: CollectionConfig = {
     {
       name: "authors",
       type: "text",
+      // A new module starts out signed by whoever creates it; editable.
+      defaultValue: ({ user }) =>
+        typeof user?.name === "string" ? user.name : undefined,
       admin: {
         components: {
           Field: "@/admin/components/AuthorsField",
@@ -114,6 +118,9 @@ export const Modules: CollectionConfig = {
       required: true,
       defaultValue: 0,
       admin: {
+        // Set by hooks/assignModuleOrder.ts (a new module goes last) and by
+        // the drag-and-drop reorder on the course page; not typed by hand.
+        hidden: true,
         description: "Sort order within the course",
       },
     },
@@ -147,6 +154,8 @@ export const Modules: CollectionConfig = {
     {
       name: "publishedAt",
       type: "date",
+      // A new module starts out dated today; editable.
+      defaultValue: () => new Date().toISOString(),
       admin: {
         description: "Data de publicação do módulo.",
         date: {

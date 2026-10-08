@@ -1,4 +1,51 @@
-import type { CollectionConfig } from "payload";
+import { ValidationError } from "payload";
+import type { CollectionBeforeValidateHook, CollectionConfig } from "payload";
+
+const relationId = (value: unknown): unknown =>
+  typeof value === "object" && value !== null
+    ? (value as { id?: unknown }).id
+    : value;
+
+/**
+ * A course has at most one offer per period. The site's "create offer" dialog
+ * checks this too, but only against the list it has on screen; this is the
+ * rule that holds for every way in (admin panel, REST, two tabs at once).
+ */
+const rejectDuplicatePeriod: CollectionBeforeValidateHook = async ({
+  data,
+  originalDoc,
+  req,
+}) => {
+  const period = (data?.period ?? originalDoc?.period)?.trim?.();
+  const course = relationId(data?.course ?? originalDoc?.course);
+  if (!period || course === undefined || course === null) return data;
+
+  const clash = await req.payload.find({
+    collection: "offers",
+    where: {
+      and: [
+        { course: { equals: course } },
+        { period: { equals: period } },
+        ...(originalDoc?.id ? [{ id: { not_equals: originalDoc.id } }] : []),
+      ],
+    },
+    depth: 0,
+    limit: 1,
+    req,
+  });
+  if (clash.totalDocs > 0) {
+    throw new ValidationError({
+      collection: "offers",
+      errors: [
+        {
+          path: "period",
+          message: `This course already has an offer for ${period}.`,
+        },
+      ],
+    });
+  }
+  return data;
+};
 
 export const Offers: CollectionConfig = {
   slug: "offers",
@@ -14,6 +61,9 @@ export const Offers: CollectionConfig = {
     update: ({ req: { user } }) =>
       user?.role === "admin" || user?.role === "professor",
     delete: ({ req: { user } }) => user?.role === "admin",
+  },
+  hooks: {
+    beforeValidate: [rejectDuplicatePeriod],
   },
   fields: [
     {

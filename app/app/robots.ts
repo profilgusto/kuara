@@ -17,8 +17,7 @@ export default function robots(): MetadataRoute.Robots {
           comBasePath("/payload"),
           comBasePath("/api/"),
           comBasePath("/login"),
-          comBasePath("/aluno"),
-          comBasePath("/gestao"),
+          comBasePath("/minha-area"),
         ],
       },
       {

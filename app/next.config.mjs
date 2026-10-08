@@ -12,10 +12,6 @@ const nextConfig = {
   // Fixed at build time; manual (non-Link) references use lib/base-path.ts.
   basePath: process.env.NEXT_PUBLIC_BASE_PATH || undefined,
 
-  // ESLint is run separately via `npm run lint` (Phase 1 validation).
-  // Skipping it here prevents any lint warning from blocking a production build.
-  eslint: { ignoreDuringBuilds: true },
-
   // react-pdf ships ESM-only; include it in Next.js's SWC transform pass.
   transpilePackages: ["react-pdf"],
 

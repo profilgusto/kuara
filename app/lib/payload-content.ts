@@ -112,6 +112,9 @@ export async function getCourse(
       course: { equals: course.id },
       visible: { not_equals: false },
       linkable: { not_equals: false },
+      // A module that was never published stays off the course page; the
+      // local API does not apply the collection's read access on its own.
+      ...(draft ? {} : { _status: { equals: "published" } }),
     },
     sort: "order",
     limit: 100,

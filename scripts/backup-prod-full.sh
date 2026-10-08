@@ -8,8 +8,7 @@
 # only and keeps it on the same disk as the data it protects.
 #
 # Run from the dev machine, at the repo root:
-#   ./scripts/backup-prod-full.sh                  # production on Garage
-#   ./scripts/backup-prod-full.sh --source minio   # production still on MinIO
+#   ./scripts/backup-prod-full.sh
 #   ./scripts/backup-prod-full.sh --out /Volumes/x # default: ~/kuara-backups
 #
 # Result: <out>/prod_<timestamp>/
@@ -41,14 +40,9 @@ SSH_HOST="${KUARA_SSH_HOST:-kuara.ufsj.edu.br}"
 SSH_USER="${KUARA_SSH_USER:-filgusto}"
 SSH_PORT="${KUARA_SSH_PORT:-22691}"
 REMOTE_DIR="${KUARA_REMOTE_DIR:-~/kuara-house/kuara}"
-# COMPOSE_PROFILES: once the Garage compose file is on the server, the old
-# minio service only exists under the legacy-minio profile. The variable is
-# ignored by a compose file that defines no such profile, so it is safe on
-# both sides of the migration.
-REMOTE_COMPOSE="COMPOSE_PROFILES=legacy-minio docker compose -f docker-compose.prod.yml"
+REMOTE_COMPOSE="docker compose -f docker-compose.prod.yml"
 BUCKET="kuara-media"
 OUT_ROOT="$HOME/kuara-backups"
-SOURCE="garage"
 
 # -n: see refresh-local-from-prod.sh — ssh would otherwise drain our stdin.
 SSH=(ssh -n -p "$SSH_PORT" "${SSH_USER}@${SSH_HOST}")
@@ -60,7 +54,6 @@ die()  { echo "ERROR: $*" >&2; exit 1; }
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --source)  SOURCE="${2:-}"; shift ;;
         --out)     OUT_ROOT="${2:-}"; shift ;;
         -h|--help) sed -n '2,36p' "$0"; exit 0 ;;
         *)         die "Unknown option: $1 (try --help)" ;;
@@ -68,7 +61,6 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-[[ "$SOURCE" == "garage" || "$SOURCE" == "minio" ]] || die "--source must be garage or minio."
 [[ -n "$OUT_ROOT" ]] || die "--out needs a directory."
 
 DEST="$OUT_ROOT/prod_$(date +%Y%m%d_%H%M%S)"
@@ -100,17 +92,12 @@ command -v python3 >/dev/null || die "python3 is required (to read the media arc
 remote "$REMOTE_COMPOSE ps -q --status running postgres" 2>/dev/null | grep -q . \
     || die "Production postgres is not running."
 
-if [[ "$SOURCE" == "minio" ]]; then
-    remote "$REMOTE_COMPOSE ps -q --status running minio" 2>/dev/null | grep -q . \
-        || die "Production minio is not running. Already migrated? Use --source garage."
-else
-    remote "$REMOTE_COMPOSE ps -q --status running garage" 2>/dev/null | grep -q . \
-        || die "Production garage is not running. Not migrated yet? Use --source minio."
-fi
+remote "$REMOTE_COMPOSE ps -q --status running garage" 2>/dev/null | grep -q . \
+    || die "Production garage is not running."
 
 umask 077
 mkdir -p "$DEST"
-log "Production reachable · source: $SOURCE · writing to $DEST"
+log "Production reachable · writing to $DEST"
 
 # ── 1. Database ──────────────────────────────────────────────────────────────
 step "1/3 · Database"
@@ -131,29 +118,13 @@ log "Database dumped ($(du -h "$DEST/kuara.dump" | cut -f1)) · $MEDIA_ROWS medi
 # ── 2. Media ─────────────────────────────────────────────────────────────────
 step "2/3 · Media"
 
-# Both branches export through the object API (never the raw data volume, whose
-# layout is private to each server) into the container's own filesystem, then
-# stream it here as a tar.
-if [[ "$SOURCE" == "minio" ]]; then
-    remote "$REMOTE_COMPOSE exec -T minio sh -c '
-        set -e
-        rm -rf /tmp/kuara-export && mkdir -p /tmp/kuara-export
-        mc alias set src http://127.0.0.1:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-        mc mirror --quiet --overwrite src/$BUCKET /tmp/kuara-export/$BUCKET >/dev/null
-    '" 2>/dev/null
-    # `compose cp <svc>:<dir> -` writes a tar of the directory to stdout.
-    remote "$REMOTE_COMPOSE cp minio:/tmp/kuara-export/$BUCKET -" 2>/dev/null > "$DEST/$BUCKET.tar"
-    remote "$REMOTE_COMPOSE exec -T minio rm -rf /tmp/kuara-export" 2>/dev/null
-    remote "$REMOTE_COMPOSE exec -T minio sh -c '
-        mc alias set src http://127.0.0.1:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-        mc ls --recursive src/$BUCKET | wc -l'" > "$DEST/remote-count" 2>/dev/null
-else
-    remote "$REMOTE_COMPOSE run --rm -T --entrypoint sh rclone -c \
-        'rclone copy garage:$BUCKET /tmp/$BUCKET -q && tar -C /tmp -cf - $BUCKET'" \
-        2>/dev/null > "$DEST/$BUCKET.tar"
-    remote "$REMOTE_COMPOSE run --rm -T rclone lsf -R --files-only garage:$BUCKET | wc -l" \
-        > "$DEST/remote-count" 2>/dev/null
-fi
+# Exported through the object API (never the raw data volume, whose layout is
+# private to the server) and streamed here as a tar.
+remote "$REMOTE_COMPOSE run --rm -T --entrypoint sh rclone -c \
+    'rclone copy garage:$BUCKET /tmp/$BUCKET -q && tar -C /tmp -cf - $BUCKET'" \
+    2>/dev/null > "$DEST/$BUCKET.tar"
+remote "$REMOTE_COMPOSE run --rm -T rclone lsf -R --files-only garage:$BUCKET | wc -l" \
+    > "$DEST/remote-count" 2>/dev/null
 
 [[ -s "$DEST/$BUCKET.tar" ]] || die "Media export came back empty."
 # Listed with python rather than `tar -t`: bsdtar on macOS prints non-ASCII
@@ -204,7 +175,7 @@ Kuara full production backup
   taken at ............. $(date '+%Y-%m-%d %H:%M:%S %z')
   host ................. ${SSH_USER}@${SSH_HOST}:${SSH_PORT}
   deployed commit ...... $REMOTE_COMMIT
-  storage backend ...... $SOURCE
+  storage backend ...... garage
 
   kuara.dump ........... $(du -h "$DEST/kuara.dump" | cut -f1)  (pg_dump -Fc)
   migrations applied ... $MIGRATIONS

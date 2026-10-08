@@ -19,7 +19,13 @@ Run from `app/` before declaring a task complete or starting Docker:
 Only after Phase 1 passes, run from root (`/`):
 - `docker-compose up --build -d`
 - Web app is at `http://localhost:3000` | Payload Admin is at `http://localhost:3000/payload`.
+- Outgoing e-mail (password recovery, account approval) is caught by Mailpit: inbox at `http://localhost:8025`. Nothing is delivered for real in dev.
 - `docker-compose logs -f web` to monitor output.
+- *Test data is welcome in dev.* The local database is a disposable mirror of production
+  (`scripts/refresh-local-from-prod.sh`), pulled down for testing only; nothing here is
+  ever pushed back up. Create fictitious users, offers, enrollments and so on freely on
+  `localhost` to exercise a change, including inside records that already exist. Cleaning
+  up afterwards is a courtesy, not a requirement.
 - *Strict Rule:* NUNCA rode `npm run dev` na máquina host. Use apenas o Docker Compose.
 - *After adding an npm dependency:* `docker compose up -d --build --renew-anon-volumes web`.
   `/app/node_modules` is an anonymous volume that survives a plain `--build`, so a
@@ -122,6 +128,26 @@ changes on disk, so a pull that touches the running script makes it resume
 inside an unrelated line of the new file — silently, still exiting 0. Two
 deploys failed this way, both appearing to blame whatever step sat at the
 offset. Preserve the guard when editing the script.
+
+**Outgoing e-mail must be enabled on the server (pending as of 2026-10-08).**
+The sender is the shared mailbox `noreply-sigra-cap@ufsj.edu.br` (the same one
+fac-cap uses; the institutional SMTP rejects arbitrary senders). The repo only
+carries the default (`.env.prod.example` and the fallback in `payload.config.ts`);
+the real values live in the server's `.env`, which is not versioned. On the next
+deploy, before declaring it done:
+
+1. Check the server `.env` (`~/kuara-house/kuara/.env`) for `SMTP_HOST`,
+   `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and
+   `SMTP_FROM_ADDRESS=noreply-sigra-cap@ufsj.edu.br`. Add or fix what is missing.
+   Copy the host/port/credentials from the fac-cap `.env` on the same server;
+   note fac-cap names the password `SMTP_PASSWORD`, Kuara names it `SMTP_PASS`.
+   Never print or commit the password.
+2. Without `SMTP_HOST` Payload only logs the attempt and sends nothing, so
+   password recovery and "account approved" e-mails silently never arrive.
+3. Env changes need the `web` container recreated, not just restarted
+   (`docker compose -f docker-compose.prod.yml up -d --no-deps web`).
+4. Verify with a real password-recovery request to an address the user controls,
+   and check `docker compose logs web` for SMTP errors. Report the result.
 
 **After deploying, verify from outside:** `https://kuara.ufsj.edu.br/kuara`,
 `/kuara/payload` and `/kuara/api/health` must all return 200. A green script is

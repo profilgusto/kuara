@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Module } from "@/payload-types";
 import { getPayload } from "payload";
 import configPromise from "@payload-config";
 import { compileMdx, extractHeadings } from "@/lib/mdx-pipeline";
@@ -28,7 +29,7 @@ export default async function ModulePreviewPage({
   const payload = await getPayload({ config: configPromise });
 
   // Always fetch as draft so the latest autosaved content is shown
-  let moduleDoc: any;
+  let moduleDoc: Module;
   try {
     moduleDoc = await payload.findByID({
       collection: "modules",
@@ -53,16 +54,16 @@ export default async function ModulePreviewPage({
   const hasContent = Boolean(moduleDoc.content?.trim());
 
   // Extract headings from raw MDX
-  const headings = hasContent ? extractHeadings(moduleDoc.content) : [];
+  const headings = hasContent ? extractHeadings((moduleDoc.content ?? "")) : [];
   const slideCover = hasContent
-    ? extractSlideCoverProps(moduleDoc.content)
+    ? extractSlideCoverProps((moduleDoc.content ?? ""))
     : null;
 
   // Citations and figures
   const citationStyle: CitationStyle =
     (moduleDoc.citationStyle as CitationStyle) ?? "authoryear";
-  const citationOrder = hasContent ? extractCiteLabels(moduleDoc.content) : [];
-  const figureOrder = hasContent ? extractFigureLabels(moduleDoc.content) : [];
+  const citationOrder = hasContent ? extractCiteLabels((moduleDoc.content ?? "")) : [];
+  const figureOrder = hasContent ? extractFigureLabels((moduleDoc.content ?? "")) : [];
   const references = await fetchAndFormatReferences(
     citationOrder,
     citationStyle,
@@ -73,7 +74,7 @@ export default async function ModulePreviewPage({
   let content = null;
   if (hasContent) {
     try {
-      const compiled = await compileMdx(moduleDoc.content, getMdxComponents());
+      const compiled = await compileMdx((moduleDoc.content ?? ""), getMdxComponents());
       content = compiled.content;
     } catch (err) {
       console.error("Failed to compile MDX in preview:", err);
