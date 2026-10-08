@@ -37,7 +37,9 @@ yarn-error.log*
 next-env.d.ts
 
 # payload auto-generated
-payload-types.ts
+# payload-types.ts is NOT ignored: the production image builds from a clean
+# checkout (no Payload CLI/DB), and the code is type-checked against it.
+# Regenerate with `payload generate:types` after a schema change.
 app/(payload)/admin/importMap.ts
 
 # telaclass core reference website
