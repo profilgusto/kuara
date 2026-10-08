@@ -75,9 +75,15 @@ const requestAccount: PayloadHandler = async (req) => {
  * Approving a request creates the user and e-mails a link to set a password.
  *
  * The account gets a random password nobody knows: the requester never typed
- * one, and the reset link is what proves they own the address. Runs inside the
- * approval's transaction (`req`), so a failed e-mail leaves the request
- * pending instead of an account its owner cannot reach.
+ * one, and the reset link is what proves they own the address.
+ *
+ * The user is created and the link sent OUTSIDE the approval's transaction
+ * (no `req`). Payload 3.90 reserves its per-user "forgot password" throttle on
+ * a separate database connection, which cannot see a row that is still
+ * uncommitted: inside the transaction it finds no user and silently sends
+ * nothing. To keep the old guarantee — a failed e-mail must leave the request
+ * pending, not an account its owner cannot reach — a failure here deletes the
+ * user again and rethrows, which rolls the approval back.
  */
 const createUserOnApproval: CollectionAfterChangeHook = async ({
   doc,
@@ -95,11 +101,10 @@ const createUserOnApproval: CollectionAfterChangeHook = async ({
     where: { email: { equals: doc.email } },
     limit: 1,
     depth: 0,
-    req,
   });
   if (existing.totalDocs > 0) return doc;
 
-  await req.payload.create({
+  const user = await req.payload.create({
     collection: "users",
     data: {
       name: doc.name,
@@ -107,17 +112,20 @@ const createUserOnApproval: CollectionAfterChangeHook = async ({
       role: doc.requestedRole,
       password: crypto.randomBytes(24).toString("hex"),
     },
-    req,
   });
 
-  await req.payload.forgotPassword({
-    collection: "users",
-    data: { email: doc.email },
-    expiration: WELCOME_LINK_EXPIRATION_MS,
-    // Read by the e-mail generators in collections/Users.ts.
-    context: { accountApproved: true },
-    req,
-  });
+  try {
+    await req.payload.forgotPassword({
+      collection: "users",
+      data: { email: doc.email },
+      expiration: WELCOME_LINK_EXPIRATION_MS,
+      // Read by the e-mail generators in collections/Users.ts.
+      context: { accountApproved: true },
+    });
+  } catch (error) {
+    await req.payload.delete({ collection: "users", id: user.id });
+    throw error;
+  }
 
   return doc;
 };
