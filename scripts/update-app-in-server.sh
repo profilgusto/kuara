@@ -128,7 +128,17 @@ log "Images built."
 step "Running database migrations"
 # Runs against the already-running postgres. Aborts on non-zero exit.
 docker compose -f "$COMPOSE_APP" run --rm migrate
-log "Migrations complete."
+
+# The migrator can exit 0 without applying anything (seen when the script runs
+# detached with stdin on /dev/null). Exit status alone is not evidence: compare
+# what the repo ships with what the database recorded, and stop BEFORE the new
+# web image starts against a schema that lacks its columns.
+EXPECTED="$(ls "$MIGRATIONS_DIR"/[0-9]*.ts | wc -l | tr -d ' ')"
+APPLIED="$(docker compose -f "$COMPOSE_APP" exec -T postgres \
+    psql -U kuara -d kuara -Atc 'select count(*) from payload_migrations' | tr -d '[:space:]')"
+[[ "$APPLIED" == "$EXPECTED" ]] \
+    || fail "Database has $APPLIED migrations recorded, repo has $EXPECTED. Run: docker compose -f docker-compose.prod.yml run --rm migrate"
+log "Migrations complete ($APPLIED recorded)."
 
 # ── Step 5: Restart web service with the new image ───────────────────────────
 step "Restarting web service"
