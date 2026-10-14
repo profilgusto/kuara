@@ -7,6 +7,10 @@ import { sortOffersLatestFirst } from "@/lib/offer-period";
 import { SetNavBreadcrumb } from "@/components/layout/NavContext";
 import { TermsSettings } from "./TermsSettings";
 
+// Reads the session and the database: never prerender at build time, when
+// there is no database to initialise Payload against.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Configurações gerais | Kuara",
   // Admin-only page: nothing here for a search engine.
