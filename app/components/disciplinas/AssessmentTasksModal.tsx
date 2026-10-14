@@ -40,7 +40,7 @@ import {
 } from "@/lib/assessment";
 
 const FIELD_CLASS =
-  "rounded-md border border-border bg-input px-3 py-1.5 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60";
+  "rounded-md border border-border bg-input px-3 py-1.5 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [@media(pointer:coarse)]:text-base disabled:opacity-60";
 
 const LABEL_CLASS =
   "mb-1 block font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground";
@@ -465,7 +465,7 @@ function SortableTask({
         onClick={onRemove}
         disabled={disabled}
         aria-label={`Remover tarefa ${name || index + 1}`}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-red-600/60 transition-colors hover:bg-red-500/10 hover:text-red-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/50 disabled:pointer-events-none disabled:opacity-30 dark:text-red-400/60 dark:hover:text-red-400"
+        className="inline-flex h-7 w-7 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 shrink-0 items-center justify-center rounded-md text-red-600/60 transition-colors hover:bg-red-500/10 hover:text-red-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/50 disabled:pointer-events-none disabled:opacity-30 dark:text-red-400/60 dark:hover:text-red-400"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>

@@ -148,6 +148,51 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # ── Autoheal ─────────────────────────────────────────────────────────────────
+  # A hung Node process stays "Up" forever: `restart: always` only fires on
+  # exit and an unhealthy healthcheck never restarts anything. This watcher
+  # restarts containers that carry the label `autoheal=true` (only `web`) when
+  # they turn unhealthy. Scoped by label because the host is shared.
+  # It talks to Docker through docker-socket-proxy, which exposes only
+  # list/inspect/restart of containers — not the raw (root-equivalent) socket.
+  autoheal:
+    image: willfarrell/autoheal:1.2.0
+    restart: always
+    environment:
+      AUTOHEAL_CONTAINER_LABEL: autoheal
+      AUTOHEAL_INTERVAL: "30"
+      AUTOHEAL_START_PERIOD: "90"
+      DOCKER_SOCK: tcp://docker-proxy:2375
+    depends_on:
+      - docker-proxy
+    networks:
+      - autoheal-net
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    restart: always
+    environment:
+      CONTAINERS: 1       # list / inspect
+      POST: 1             # allow write verbs...
+      ALLOW_RESTARTS: 1   # ...but only restart/stop/kill on containers
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - autoheal-net
+    deploy:
+      resources:
+        limits:
+          memory: 32m
+
   # ── Next.js + Payload CMS ────────────────────────────────────────────────────
   web:
     build:
@@ -157,10 +202,15 @@ services:
       args:
         NEXT_PUBLIC_BASE_PATH: /kuara
     restart: always
+    # tini as PID 1: forwards SIGTERM and reaps zombies.
+    init: true
     env_file:
       - .env.prod
     environment:
       NODE_ENV: production
+      # Cap the V8 heap below the 3g container limit so a leak ends in an
+      # exit (which `restart: always` handles) rather than endless GC thrash.
+      NODE_OPTIONS: --max-old-space-size=2048
       DATABASE_URL: postgresql://kuara:${POSTGRES_PASSWORD}@postgres:5432/kuara
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
@@ -196,6 +246,10 @@ services:
         max-size: "20m"
         max-file: "5"
     labels:
+      # ── Opt in to the autoheal watcher (restarts the container when its
+      # healthcheck reports unhealthy — Docker itself never does) ────────────
+      - "autoheal=true"
+
       # ── Tell Traefik to route this container ──────────────────────────────
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-net"
@@ -209,6 +263,7 @@ services:
       # Health check so Traefik only routes to a healthy container
       - "traefik.http.services.kuara.loadbalancer.healthcheck.path=/kuara/api/health"
       - "traefik.http.services.kuara.loadbalancer.healthcheck.interval=30s"
+      - "traefik.http.services.kuara.loadbalancer.healthcheck.timeout=5s"
 
       # ── Media router — /media/* stays unprefixed (existing DB-stored URLs
       # predate the /kuara move; see next.config.mjs's basePath:false rewrite) ─
@@ -256,6 +311,8 @@ volumes:
 networks:
   kuara-net:
     driver: bridge
+  autoheal-net:
+    internal: true
   traefik-net:
     external: true   # created and managed by docker-compose.traefik.yml
     name: traefik-net

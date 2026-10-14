@@ -40,7 +40,9 @@ SSH_HOST="${KUARA_SSH_HOST:-kuara.ufsj.edu.br}"
 SSH_USER="${KUARA_SSH_USER:-filgusto}"
 SSH_PORT="${KUARA_SSH_PORT:-22691}"
 REMOTE_DIR="${KUARA_REMOTE_DIR:-~/kuara-house/kuara}"
-REMOTE_COMPOSE="docker compose -f docker-compose.prod.yml"
+# --env-file: production keeps its secrets in .env.prod; plain `compose` reads
+# only .env, so S3 keys come up blank and rclone is refused (403 anonymous).
+REMOTE_COMPOSE="docker compose --env-file .env.prod -f docker-compose.prod.yml"
 BUCKET="kuara-media"
 
 # -n: ssh reads stdin by default and drains it, which would leave the
@@ -174,12 +176,25 @@ REMOTE_MIGRATIONS="$(tr -d ' \r\n' < "$STAGING/remote-migrations")"
 # unpacked on macOS, accented filenames change Unicode form and stop matching
 # the database (see restore-media.sh).
 log "Exporting media objects…"
-"${SSH[@]}" "cd $REMOTE_DIR && $REMOTE_COMPOSE run --rm -T --entrypoint sh rclone -c \
+if ! "${SSH[@]}" "cd $REMOTE_DIR && $REMOTE_COMPOSE run --rm -T --entrypoint sh rclone -c \
     'rclone copy garage:$BUCKET /tmp/$BUCKET -q && tar -C /tmp -cf - $BUCKET'" \
-    2>/dev/null > "$STAGING/$BUCKET.tar"
+    2> "$STAGING/media-export.err" > "$STAGING/$BUCKET.tar"; then
+    KEEP_STAGING=1
+    sed 's/^/  remote: /' "$STAGING/media-export.err" >&2
+    die "Media export failed on production (stderr above)."
+fi
+[[ -s "$STAGING/$BUCKET.tar" ]] || {
+    KEEP_STAGING=1
+    sed 's/^/  remote: /' "$STAGING/media-export.err" >&2
+    die "Media export came back empty."
+}
 
-"${SSH[@]}" "cd $REMOTE_DIR && $REMOTE_COMPOSE run --rm -T rclone \
-    lsf -R --files-only garage:$BUCKET | wc -l" > "$STAGING/remote-count" 2>/dev/null
+if ! "${SSH[@]}" "cd $REMOTE_DIR && $REMOTE_COMPOSE run --rm -T rclone \
+    lsf -R --files-only garage:$BUCKET | wc -l" > "$STAGING/remote-count" 2> "$STAGING/count.err"; then
+    KEEP_STAGING=1
+    sed 's/^/  remote: /' "$STAGING/count.err" >&2
+    die "Could not count objects in the production bucket."
+fi
 
 REMOTE_OBJECTS="$(tr -d ' \r\n' < "$STAGING/remote-count")"
 fi

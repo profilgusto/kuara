@@ -443,3 +443,83 @@ describe("validateTaskList", () => {
     ).toBe(true);
   });
 });
+
+describe("assessment graded by questions", () => {
+  it("knows the mode and labels it", async () => {
+    const { parseAssessmentMode, modeLabel } = await import("./assessment");
+    expect(parseAssessmentMode("questions")).toBe("questions");
+    expect(parseAssessmentMode("whatever")).toBe("graded");
+    expect(modeLabel("questions")).toBe("Questões");
+  });
+
+  it("reads a question weight: positive, two decimals at most", async () => {
+    const { parseQuestionWeight } = await import("./assessment");
+    expect(parseQuestionWeight("1")).toBe(1);
+    expect(parseQuestionWeight("2,5")).toBe(2.5);
+    expect(parseQuestionWeight(" 0.25 ")).toBe(0.25);
+    expect(parseQuestionWeight("100")).toBe(100);
+    for (const bad of ["", "0", "0,00", "-1", "101", "1.234", "abc", "1,"]) {
+      expect(parseQuestionWeight(bad)).toBeNull();
+    }
+  });
+
+  it("tidies the questions Payload returns", async () => {
+    const { parseQuestions } = await import("./assessment");
+    expect(parseQuestions(null)).toEqual([]);
+    expect(
+      parseQuestions([
+        { id: "a", code: " q 1 ", name: " Primeira ", weight: 2 },
+        { id: 7, name: "Segunda", weight: 0 },
+        { id: "c", name: "   ", weight: 1 },
+        { name: "Sem id", weight: 1 },
+        null,
+      ]),
+    ).toEqual([
+      { id: "a", code: "Q1", name: "Primeira", weight: 2 },
+      // A broken weight falls back to 1 rather than dropping the question.
+      { id: "7", name: "Segunda", weight: 1 },
+    ]);
+  });
+
+  it("validates the list typed in the panel", async () => {
+    const { validateQuestionList } = await import("./assessment");
+    expect(
+      validateQuestionList([
+        { id: "a", code: "q1", name: "  Primeira  ", weight: "2,5" },
+        { name: "Segunda", weight: "1" },
+      ]),
+    ).toEqual({
+      ok: true,
+      questions: [
+        { id: "a", code: "Q1", name: "Primeira", weight: 2.5 },
+        { name: "Segunda", weight: 1 },
+      ],
+    });
+
+    const bad = (list: Parameters<typeof validateQuestionList>[0]) => {
+      const result = validateQuestionList(list);
+      expect(result.ok).toBe(false);
+      return result.ok ? "" : result.error;
+    };
+    expect(bad([{ name: " ", weight: "1" }])).toMatch(/nome/i);
+    expect(bad([{ name: "A", weight: "0" }])).toMatch(/peso/i);
+    expect(bad([{ name: "A", weight: "x" }])).toMatch(/peso/i);
+    expect(
+      bad([
+        { name: "Igual", weight: "1" },
+        { name: "igual", weight: "1" },
+      ]),
+    ).toMatch(/duas questões/);
+    expect(
+      bad([
+        { code: "Q1", name: "A", weight: "1" },
+        { code: "q1", name: "B", weight: "1" },
+      ]),
+    ).toMatch(/acrônimo/);
+    expect(
+      bad(
+        Array.from({ length: 61 }, (_, i) => ({ name: `Q${i}`, weight: "1" })),
+      ),
+    ).toMatch(/no máximo/);
+  });
+});

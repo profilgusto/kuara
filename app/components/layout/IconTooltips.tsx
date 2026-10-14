@@ -102,6 +102,22 @@ export function IconTooltips() {
       hide();
     }
 
+    // A finger has no hover: a tap on a column heading that carries a
+    // `data-tooltip` (an abbreviation such as "T." or "M.") shows it for a
+    // moment. Buttons keep their own meaning when tapped, so they do not.
+    let tapTimer: ReturnType<typeof setTimeout> | undefined;
+    function onPointerUp(event: PointerEvent) {
+      if (event.pointerType !== "touch") return;
+      const target = event.target;
+      const heading =
+        target instanceof Element ? target.closest("th[data-tooltip]") : null;
+      if (!heading || !(target instanceof Element)) return;
+      if (target.closest("button, a[href]")) return;
+      show(heading);
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(hide, 2500);
+    }
+
     function onFocusIn(event: FocusEvent) {
       const element = targetOf(event.target);
       if (element && byKeyboard) show(element);
@@ -115,6 +131,7 @@ export function IconTooltips() {
     document.addEventListener("pointerover", onPointerOver);
     document.addEventListener("pointerout", onPointerOut);
     document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("pointerup", onPointerUp);
     document.addEventListener("focusin", onFocusIn);
     document.addEventListener("focusout", hide);
     document.addEventListener("keydown", onKeyDown);
@@ -124,6 +141,8 @@ export function IconTooltips() {
       document.removeEventListener("pointerover", onPointerOver);
       document.removeEventListener("pointerout", onPointerOut);
       document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("pointerup", onPointerUp);
+      clearTimeout(tapTimer);
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", hide);
       document.removeEventListener("keydown", onKeyDown);

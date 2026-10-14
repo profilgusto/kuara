@@ -189,9 +189,11 @@ describe("signed in", () => {
     const links = screen.getAllByRole("link");
     expect(links.map((a) => a.textContent)).toEqual([
       "Minha área",
+      "Configurações gerais",
       "Painel Payload",
     ]);
-    expect(links[1].getAttribute("href")).toBe("/payload");
+    expect(links[1].getAttribute("href")).toBe("/configuracoes");
+    expect(links[2].getAttribute("href")).toBe("/payload");
   });
 
   it("signs out and redirects to the home page", async () => {

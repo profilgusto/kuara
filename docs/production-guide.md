@@ -574,6 +574,33 @@ docker stats    # live CPU, memory, network per container
 
 ---
 
+### 8.6 Hung Container Recovery (autoheal)
+
+Docker never restarts a container because it is `unhealthy`, and
+`restart: always` only fires when the process exits. A hung Node process
+(event loop stuck) therefore stays "Up" while serving nothing. The `autoheal`
+service in `docker-compose.prod.yml` closes that gap: it restarts any container
+labelled `autoheal=true` (only `web`) once its healthcheck fails — roughly
+90s after the hang.
+
+```bash
+# Health state and restart count of web
+docker inspect --format '{{.State.Health.Status}} restarts={{.RestartCount}}' kuara-web-1
+# autoheal's own log shows what it restarted and when
+docker logs --tail 50 kuara-autoheal-1
+# Probe by hand (note the /kuara basePath); eventLoopLagMs is in the JSON
+curl -s https://kuara.ufsj.edu.br/kuara/api/health
+```
+
+Note that autoheal restarts via `docker restart`, which does **not** bump
+`RestartCount` — check `StartedAt` and autoheal's log instead.
+
+If the container is Up but unresponsive and you restart it by hand, grab
+evidence first: `docker logs --tail 200 kuara-web-1 > ~/hang.log` and
+`docker stats --no-stream`. An external uptime monitor on `/kuara/api/health`
+(UptimeRobot, Healthchecks.io, Cloudflare health check) should alert by e-mail;
+the 2026-10-09 outage went unnoticed for four days without one.
+
 ## 9. Troubleshooting
 
 ### Web service fails to start after deploy

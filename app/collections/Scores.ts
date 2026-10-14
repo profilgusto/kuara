@@ -10,16 +10,36 @@ import type {
   PayloadHandler,
 } from "payload";
 import {
+  questionsPercentage,
+  staleEnrollmentIds,
   toggleTask,
+  validateSetQuestion,
   validateSetScores,
   validateSetTask,
+  withQuestionMark,
 } from "../lib/grades.ts";
-import { parseTasks } from "../lib/assessment.ts";
+import { parseQuestions, parseTasks } from "../lib/assessment.ts";
 
 const relationId = (value: unknown): unknown =>
   typeof value === "object" && value !== null
     ? (value as { id?: unknown }).id
     : value;
+
+/** Each listed enrollment's score `updatedAt`, or null when it has none. */
+const stampsOf = (
+  docs: { enrollment?: unknown; updatedAt?: string }[],
+  ids: (string | number)[],
+): Record<string, string | null> =>
+  Object.fromEntries(
+    ids.map((id) => [
+      String(id),
+      docs.find((doc) => String(relationId(doc.enrollment)) === String(id))
+        ?.updatedAt ?? null,
+    ]),
+  );
+
+const STALE_MESSAGE =
+  "Esta nota foi alterada em outro lugar. A tabela foi recarregada; confira e tente de novo.";
 
 /**
  * One grade per student per activity. The site only writes grades through
@@ -144,6 +164,15 @@ const setScores: PayloadHandler = async (req) => {
     const byEnrollment = new Map(
       existing.docs.map((doc) => [String(relationId(doc.enrollment)), doc]),
     );
+    const enrollmentIds = enrollments.docs.map((doc) => doc.id);
+    const stale = staleEnrollmentIds(
+      parsed.expected,
+      stampsOf(existing.docs, enrollmentIds),
+    );
+    if (stale.length > 0) {
+      await killTransaction(req);
+      return Response.json({ error: STALE_MESSAGE, stale }, { status: 409 });
+    }
 
     for (const enrollment of enrollments.docs) {
       const current = byEnrollment.get(String(enrollment.id));
@@ -177,8 +206,23 @@ const setScores: PayloadHandler = async (req) => {
       }
     }
 
+    // The new stamps, so the client's next change is not taken for a clash.
+    const after = await req.payload.find({
+      collection: "scores",
+      where: {
+        and: [
+          { activity: { equals: activity.id } },
+          { enrollment: { in: enrollmentIds } },
+        ],
+      },
+      depth: 0,
+      pagination: false,
+      req,
+    });
+    const stamps = stampsOf(after.docs, enrollmentIds);
+
     if (shouldCommit) await commitTransaction(req);
-    return Response.json({ students: enrollments.docs.length });
+    return Response.json({ students: enrollments.docs.length, stamps });
   } catch (error) {
     await killTransaction(req);
     req.payload.logger.error({ err: error, msg: "Setting scores failed" });
@@ -280,6 +324,15 @@ const setTask: PayloadHandler = async (req) => {
     const byEnrollment = new Map(
       existing.docs.map((doc) => [String(relationId(doc.enrollment)), doc]),
     );
+    const enrollmentIds = enrollments.docs.map((doc) => doc.id);
+    const stale = staleEnrollmentIds(
+      parsed.expected,
+      stampsOf(existing.docs, enrollmentIds),
+    );
+    if (stale.length > 0) {
+      await killTransaction(req);
+      return Response.json({ error: STALE_MESSAGE, stale }, { status: 409 });
+    }
     const valid = new Set(tasks.map((t) => t.id));
 
     for (const enrollment of enrollments.docs) {
@@ -316,13 +369,205 @@ const setTask: PayloadHandler = async (req) => {
       }
     }
 
+    // The new stamps, so the client's next change is not taken for a clash.
+    const after = await req.payload.find({
+      collection: "scores",
+      where: {
+        and: [
+          { activity: { equals: activity.id } },
+          { enrollment: { in: enrollmentIds } },
+        ],
+      },
+      depth: 0,
+      pagination: false,
+      req,
+    });
+    const stamps = stampsOf(after.docs, enrollmentIds);
+
     if (shouldCommit) await commitTransaction(req);
-    return Response.json({ students: enrollments.docs.length });
+    return Response.json({ students: enrollments.docs.length, stamps });
   } catch (error) {
     await killTransaction(req);
     req.payload.logger.error({ err: error, msg: "Marking a task failed" });
     return Response.json(
       { error: "Não foi possível salvar a tarefa." },
+      { status: 500 },
+    );
+  }
+};
+
+/**
+ * POST /api/scores/questions — gives one student, or several, a mark
+ * (0–100%) in one question of a "questions" activity.
+ *
+ * Body: `{ offer, activity, question, enrollments: id[], percentage }`. The
+ * cell of a student sends one enrollment; the one on a group's row sends all
+ * of that group's members. Each student's score row keeps their mark per
+ * question, and its percentage is the average of those marks weighted by the
+ * questions' weights, a question without a mark counting as zero. `null`
+ * clears the mark; a row left with no marks is removed. All or nothing.
+ */
+const setQuestion: PayloadHandler = async (req) => {
+  if (req.user?.role !== "admin") {
+    return Response.json({ error: "Acesso negado." }, { status: 403 });
+  }
+
+  let body: unknown = null;
+  try {
+    body = await req.json?.();
+  } catch {
+    // Malformed JSON falls through to the validator as `null`.
+  }
+  const parsed = validateSetQuestion(body);
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error }, { status: 400 });
+  }
+
+  const [activities, enrollments] = await Promise.all([
+    req.payload.find({
+      collection: "activities",
+      where: {
+        and: [
+          { id: { equals: parsed.activity } },
+          { offer: { equals: parsed.offer } },
+        ],
+      },
+      depth: 0,
+      limit: 1,
+    }),
+    req.payload.find({
+      collection: "enrollments",
+      where: {
+        and: [
+          { id: { in: parsed.enrollments } },
+          { offer: { equals: parsed.offer } },
+        ],
+      },
+      depth: 0,
+      pagination: false,
+    }),
+  ]);
+  const activity = activities.docs[0];
+  if (!activity) {
+    return Response.json(
+      { error: "Avaliação não encontrada nesta oferta." },
+      { status: 400 },
+    );
+  }
+  const questions = parseQuestions(activity.questions);
+  if (
+    activity.mode !== "questions" ||
+    !questions.some((q) => q.id === parsed.question)
+  ) {
+    return Response.json(
+      { error: "Questão não encontrada nesta avaliação." },
+      { status: 400 },
+    );
+  }
+  if (enrollments.docs.length !== parsed.enrollments.length) {
+    return Response.json(
+      { error: "Há discentes que não pertencem a esta oferta." },
+      { status: 400 },
+    );
+  }
+
+  const shouldCommit = await initTransaction(req);
+  try {
+    const existing = await req.payload.find({
+      collection: "scores",
+      where: {
+        and: [
+          { activity: { equals: activity.id } },
+          { enrollment: { in: enrollments.docs.map((doc) => doc.id) } },
+        ],
+      },
+      depth: 0,
+      pagination: false,
+      req,
+    });
+    const byEnrollment = new Map(
+      existing.docs.map((doc) => [String(relationId(doc.enrollment)), doc]),
+    );
+    const enrollmentIds = enrollments.docs.map((doc) => doc.id);
+    const stale = staleEnrollmentIds(
+      parsed.expected,
+      stampsOf(existing.docs, enrollmentIds),
+    );
+    if (stale.length > 0) {
+      await killTransaction(req);
+      return Response.json({ error: STALE_MESSAGE, stale }, { status: 409 });
+    }
+    const validIds = questions.map((q) => q.id);
+
+    for (const enrollment of enrollments.docs) {
+      const current = byEnrollment.get(String(enrollment.id));
+      const before =
+        typeof current?.questionScores === "object" &&
+        current.questionScores !== null &&
+        !Array.isArray(current.questionScores)
+          ? (current.questionScores as Record<string, number>)
+          : {};
+      const marks = withQuestionMark(
+        before,
+        parsed.question,
+        parsed.percentage,
+        validIds,
+      );
+      const percentage = questionsPercentage(questions, marks);
+
+      if (Object.keys(marks).length === 0) {
+        if (current) {
+          await req.payload.delete({
+            collection: "scores",
+            id: current.id,
+            req,
+          });
+        }
+      } else if (current) {
+        await req.payload.update({
+          collection: "scores",
+          id: current.id,
+          data: { questionScores: marks, percentage },
+          req,
+        });
+      } else {
+        await req.payload.create({
+          collection: "scores",
+          data: {
+            offer: activity.offer,
+            activity: activity.id,
+            entityType: "student",
+            enrollment: enrollment.id,
+            questionScores: marks,
+            percentage,
+          },
+          req,
+        });
+      }
+    }
+
+    // The new stamps, so the client's next change is not taken for a clash.
+    const after = await req.payload.find({
+      collection: "scores",
+      where: {
+        and: [
+          { activity: { equals: activity.id } },
+          { enrollment: { in: enrollmentIds } },
+        ],
+      },
+      depth: 0,
+      pagination: false,
+      req,
+    });
+    const stamps = stampsOf(after.docs, enrollmentIds);
+
+    if (shouldCommit) await commitTransaction(req);
+    return Response.json({ students: enrollments.docs.length, stamps });
+  } catch (error) {
+    await killTransaction(req);
+    req.payload.logger.error({ err: error, msg: "Marking a question failed" });
+    return Response.json(
+      { error: "Não foi possível salvar a nota da questão." },
       { status: 500 },
     );
   }
@@ -433,6 +678,7 @@ export const Scores: CollectionConfig = {
   endpoints: [
     { path: "/set", method: "post", handler: setScores },
     { path: "/tasks", method: "post", handler: setTask },
+    { path: "/questions", method: "post", handler: setQuestion },
   ],
   hooks: {
     beforeValidate: [rejectDuplicateScore],
@@ -498,6 +744,14 @@ export const Scores: CollectionConfig = {
       admin: {
         description:
           "For a checklist activity: ids of the tasks this student has done. The percentage below is then their share of the activity's tasks.",
+      },
+    },
+    {
+      name: "questionScores",
+      type: "json",
+      admin: {
+        description:
+          "For a questions activity: the mark (0–100) in each question, by question id. The percentage below is then their average weighted by the questions' weights.",
       },
     },
     {

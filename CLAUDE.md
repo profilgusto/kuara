@@ -108,7 +108,7 @@ bare `/api/health` returns 404 and will make a healthy deploy look broken.
 `app/collections/` changed, confirm a matching migration was committed (§2);
 production runs `push:false` and only applies committed files.
 
-**Disk cleanup is part of the deploy, not a separate chore.** Step 7 of the
+**Disk cleanup is part of the deploy, not a separate chore.** Step 8 of the
 script prunes dangling images and the build cache on every run. The cache is
 what actually fills the disk: it reached 51GB and took the root filesystem to
 85% before anyone looked. Never widen these to `-a`, and never reach for

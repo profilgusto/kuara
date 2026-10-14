@@ -88,6 +88,27 @@ function buildRemarkBase() {
  * Used for sidebar scroll-spy navigation.
  */
 export function extractHeadings(source: string): Heading[] {
+  const cached = headingsCache.get(source);
+  if (cached) {
+    // Refresh recency (Map preserves insertion order).
+    headingsCache.delete(source);
+    headingsCache.set(source, cached);
+    return cached;
+  }
+  const headings = computeHeadings(source);
+  headingsCache.set(source, headings);
+  if (headingsCache.size > HEADINGS_CACHE_MAX) {
+    headingsCache.delete(headingsCache.keys().next().value as string);
+  }
+  return headings;
+}
+
+// Pages are force-dynamic, so without this every hit re-parses the full MDX
+// source just to rebuild the same sidebar outline.
+const HEADINGS_CACHE_MAX = 200;
+const headingsCache = new Map<string, Heading[]>();
+
+function computeHeadings(source: string): Heading[] {
   const headings: Heading[] = [];
   const slugger = new GithubSlugger();
 

@@ -10,6 +10,7 @@
 import {
   PASSING_GRADE,
   SEMESTER_POINTS,
+  type AssessmentQuestion,
   type AssessmentRow,
 } from "./assessment";
 import type { EnrollmentRow } from "./enrollment";
@@ -22,7 +23,7 @@ type Id = string | number;
  * one-mark-per-student reading.
  */
 export type GradedAssessment = Pick<AssessmentRow, "id"> &
-  Partial<Pick<AssessmentRow, "mode" | "tasks">>;
+  Partial<Pick<AssessmentRow, "mode" | "tasks" | "questions">>;
 
 export interface ScoreRow {
   id: Id;
@@ -34,6 +35,13 @@ export interface ScoreRow {
    * grade is then worked out from these, and `percentage` is not used.
    */
   completedTaskIds?: string[];
+  /**
+   * For a "questions" assessment: the mark (0–100) the student got in each
+   * question, by question id. A question without a mark counts as zero.
+   */
+  questionPercentages?: Record<string, number>;
+  /** When the grade was last saved, as the server stamped it. */
+  updatedAt?: string | null;
   percentage: number;
 }
 
@@ -74,7 +82,64 @@ export function percentageFor(
       (tasks.filter((task) => done.has(task.id)).length / tasks.length) * 100
     );
   }
+  if (assessment.mode === "questions") {
+    // As with tasks: once there are questions, everyone has a grade, and a
+    // question not yet marked is a zero rather than a missing grade.
+    const questions = assessment.questions ?? [];
+    if (questions.length === 0) return null;
+    return questionsPercentage(questions, score?.questionPercentages);
+  }
   return score ? score.percentage : null;
+}
+
+/**
+ * The percentage of a "questions" assessment: the average of the marks
+ * weighted by each question's weight. A question with no mark counts as 0.
+ */
+export function questionsPercentage(
+  questions: Pick<AssessmentQuestion, "id" | "weight">[],
+  marks: Record<string, number> | undefined,
+): number {
+  const total = questions.reduce((sum, q) => sum + q.weight, 0);
+  if (total <= 0) return 0;
+  const earned = questions.reduce(
+    (sum, q) => sum + q.weight * (marks?.[q.id] ?? 0),
+    0,
+  );
+  return earned / total;
+}
+
+/** The mark a student got in one question, or null when it has none yet. */
+export function questionMarkFor(
+  student: Pick<EnrollmentRow, "id">,
+  assessment: Pick<AssessmentRow, "id">,
+  questionId: string,
+  scores: ScoreRow[],
+): number | null {
+  const score = scores.find(
+    (s) =>
+      same(s.assessmentId, assessment.id) && same(s.enrollmentId, student.id),
+  );
+  const mark = score?.questionPercentages?.[questionId];
+  return typeof mark === "number" ? mark : null;
+}
+
+/** The mark of a whole group in one question, as in `groupPercentage`. */
+export function groupQuestionMark(
+  members: Pick<EnrollmentRow, "id">[],
+  assessment: Pick<AssessmentRow, "id">,
+  questionId: string,
+  scores: ScoreRow[],
+): GroupGrade {
+  const marks = members.map((m) =>
+    questionMarkFor(m, assessment, questionId, scores),
+  );
+  const given = marks.filter((g): g is number => g !== null);
+  if (given.length === 0) return { kind: "none" };
+  const allSame =
+    given.length === marks.length &&
+    given.every((g) => Math.abs(g - given[0]) < EPSILON);
+  return allSame ? { kind: "same", percentage: given[0] } : { kind: "mixed" };
 }
 
 /** The tasks of a checklist assessment a student has done, as a set of ids. */
@@ -287,10 +352,10 @@ export function groupPercentage(
 }
 
 /**
- * The cell Tab moves to. `columns` holds, per assessment, the ids of its
- * editable cells from top to bottom. Tab goes down the same column — the
+ * The cell Enter moves to. `columns` holds, per assessment, the ids of its
+ * editable cells from top to bottom. Enter goes down the same column — the
  * next student in the same assessment — and from the last row to the top of
- * the next column; Shift+Tab does the reverse. Null past either end.
+ * the next column; Shift+Enter does the reverse. Null past either end.
  */
 export function nextGradeCell(
   columns: string[][],
@@ -303,7 +368,95 @@ export function nextGradeCell(
   return order[index + direction] ?? null;
 }
 
+/**
+ * Which row of the table a grade cell sits in: "s:<student>" for a student's
+ * row, "g:<group>" for a group's own row. Cell ids are
+ * "s:<assessment>:<student>", "g:<assessment>:<group>" and, for a question of
+ * a questions assessment, "q:<assessment>:<question>:<student>" and
+ * "qg:<assessment>:<question>:<group>".
+ */
+export function gradeCellRow(cellId: string): string {
+  const parts = cellId.split(":");
+  const target = parts[parts.length - 1];
+  return parts[0] === "g" || parts[0] === "qg" || parts[0] === "tg"
+    ? `g:${target}`
+    : `s:${target}`;
+}
+
+/**
+ * The cell Tab moves to: the next one to the right in the same row, and from
+ * the last of a row to the first of the next row that has one; Shift+Tab
+ * goes the other way. `columns` lists the editable cells of each column,
+ * left to right; `rowOrder` the rows as on screen, top to bottom (see
+ * `gradeCellRow`). Null past either end, or for a cell not in the grid.
+ */
+export function nextGradeCellAcross(
+  columns: string[][],
+  rowOrder: string[],
+  current: string,
+  direction: 1 | -1,
+): string | null {
+  // cells[row][column] = cell id
+  const byRow = new Map<string, (string | undefined)[]>();
+  columns.forEach((column, index) => {
+    for (const id of column) {
+      const row = gradeCellRow(id);
+      const cells = byRow.get(row) ?? [];
+      cells[index] = id;
+      byRow.set(row, cells);
+    }
+  });
+  // Row order as on screen, then any row the caller did not list.
+  const rows = [
+    ...rowOrder.filter((row) => byRow.has(row)),
+    ...[...byRow.keys()].filter((row) => !rowOrder.includes(row)),
+  ];
+  const flat = rows.flatMap((row) =>
+    (byRow.get(row) ?? []).filter((id): id is string => id !== undefined),
+  );
+  const index = flat.indexOf(current);
+  if (index === -1) return null;
+  return flat[index + direction] ?? null;
+}
+
 export const MAX_SCORES_PER_REQUEST = 200;
+
+/**
+ * What the client believed each student's score row looked like when it
+ * sent a change: its `updatedAt`, or null for "had none". Keyed by
+ * enrollment id. The server refuses the change when a row has moved on since.
+ */
+export type ExpectedStamps = Record<string, string | null>;
+
+/** The `expected` of a request body, or undefined when absent or malformed. */
+export function parseExpected(value: unknown): ExpectedStamps | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  const entries = Object.entries(value);
+  if (
+    entries.length > MAX_SCORES_PER_REQUEST ||
+    !entries.every(([, v]) => v === null || typeof v === "string")
+  ) {
+    return undefined;
+  }
+  return Object.fromEntries(entries) as ExpectedStamps;
+}
+
+/**
+ * The enrollments whose score row is no longer the one the client saw: its
+ * stamp in `current` differs from the one expected. Enrollments the client
+ * said nothing about are not checked.
+ */
+export function staleEnrollmentIds(
+  expected: ExpectedStamps | undefined,
+  current: Record<string, string | null>,
+): string[] {
+  if (!expected) return [];
+  return Object.keys(expected).filter(
+    (id) => (current[id] ?? null) !== expected[id],
+  );
+}
 
 export type SetScoresRequest =
   | {
@@ -312,6 +465,7 @@ export type SetScoresRequest =
       activity: Id;
       enrollments: Id[];
       percentage: number | null;
+      expected?: ExpectedStamps;
     }
   | { ok: false; error: string };
 
@@ -364,6 +518,7 @@ export function validateSetScores(input: unknown): SetScoresRequest {
     activity: raw.activity,
     enrollments,
     percentage,
+    expected: parseExpected(raw.expected),
   };
 }
 
@@ -375,6 +530,7 @@ export type SetTaskRequest =
       task: string;
       enrollments: Id[];
       done: boolean;
+      expected?: ExpectedStamps;
     }
   | { ok: false; error: string };
 
@@ -415,7 +571,91 @@ export function validateSetTask(input: unknown): SetTaskRequest {
       ...new Map(raw.enrollments.map((id) => [String(id), id])).values(),
     ],
     done: raw.done,
+    expected: parseExpected(raw.expected),
   };
+}
+
+export type SetQuestionRequest =
+  | {
+      ok: true;
+      offer: Id;
+      activity: Id;
+      question: string;
+      enrollments: Id[];
+      /** 0–100, or null to clear the mark. */
+      percentage: number | null;
+      expected?: ExpectedStamps;
+    }
+  | { ok: false; error: string };
+
+/** Checks the body of POST /api/scores/questions. */
+export function validateSetQuestion(input: unknown): SetQuestionRequest {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    return { ok: false, error: "Dados inválidos." };
+  }
+  const raw = input as Record<string, unknown>;
+
+  if (!isId(raw.offer)) return { ok: false, error: "Oferta não informada." };
+  if (!isId(raw.activity)) {
+    return { ok: false, error: "Avaliação não informada." };
+  }
+  if (typeof raw.question !== "string" || raw.question.trim() === "") {
+    return { ok: false, error: "Questão não informada." };
+  }
+  if (
+    !Array.isArray(raw.enrollments) ||
+    raw.enrollments.length === 0 ||
+    !raw.enrollments.every(isId)
+  ) {
+    return { ok: false, error: "Nenhum discente informado." };
+  }
+  if (raw.enrollments.length > MAX_SCORES_PER_REQUEST) {
+    return { ok: false, error: "Discentes demais em um único lançamento." };
+  }
+  const percentage = raw.percentage;
+  if (
+    percentage !== null &&
+    !(
+      typeof percentage === "number" &&
+      Number.isFinite(percentage) &&
+      percentage >= 0 &&
+      percentage <= 100
+    )
+  ) {
+    return { ok: false, error: "A nota deve ser uma porcentagem de 0 a 100." };
+  }
+
+  return {
+    ok: true,
+    offer: raw.offer,
+    activity: raw.activity,
+    question: raw.question,
+    enrollments: [
+      ...new Map(raw.enrollments.map((id) => [String(id), id])).values(),
+    ],
+    percentage,
+    expected: parseExpected(raw.expected),
+  };
+}
+
+/**
+ * A student's marks after setting one question's; null clears it. The
+ * marks of questions no longer in `validIds` are dropped along the way.
+ */
+export function withQuestionMark(
+  marks: Record<string, number>,
+  questionId: string,
+  percentage: number | null,
+  validIds: Iterable<string>,
+): Record<string, number> {
+  const valid = new Set(validIds);
+  const next: Record<string, number> = {};
+  for (const [id, mark] of Object.entries(marks)) {
+    if (valid.has(id)) next[id] = mark;
+  }
+  if (percentage === null) delete next[questionId];
+  else next[questionId] = percentage;
+  return next;
 }
 
 /** A student's done tasks after marking or unmarking one of them. */

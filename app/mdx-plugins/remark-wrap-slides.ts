@@ -23,8 +23,6 @@ const remarkWrapSlides: Plugin = () => {
     const kids = root.children || [];
     if (!kids.length) return;
 
-    console.log("remarkWrapSlides running! Number of children:", kids.length);
-
     // Hoist SlideBreak components out of wrapping JSX elements (e.g. PresentOnly, TextOnly)
     // so that they become top-level children and trigger slide breaks normally.
     function hoistSlideBreaks(nodes: Node[]): Node[] {
@@ -248,8 +246,6 @@ const remarkWrapSlides: Plugin = () => {
         children: seg,
       });
     });
-
-    console.log("remarkWrapSlides generated", out.length, "slides");
 
     root.children = out;
   };

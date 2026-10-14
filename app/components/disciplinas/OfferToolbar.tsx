@@ -4,23 +4,21 @@ import { useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { CalendarRange, Loader2 } from "lucide-react";
 import { offerLabel, type OfferOption } from "@/lib/offer-period";
-import { CreateOfferDialog } from "./CreateOfferDialog";
 
 /**
  * Bar under the course header on the offers page, in the same style as the
- * site's top bar. Holds the tools that act on the course's offers: the
- * dropdown choosing which one is on screen, and the button creating a new one.
+ * site's top bar. Holds the dropdown choosing which of the course's offers
+ * is on screen. Offers are created in "Configurações gerais", for all courses
+ * at once.
  *
  * The choice lives in the URL (`?oferta=2026.2`), so the server renders the
  * page for that offer and the address can be shared or reloaded. `offers`
  * arrives sorted, most recent first.
  */
 export function OfferToolbar({
-  courseId,
   offers,
   activePeriod,
 }: {
-  courseId: string | number;
   offers: OfferOption[];
   activePeriod: string | null;
 }) {
@@ -34,13 +32,6 @@ export function OfferToolbar({
         scroll: false,
       });
     });
-  }
-
-  // A new offer becomes the one on screen. `refresh` is what brings it into
-  // the dropdown: `replace` alone may reuse the list already rendered.
-  function showCreated(period: string) {
-    select(period);
-    router.refresh();
   }
 
   return (
@@ -78,12 +69,6 @@ export function OfferToolbar({
       )}
 
       {pending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-
-      <CreateOfferDialog
-        courseId={courseId}
-        existingPeriods={offers.map((offer) => offer.period)}
-        onCreated={showCreated}
-      />
     </div>
   );
 }

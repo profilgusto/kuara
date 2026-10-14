@@ -123,6 +123,7 @@ services:
       DATABASE_URL: postgresql://kuara:${POSTGRES_PASSWORD}@postgres:5432/kuara
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
       NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+      DEV_ALLOWED_ORIGINS: ${DEV_ALLOWED_ORIGINS:-}
       S3_ENDPOINT: http://garage:3900
       S3_REGION: garage
       S3_BUCKET: kuara-media

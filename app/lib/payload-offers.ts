@@ -97,6 +97,19 @@ const idOf = (value: unknown): string | number | null =>
     ? ((value as { id?: string | number }).id ?? null)
     : ((value as string | number | null | undefined) ?? null);
 
+/** The marks of a score's `questionScores` json, keeping only numbers. */
+function parseQuestionMarks(value: unknown): Record<string, number> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, number] =>
+        typeof entry[1] === "number" && Number.isFinite(entry[1]),
+    ),
+  );
+}
+
 /** Every grade given to the students of an offer. */
 export async function getOfferScores(
   offerId: string | number,
@@ -118,9 +131,11 @@ export async function getOfferScores(
         assessmentId,
         enrollmentId: idOf(doc.enrollment),
         percentage: doc.percentage,
+        updatedAt: doc.updatedAt,
         completedTaskIds: Array.isArray(doc.completedTasks)
           ? doc.completedTasks.map(String)
           : [],
+        questionPercentages: parseQuestionMarks(doc.questionScores),
       },
     ];
   });

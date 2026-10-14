@@ -22,9 +22,11 @@ export type ScoringUnit = (typeof SCORING_UNITS)[number];
 /**
  * How an assessment is graded. "graded": one mark per student, a percentage
  * of its points. "checklist": several small tasks, each either done or not;
- * the student earns the share of the tasks they did.
+ * the student earns the share of the tasks they did. "questions": several
+ * questions, each with its own weight and graded 0–100%; the student earns
+ * the weighted average of those marks.
  */
-export const ASSESSMENT_MODES = ["graded", "checklist"] as const;
+export const ASSESSMENT_MODES = ["graded", "checklist", "questions"] as const;
 export type AssessmentMode = (typeof ASSESSMENT_MODES)[number];
 
 /** One task of a checklist assessment. */
@@ -39,6 +41,24 @@ export interface AssessmentTask {
 export const MAX_TASK_NAME_LENGTH = 80;
 export const MAX_TASKS = 60;
 
+/** One question of a "questions" assessment. */
+export interface AssessmentQuestion {
+  id: string;
+  /** Short acronym for column headings; absent when none was given. */
+  code?: string;
+  /** The descriptive name, shown on hover and in the questions panel. */
+  name: string;
+  /**
+   * How much the question counts, relative to the others: a question of
+   * weight 2 counts twice one of weight 1. Always above zero.
+   */
+  weight: number;
+}
+
+export const MAX_QUESTION_NAME_LENGTH = 80;
+export const MAX_QUESTIONS = 60;
+export const MAX_QUESTION_WEIGHT = 100;
+
 export const MAX_ASSESSMENT_CODE_LENGTH = 8;
 export const MAX_ASSESSMENT_NAME_LENGTH = 120;
 
@@ -50,8 +70,10 @@ export interface AssessmentRow {
   category: AssessmentCategory;
   scoredBy: ScoringUnit;
   mode: AssessmentMode;
-  /** The tasks of a checklist assessment; empty for a graded one. */
+  /** The tasks of a checklist assessment; empty for any other. */
   tasks: AssessmentTask[];
+  /** The questions of a "questions" assessment; empty or absent otherwise. */
+  questions?: AssessmentQuestion[];
   /** Day the work is due, "YYYY-MM-DD"; "" or absent when not set. */
   dueDate?: string;
   /** Free notes about the assessment; "" or absent when none. */
@@ -90,11 +112,22 @@ export function categoryLabel(category: AssessmentCategory): string {
 }
 
 export function parseAssessmentMode(value: unknown): AssessmentMode {
-  return value === "checklist" ? "checklist" : "graded";
+  return value === "checklist" || value === "questions" ? value : "graded";
 }
 
 export function modeLabel(mode: AssessmentMode): string {
-  return mode === "checklist" ? "Tarefas" : "Nota";
+  return mode === "checklist"
+    ? "Tarefas"
+    : mode === "questions"
+      ? "Questões"
+      : "Nota";
+}
+
+/** The questions of an assessment; none for one that has no such list. */
+export function questionsOf(
+  assessment: Pick<AssessmentRow, "questions">,
+): AssessmentQuestion[] {
+  return assessment.questions ?? [];
 }
 
 /** The tasks of an activity as Payload returns them, tidied. */
@@ -168,6 +201,118 @@ export function validateTaskList(tasks: TaskDraft[]): TaskListResult {
     });
   }
   return { ok: true, tasks: clean };
+}
+
+/** The questions of an activity as Payload returns them, tidied. */
+export function parseQuestions(value: unknown): AssessmentQuestion[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const question = (item ?? {}) as {
+      id?: unknown;
+      code?: unknown;
+      name?: unknown;
+      weight?: unknown;
+    };
+    const id =
+      typeof question.id === "string" || typeof question.id === "number"
+        ? String(question.id)
+        : "";
+    const name = typeof question.name === "string" ? question.name.trim() : "";
+    const code =
+      typeof question.code === "string" ? sanitizeCodeInput(question.code) : "";
+    const weight =
+      typeof question.weight === "number" &&
+      Number.isFinite(question.weight) &&
+      question.weight > 0
+        ? question.weight
+        : 1;
+    if (!id || !name) return [];
+    return [code ? { id, code, name, weight } : { id, name, weight }];
+  });
+}
+
+/** A question as typed in the questions panel; no id means a new one. */
+export interface QuestionDraft {
+  id?: string;
+  code?: string;
+  name: string;
+  /** Text as typed: "2", "1.5" or "1,5". */
+  weight: string;
+}
+
+export type QuestionListResult =
+  | {
+      ok: true;
+      questions: {
+        id?: string;
+        code?: string;
+        name: string;
+        weight: number;
+      }[];
+    }
+  | { ok: false; error: string };
+
+/**
+ * A question's weight as typed: a positive number with at most two decimals,
+ * dot or comma, up to MAX_QUESTION_WEIGHT. Null for anything else.
+ */
+export function parseQuestionWeight(text: string): number | null {
+  const trimmed = text.trim();
+  if (!/^\d{1,3}([.,]\d{1,2})?$/.test(trimmed)) return null;
+  const value = Number(trimmed.replace(",", "."));
+  return value > 0 && value <= MAX_QUESTION_WEIGHT ? value : null;
+}
+
+/**
+ * Checks the question list typed in the questions panel: every question
+ * named and weighed, no two with the same name or acronym, not too many.
+ * A question without an id is a new one.
+ */
+export function validateQuestionList(
+  questions: QuestionDraft[],
+): QuestionListResult {
+  if (questions.length > MAX_QUESTIONS) {
+    return { ok: false, error: `Use no máximo ${MAX_QUESTIONS} questões.` };
+  }
+  const seen = new Set<string>();
+  const seenCodes = new Set<string>();
+  const clean: Extract<QuestionListResult, { ok: true }>["questions"] = [];
+  for (const question of questions) {
+    const name = question.name.trim().replace(/\s+/g, " ");
+    if (!name) return { ok: false, error: "Dê um nome a cada questão." };
+    if (name.length > MAX_QUESTION_NAME_LENGTH) {
+      return {
+        ok: false,
+        error: `O nome “${name.slice(0, 20)}…” é longo demais.`,
+      };
+    }
+    const key = name.toLocaleLowerCase("pt-BR");
+    if (seen.has(key)) {
+      return { ok: false, error: `Há duas questões chamadas “${name}”.` };
+    }
+    seen.add(key);
+    const code = sanitizeCodeInput(question.code ?? "");
+    if (code) {
+      if (seenCodes.has(code)) {
+        return { ok: false, error: `Há duas questões com o acrônimo ${code}.` };
+      }
+      seenCodes.add(code);
+    }
+    const weight = parseQuestionWeight(question.weight);
+    if (weight === null) {
+      return {
+        ok: false,
+        error: `Informe o peso de “${name}”: um número maior que 0, até ${MAX_QUESTION_WEIGHT}.`,
+      };
+    }
+    clean.push({
+      ...(question.id ? { id: question.id } : {}),
+      ...(code ? { code } : {}),
+      name,
+      weight,
+    });
+  }
+  return { ok: true, questions: clean };
 }
 
 export function parseScoringUnit(value: unknown): ScoringUnit {
@@ -262,6 +407,7 @@ export function assessmentFromActivity(doc: {
   type?: unknown;
   mode?: unknown;
   tasks?: unknown;
+  questions?: unknown;
   dueDate?: unknown;
   comment?: string | null;
 }): AssessmentRow {
@@ -274,6 +420,7 @@ export function assessmentFromActivity(doc: {
     scoredBy: scoringUnitFromActivityType(doc.type),
     mode: parseAssessmentMode(doc.mode),
     tasks: parseTasks(doc.tasks),
+    questions: parseQuestions(doc.questions),
     dueDate: parseDueDate(doc.dueDate),
     comment: doc.comment ?? "",
   };
@@ -289,7 +436,7 @@ export type AssessmentResult =
       ok: true;
       assessment: Omit<
         AssessmentRow,
-        "id" | "tasks" | "dueDate" | "comment"
+        "id" | "tasks" | "questions" | "dueDate" | "comment"
       > & {
         dueDate: string;
         comment: string;

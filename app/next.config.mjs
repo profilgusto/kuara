@@ -12,6 +12,20 @@ const nextConfig = {
   // Fixed at build time; manual (non-Link) references use lib/base-path.ts.
   basePath: process.env.NEXT_PUBLIC_BASE_PATH || undefined,
 
+  // Dev only (ignored by `next build`): hosts other than localhost that may
+  // load the dev server's resources. Without this, opening the dev site from a
+  // phone on the same network (http://<lan-ip>:3000) gets 403 on /_next/*, the
+  // page never hydrates, and every button — the login menu included — is dead.
+  // Extra hosts: DEV_ALLOWED_ORIGINS, comma separated (e.g. a bare hostname like "lechatnoir").
+  allowedDevOrigins: [
+    "192.168.*.*",
+    "10.*.*.*",
+    "*.local",
+    ...(process.env.DEV_ALLOWED_ORIGINS?.split(",")
+      .map((h) => h.trim())
+      .filter(Boolean) ?? []),
+  ],
+
   // react-pdf ships ESM-only; include it in Next.js's SWC transform pass.
   transpilePackages: ["react-pdf"],
 

@@ -18,6 +18,8 @@ import {
   toggleTask,
   validateSetTask,
   nextGradeCell,
+  nextGradeCellAcross,
+  gradeCellRow,
   parseGradeInput,
   validateSetScores,
   type ScoreRow,
@@ -620,5 +622,225 @@ describe("validateSetTask", () => {
     [{ ...valid, done: undefined }],
   ])("refuses %j", (body) => {
     expect(validateSetTask(body).ok).toBe(false);
+  });
+});
+
+describe("an assessment graded by questions", () => {
+  const exam = {
+    id: 9,
+    mode: "questions" as const,
+    questions: [
+      { id: "q1", name: "Q1", weight: 1 },
+      { id: "q2", name: "Q2", weight: 3 },
+    ],
+  };
+  const marked: ScoreRow[] = [
+    {
+      id: 1,
+      assessmentId: 9,
+      enrollmentId: 10,
+      percentage: 0,
+      questionPercentages: { q1: 100, q2: 50 },
+    },
+    {
+      id: 2,
+      assessmentId: 9,
+      enrollmentId: 11,
+      percentage: 0,
+      questionPercentages: { q1: 100 },
+    },
+  ];
+
+  it("averages the marks weighted by the question weights", async () => {
+    const { percentageFor } = await import("./grades");
+    // (1·100 + 3·50) / 4 = 62.5
+    expect(percentageFor({ id: 10 }, exam, marked)).toBe(62.5);
+  });
+
+  it("counts a question without a mark as zero", async () => {
+    const { percentageFor } = await import("./grades");
+    expect(percentageFor({ id: 11 }, exam, marked)).toBe(25);
+    // No score row at all: a zero, not a missing grade.
+    expect(percentageFor({ id: 12 }, exam, marked)).toBe(0);
+  });
+
+  it("has no grade while there are no questions", async () => {
+    const { percentageFor } = await import("./grades");
+    expect(
+      percentageFor({ id: 10 }, { ...exam, questions: [] }, marked),
+    ).toBeNull();
+  });
+
+  it("ignores the stored percentage and marks of removed questions", async () => {
+    const { percentageFor } = await import("./grades");
+    const stale: ScoreRow[] = [
+      {
+        id: 3,
+        assessmentId: 9,
+        enrollmentId: 10,
+        percentage: 99,
+        questionPercentages: { q1: 100, gone: 100 },
+      },
+    ];
+    expect(percentageFor({ id: 10 }, exam, stale)).toBe(25);
+  });
+
+  it("is worth its weight in points in the student's total", async () => {
+    const { totalFor } = await import("./grades");
+    const total = totalFor(
+      { id: 10 },
+      [{ ...exam, weight: 4, category: "regular" as const }],
+      marked,
+    );
+    expect(total.points).toBeCloseTo(2.5);
+    expect(total.distributed).toBe(4);
+  });
+
+  it("reads one question's mark, and a group's", async () => {
+    const { questionMarkFor, groupQuestionMark } = await import("./grades");
+    expect(questionMarkFor({ id: 10 }, exam, "q2", marked)).toBe(50);
+    expect(questionMarkFor({ id: 11 }, exam, "q2", marked)).toBeNull();
+    expect(
+      groupQuestionMark([{ id: 10 }, { id: 11 }], exam, "q1", marked),
+    ).toEqual({
+      kind: "same",
+      percentage: 100,
+    });
+    expect(
+      groupQuestionMark([{ id: 10 }, { id: 11 }], exam, "q2", marked),
+    ).toEqual({
+      kind: "mixed",
+    });
+    expect(groupQuestionMark([{ id: 12 }], exam, "q1", marked)).toEqual({
+      kind: "none",
+    });
+  });
+
+  it("sets and clears a mark, dropping removed questions", async () => {
+    const { withQuestionMark } = await import("./grades");
+    const before = { q1: 40, gone: 70 };
+    expect(withQuestionMark(before, "q2", 80, ["q1", "q2"])).toEqual({
+      q1: 40,
+      q2: 80,
+    });
+    expect(withQuestionMark(before, "q1", null, ["q1", "q2"])).toEqual({});
+    // The input is left untouched.
+    expect(before).toEqual({ q1: 40, gone: 70 });
+  });
+
+  it("validates the body of POST /api/scores/questions", async () => {
+    const { validateSetQuestion } = await import("./grades");
+    const body = {
+      offer: 1,
+      activity: 2,
+      question: "q1",
+      enrollments: [5, 5, 6],
+      percentage: 75,
+    };
+    expect(validateSetQuestion(body)).toEqual({
+      ok: true,
+      offer: 1,
+      activity: 2,
+      question: "q1",
+      enrollments: [5, 6],
+      percentage: 75,
+    });
+    expect(validateSetQuestion({ ...body, percentage: null })).toMatchObject({
+      ok: true,
+      percentage: null,
+    });
+    for (const broken of [
+      null,
+      [],
+      { ...body, offer: undefined },
+      { ...body, activity: "" },
+      { ...body, question: " " },
+      { ...body, enrollments: [] },
+      { ...body, percentage: 101 },
+      { ...body, percentage: -1 },
+      { ...body, percentage: "50" },
+      { ...body, percentage: Number.NaN },
+    ]) {
+      expect(validateSetQuestion(broken).ok).toBe(false);
+    }
+  });
+});
+
+describe("detecting a change made elsewhere", () => {
+  it("reads the stamps a client sent, and nothing malformed", async () => {
+    const { parseExpected } = await import("./grades");
+    expect(
+      parseExpected({ "1": "2026-10-14T10:00:00.000Z", "2": null }),
+    ).toEqual({ "1": "2026-10-14T10:00:00.000Z", "2": null });
+    for (const bad of [undefined, null, [], "x", { "1": 5 }, { "1": {} }]) {
+      expect(parseExpected(bad)).toBeUndefined();
+    }
+  });
+
+  it("flags the students whose row moved on", async () => {
+    const { staleEnrollmentIds } = await import("./grades");
+    const now = { "1": "t2", "2": null, "3": "t1" };
+    expect(
+      staleEnrollmentIds({ "1": "t1", "2": null, "3": "t1" }, now),
+    ).toEqual(["1"]);
+    // Had none when seen, has one now.
+    expect(staleEnrollmentIds({ "2": "t0" }, now)).toEqual(["2"]);
+    expect(staleEnrollmentIds({ "2": null }, { ...now, "2": "t5" })).toEqual([
+      "2",
+    ]);
+  });
+
+  it("checks nothing when the client sent no stamps", async () => {
+    const { staleEnrollmentIds } = await import("./grades");
+    expect(staleEnrollmentIds(undefined, { "1": "t1" })).toEqual([]);
+    expect(staleEnrollmentIds({}, { "1": "t1" })).toEqual([]);
+  });
+
+  it("carries the stamps through the validators", async () => {
+    const { validateSetScores } = await import("./grades");
+    const result = validateSetScores({
+      offer: 1,
+      activity: 2,
+      enrollments: [3],
+      percentage: 50,
+      expected: { "3": null },
+    });
+    expect(result).toMatchObject({ ok: true, expected: { "3": null } });
+  });
+});
+
+describe("moving across a row of grade cells", () => {
+  // Two assessments, a group's own row, then two students; SEM is graded
+  // per group, so the group row has a cell in it only.
+  const columns = [
+    ["s:1:10", "s:1:11"],
+    ["g:2:20", "s:2:10", "s:2:11"],
+  ];
+  const rows = ["g:20", "s:10", "s:11"];
+
+  it("names the row a cell is in", () => {
+    expect(gradeCellRow("s:1:10")).toBe("s:10");
+    expect(gradeCellRow("g:2:20")).toBe("g:20");
+    expect(gradeCellRow("q:3:q9:10")).toBe("s:10");
+    expect(gradeCellRow("qg:3:q9:20")).toBe("g:20");
+  });
+
+  it("goes right within the row, then to the first cell of the next", () => {
+    expect(nextGradeCellAcross(columns, rows, "s:1:10", 1)).toBe("s:2:10");
+    // Last of the row → the next row's first cell.
+    expect(nextGradeCellAcross(columns, rows, "s:2:10", 1)).toBe("s:1:11");
+    // The group row has one cell: on to the first student.
+    expect(nextGradeCellAcross(columns, rows, "g:2:20", 1)).toBe("s:1:10");
+  });
+
+  it("goes left the same way, and stops at either end", () => {
+    expect(nextGradeCellAcross(columns, rows, "s:2:10", -1)).toBe("s:1:10");
+    expect(nextGradeCellAcross(columns, rows, "s:1:11", -1)).toBe("s:2:10");
+    expect(nextGradeCellAcross(columns, rows, "g:2:20", -1)).toBeNull();
+    expect(nextGradeCellAcross(columns, rows, "s:2:11", 1)).toBeNull();
+  });
+
+  it("knows nothing of a cell that is not there", () => {
+    expect(nextGradeCellAcross(columns, rows, "s:9:9", 1)).toBeNull();
   });
 });

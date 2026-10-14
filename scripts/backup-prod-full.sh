@@ -40,7 +40,9 @@ SSH_HOST="${KUARA_SSH_HOST:-kuara.ufsj.edu.br}"
 SSH_USER="${KUARA_SSH_USER:-filgusto}"
 SSH_PORT="${KUARA_SSH_PORT:-22691}"
 REMOTE_DIR="${KUARA_REMOTE_DIR:-~/kuara-house/kuara}"
-REMOTE_COMPOSE="docker compose -f docker-compose.prod.yml"
+# --env-file: production keeps its secrets in .env.prod; plain `compose` reads
+# only .env, so S3 keys come up blank and rclone is refused (403 anonymous).
+REMOTE_COMPOSE="docker compose --env-file .env.prod -f docker-compose.prod.yml"
 BUCKET="kuara-media"
 OUT_ROOT="$HOME/kuara-backups"
 

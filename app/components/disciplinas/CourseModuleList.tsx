@@ -351,7 +351,10 @@ export function CourseModuleList({
 
   if (modules.length === 0) {
     return (
-      <div className="space-y-6">
+      <section aria-label="Módulos" className="space-y-6">
+        <h2 className="font-serif text-xl font-semibold tracking-tight">
+          Módulos
+        </h2>
         <div className="text-center py-12">
           <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">
@@ -359,56 +362,67 @@ export function CourseModuleList({
           </p>
         </div>
         {addCard && <div className="mx-auto max-w-sm">{addCard}</div>}
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* View toggle, and the reorder controls beside it in edit mode */}
-      <div className="flex flex-wrap items-center justify-center gap-2">
-        <div className="flex items-center gap-0.5 rounded-md border border-border/60 p-0.5 bg-muted/30">
-          <button
-            onClick={() => setView("grouped")}
-            title="Agrupar por tipo"
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-colors ${view === "grouped" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            <LayoutList className="h-3.5 w-3.5" />
-            Grupos
-          </button>
-          <button
-            onClick={() => setView("sequence")}
-            title="Ver em sequência"
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-colors ${view === "sequence" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            <Rows3 className="h-3.5 w-3.5" />
-            Sequência
-          </button>
+    <section aria-label="Módulos" className="space-y-6">
+      {/* Section title; the view toggle (and, in edit mode, the reorder
+          controls) sit on the same row, to its right */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h2 className="font-serif text-xl font-semibold tracking-tight">
+          Módulos
+        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-0.5 rounded-md border border-border/60 p-0.5 bg-muted/30">
+            <button
+              onClick={() => setView("grouped")}
+              title="Agrupar por tipo"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-colors ${view === "grouped" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <LayoutList className="h-3.5 w-3.5" />
+              Grupos
+            </button>
+            <button
+              onClick={() => setView("sequence")}
+              title="Ver em sequência"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-colors ${view === "sequence" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <Rows3 className="h-3.5 w-3.5" />
+              Sequência
+            </button>
+          </div>
+
+          {editing && !reordering && (
+            <button
+              type="button"
+              onClick={() => setDraft(saved)}
+              aria-label="Reordenar módulos"
+              title="Reordenar módulos"
+              className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {reordering && (
+            <>
+              <Button size="sm" disabled={busy || !changed} onClick={save}>
+                {busy && <Loader2 className="animate-spin" />}
+                Salvar ordem
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busy}
+                onClick={discard}
+              >
+                Descartar alterações
+              </Button>
+            </>
+          )}
         </div>
-
-        {editing && !reordering && (
-          <button
-            type="button"
-            onClick={() => setDraft(saved)}
-            aria-label="Reordenar módulos"
-            title="Reordenar módulos"
-            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-        )}
-
-        {reordering && (
-          <>
-            <Button size="sm" disabled={busy || !changed} onClick={save}>
-              {busy && <Loader2 className="animate-spin" />}
-              Salvar ordem
-            </Button>
-            <Button variant="ghost" size="sm" disabled={busy} onClick={discard}>
-              Descartar alterações
-            </Button>
-          </>
-        )}
       </div>
 
       {reordering && (
@@ -531,6 +545,6 @@ export function CourseModuleList({
           </SortableContext>
         </DndContext>
       )}
-    </div>
+    </section>
   );
 }

@@ -5,7 +5,16 @@ export const Media: CollectionConfig = {
   folders: true,
   upload: {
     mimeTypes: [
-      "image/*",
+      // Explicit list, not "image/*": that wildcard admits image/svg+xml,
+      // which runs script when opened from our own origin (stored XSS).
+      "image/png",
+      "image/jpeg",
+      "image/gif",
+      "image/webp",
+      "image/avif",
+      "image/bmp",
+      "image/x-icon",
+      "image/vnd.microsoft.icon",
       "application/pdf",
       "video/*",
       "audio/*",

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCourse } from "@/lib/payload-content";
 import { CourseHeader } from "@/components/disciplinas/CourseHeader";
-import { CourseAssessments } from "@/components/disciplinas/CourseAssessments";
+import { CourseOffer } from "@/components/disciplinas/CourseOffer";
 import { CourseModuleList } from "@/components/disciplinas/CourseModuleList";
 import { SetNavBreadcrumb } from "@/components/layout/NavContext";
 
@@ -59,7 +59,7 @@ export default async function CourseHomePage({
         }}
       />
 
-      <CourseAssessments courseId={course.id} />
+      <CourseOffer courseId={course.id} />
 
       <CourseModuleList
         modules={course.modules}

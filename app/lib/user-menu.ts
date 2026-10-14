@@ -29,11 +29,13 @@ export function roleLabel(role: string | null | undefined): string {
 
 /**
  * Areas a signed-in user can open, in display order. Everyone gets their own
- * account page; the admin also gets the Payload panel.
+ * account page; the admin also gets the general settings and the Payload
+ * panel.
  */
 export function menuLinksForRole(role: string | null | undefined): MenuLink[] {
   const links: MenuLink[] = [{ label: "Minha área", href: "/minha-area" }];
   if (role === "admin") {
+    links.push({ label: "Configurações gerais", href: "/configuracoes" });
     links.push({ label: "Painel Payload", href: "/payload", external: true });
   }
   return links;

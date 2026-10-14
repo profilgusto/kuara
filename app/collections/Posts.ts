@@ -11,11 +11,15 @@ export const Posts: CollectionConfig = {
     defaultColumns: ["title", "status", "publishedAt", "offer"],
   },
   access: {
-    // General posts are public; offer-scoped posts only visible to enrolled students
+    // Staff see everything. Everyone else (including the public REST API)
+    // only gets published, general posts: offer-scoped announcements and
+    // drafts never leave the server through /api/posts.
     read: ({ req: { user } }) => {
-      // Public posts (no offer) are always readable
-      // For offer-scoped posts, we allow read and filter in the frontend
-      return true;
+      if (user?.role === "admin" || user?.role === "professor") return true;
+      return {
+        status: { equals: "published" },
+        offer: { exists: false },
+      };
     },
     create: ({ req: { user } }) =>
       user?.role === "admin" || user?.role === "professor",

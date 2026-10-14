@@ -13,53 +13,53 @@
  * via the `definition` "supportedTimezones".
  */
 export type SupportedTimezones =
-  | 'Pacific/Midway'
-  | 'Pacific/Niue'
-  | 'Pacific/Honolulu'
-  | 'Pacific/Rarotonga'
-  | 'America/Anchorage'
-  | 'Pacific/Gambier'
-  | 'America/Los_Angeles'
-  | 'America/Tijuana'
-  | 'America/Denver'
-  | 'America/Phoenix'
-  | 'America/Chicago'
-  | 'America/Guatemala'
-  | 'America/New_York'
-  | 'America/Bogota'
-  | 'America/Caracas'
-  | 'America/Santiago'
-  | 'America/Buenos_Aires'
-  | 'America/Sao_Paulo'
-  | 'Atlantic/South_Georgia'
-  | 'Atlantic/Azores'
-  | 'Atlantic/Cape_Verde'
-  | 'Europe/London'
-  | 'Europe/Berlin'
-  | 'Africa/Lagos'
-  | 'Europe/Athens'
-  | 'Africa/Cairo'
-  | 'Europe/Moscow'
-  | 'Asia/Riyadh'
-  | 'Asia/Dubai'
-  | 'Asia/Baku'
-  | 'Asia/Karachi'
-  | 'Asia/Tashkent'
-  | 'Asia/Calcutta'
-  | 'Asia/Dhaka'
-  | 'Asia/Almaty'
-  | 'Asia/Jakarta'
-  | 'Asia/Bangkok'
-  | 'Asia/Shanghai'
-  | 'Asia/Singapore'
-  | 'Asia/Tokyo'
-  | 'Asia/Seoul'
-  | 'Australia/Brisbane'
-  | 'Australia/Sydney'
-  | 'Pacific/Guam'
-  | 'Pacific/Noumea'
-  | 'Pacific/Auckland'
-  | 'Pacific/Fiji';
+  | "Pacific/Midway"
+  | "Pacific/Niue"
+  | "Pacific/Honolulu"
+  | "Pacific/Rarotonga"
+  | "America/Anchorage"
+  | "Pacific/Gambier"
+  | "America/Los_Angeles"
+  | "America/Tijuana"
+  | "America/Denver"
+  | "America/Phoenix"
+  | "America/Chicago"
+  | "America/Guatemala"
+  | "America/New_York"
+  | "America/Bogota"
+  | "America/Caracas"
+  | "America/Santiago"
+  | "America/Buenos_Aires"
+  | "America/Sao_Paulo"
+  | "Atlantic/South_Georgia"
+  | "Atlantic/Azores"
+  | "Atlantic/Cape_Verde"
+  | "Europe/London"
+  | "Europe/Berlin"
+  | "Africa/Lagos"
+  | "Europe/Athens"
+  | "Africa/Cairo"
+  | "Europe/Moscow"
+  | "Asia/Riyadh"
+  | "Asia/Dubai"
+  | "Asia/Baku"
+  | "Asia/Karachi"
+  | "Asia/Tashkent"
+  | "Asia/Calcutta"
+  | "Asia/Dhaka"
+  | "Asia/Almaty"
+  | "Asia/Jakarta"
+  | "Asia/Bangkok"
+  | "Asia/Shanghai"
+  | "Asia/Singapore"
+  | "Asia/Tokyo"
+  | "Asia/Seoul"
+  | "Australia/Brisbane"
+  | "Australia/Sydney"
+  | "Pacific/Guam"
+  | "Pacific/Noumea"
+  | "Pacific/Auckland"
+  | "Pacific/Fiji";
 
 export interface Config {
   auth: {
@@ -75,20 +75,21 @@ export interface Config {
     posts: Post;
     media: Media;
     activities: Activity;
-    'student-groups': StudentGroup;
+    "student-groups": StudentGroup;
     scores: Score;
     references: Reference;
-    'account-requests': AccountRequest;
+    "account-requests": AccountRequest;
     enrollments: Enrollment;
-    'payload-kv': PayloadKv;
-    'payload-folders': FolderInterface;
-    'payload-locked-documents': PayloadLockedDocument;
-    'payload-preferences': PayloadPreference;
-    'payload-migrations': PayloadMigration;
+    terms: Term;
+    "payload-kv": PayloadKv;
+    "payload-folders": FolderInterface;
+    "payload-locked-documents": PayloadLockedDocument;
+    "payload-preferences": PayloadPreference;
+    "payload-migrations": PayloadMigration;
   };
   collectionsJoins: {
-    'payload-folders': {
-      documentsAndFolders: 'payload-folders' | 'modules' | 'tesselas' | 'media';
+    "payload-folders": {
+      documentsAndFolders: "payload-folders" | "modules" | "tesselas" | "media";
     };
   };
   collectionsSelect: {
@@ -100,23 +101,36 @@ export interface Config {
     posts: PostsSelect<false> | PostsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     activities: ActivitiesSelect<false> | ActivitiesSelect<true>;
-    'student-groups': StudentGroupsSelect<false> | StudentGroupsSelect<true>;
+    "student-groups": StudentGroupsSelect<false> | StudentGroupsSelect<true>;
     scores: ScoresSelect<false> | ScoresSelect<true>;
     references: ReferencesSelect<false> | ReferencesSelect<true>;
-    'account-requests': AccountRequestsSelect<false> | AccountRequestsSelect<true>;
+    "account-requests":
+      | AccountRequestsSelect<false>
+      | AccountRequestsSelect<true>;
     enrollments: EnrollmentsSelect<false> | EnrollmentsSelect<true>;
-    'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
-    'payload-folders': PayloadFoldersSelect<false> | PayloadFoldersSelect<true>;
-    'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
-    'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
-    'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
+    terms: TermsSelect<false> | TermsSelect<true>;
+    "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>;
+    "payload-folders": PayloadFoldersSelect<false> | PayloadFoldersSelect<true>;
+    "payload-locked-documents":
+      | PayloadLockedDocumentsSelect<false>
+      | PayloadLockedDocumentsSelect<true>;
+    "payload-preferences":
+      | PayloadPreferencesSelect<false>
+      | PayloadPreferencesSelect<true>;
+    "payload-migrations":
+      | PayloadMigrationsSelect<false>
+      | PayloadMigrationsSelect<true>;
   };
   db: {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    "site-settings": SiteSetting;
+  };
+  globalsSelect: {
+    "site-settings": SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -152,7 +166,7 @@ export interface UserAuthOperations {
 export interface User {
   id: number;
   name: string;
-  role: 'admin' | 'professor' | 'student';
+  role: "admin" | "professor" | "student";
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -171,7 +185,7 @@ export interface User {
       }[]
     | null;
   password?: string | null;
-  collection: 'users';
+  collection: "users";
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -233,15 +247,15 @@ export interface Media {
   usedIn?:
     | (
         | {
-            relationTo: 'modules';
+            relationTo: "modules";
             value: number | Module;
           }
         | {
-            relationTo: 'posts';
+            relationTo: "posts";
             value: number | Post;
           }
         | {
-            relationTo: 'tesselas';
+            relationTo: "tesselas";
             value: number | Tessela;
           }
       )[]
@@ -276,7 +290,11 @@ export interface Module {
    * Conteúdo MDX do módulo. Use a toolbar ou Ctrl+Espaço para inserir snippets.
    */
   content?: string | null;
-  type: 'modulo-teorico' | 'modulo-pratico' | 'atividade-avaliativa' | 'recurso';
+  type:
+    | "modulo-teorico"
+    | "modulo-pratico"
+    | "atividade-avaliativa"
+    | "recurso";
   /**
    * Parent course this module belongs to
    */
@@ -308,7 +326,9 @@ export interface Module {
   /**
    * Citation style used when rendering <Cite /> components in this module. Affects both inline citations and the auto-generated References section.
    */
-  citationStyle?: ('authoryear' | 'apa' | 'chicago' | 'numeric' | 'ieee' | 'vancouver') | null;
+  citationStyle?:
+    | ("authoryear" | "apa" | "chicago" | "numeric" | "ieee" | "vancouver")
+    | null;
   /**
    * Auto-managed. Starting question numbers (per type) for this module within its course sequence. Updated on every publish.
    */
@@ -324,7 +344,7 @@ export interface Module {
   folder?: (number | null) | FolderInterface;
   updatedAt: string;
   createdAt: string;
-  _status?: ('draft' | 'published') | null;
+  _status?: ("draft" | "published") | null;
 }
 /**
  * Tesselas de pesquisa, notas técnicas e estudos independentes.
@@ -348,7 +368,7 @@ export interface Tessela {
    * Plain text summary shown on listing cards.
    */
   abstract?: string | null;
-  stage: 'rascunho' | 'em-andamento' | 'finalizado' | 'incrementando';
+  stage: "rascunho" | "em-andamento" | "finalizado" | "incrementando";
   /**
    * Controla se esta tessela é listada na página /tesselas e nos grafos.
    */
@@ -364,7 +384,9 @@ export interface Tessela {
   /**
    * Citation style used when rendering <Cite /> components in this tessela.
    */
-  citationStyle?: ('authoryear' | 'apa' | 'chicago' | 'numeric' | 'ieee' | 'vancouver') | null;
+  citationStyle?:
+    | ("authoryear" | "apa" | "chicago" | "numeric" | "ieee" | "vancouver")
+    | null;
   /**
    * Cover image shown on listing cards.
    */
@@ -392,7 +414,7 @@ export interface Tessela {
   folder?: (number | null) | FolderInterface;
   updatedAt: string;
   createdAt: string;
-  _status?: ('draft' | 'published') | null;
+  _status?: ("draft" | "published") | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -405,26 +427,26 @@ export interface FolderInterface {
   documentsAndFolders?: {
     docs?: (
       | {
-          relationTo?: 'payload-folders';
+          relationTo?: "payload-folders";
           value: number | FolderInterface;
         }
       | {
-          relationTo?: 'modules';
+          relationTo?: "modules";
           value: number | Module;
         }
       | {
-          relationTo?: 'tesselas';
+          relationTo?: "tesselas";
           value: number | Tessela;
         }
       | {
-          relationTo?: 'media';
+          relationTo?: "media";
           value: number | Media;
         }
     )[];
     hasNextPage?: boolean;
     totalDocs?: number;
   };
-  folderType?: ('modules' | 'tesselas' | 'media')[] | null;
+  folderType?: ("modules" | "tesselas" | "media")[] | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -444,14 +466,14 @@ export interface Post {
         version: number;
         [k: string]: unknown;
       }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      direction: ("ltr" | "rtl") | null;
+      format: "left" | "start" | "center" | "right" | "end" | "justify" | "";
       indent: number;
       version: number;
     };
     [k: string]: unknown;
   } | null;
-  status: 'draft' | 'published';
+  status: "draft" | "published";
   /**
    * Publication date
    */
@@ -473,7 +495,7 @@ export interface Offer {
    * Semester period (e.g., 2026.1, 2026.2)
    */
   period: string;
-  status: 'active' | 'archived';
+  status: "active" | "archived";
   /**
    * Which course this offer belongs to
    */
@@ -528,9 +550,9 @@ export interface Activity {
    */
   weight: number;
   /**
-   * Graded: each student gets a percentage of the points. Checklist: the points are split across the tasks below, and a student earns the share of the tasks marked as done.
+   * Graded: each student gets a percentage of the points. Checklist: the points are split across the tasks below, and a student earns the share of the tasks marked as done. Questions: each question is graded 0–100% and the grade is the average weighted by the question weights.
    */
-  mode: 'graded' | 'checklist';
+  mode: "graded" | "checklist" | "questions";
   /**
    * The tasks of a checklist activity. Each can be marked done per student.
    */
@@ -545,6 +567,23 @@ export interface Activity {
       }[]
     | null;
   /**
+   * The questions of a questions activity. Each is graded 0–100% per student; the weights are relative to one another.
+   */
+  questions?:
+    | {
+        /**
+         * Short acronym for the table heading (optional).
+         */
+        code?: string | null;
+        name: string;
+        /**
+         * How much this question counts relative to the others.
+         */
+        weight: number;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Day the work is due (optional).
    */
   dueDate?: string | null;
@@ -555,11 +594,11 @@ export interface Activity {
   /**
    * Regular activities add up to the semester's 10.0 points; extra ones are bonus points.
    */
-  category: 'regular' | 'extra';
+  category: "regular" | "extra";
   /**
    * Whether this activity is graded per-student or per-group
    */
-  type: 'individual' | 'group';
+  type: "individual" | "group";
   /**
    * Display order within the offer
    */
@@ -596,7 +635,7 @@ export interface Score {
   /**
    * Whether this score is for an individual student or a group
    */
-  entityType: 'student' | 'group';
+  entityType: "student" | "group";
   /**
    * The enrolled student this score belongs to (if entityType is student). Class lists come from SIGAA without user accounts, so scores point at the enrollment.
    */
@@ -613,6 +652,18 @@ export interface Score {
    * For a checklist activity: ids of the tasks this student has done. The percentage below is then their share of the activity's tasks.
    */
   completedTasks?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * For a questions activity: the mark (0–100) in each question, by question id. The percentage below is then their average weighted by the questions' weights.
+   */
+  questionScores?:
     | {
         [k: string]: unknown;
       }
@@ -643,7 +694,7 @@ export interface Enrollment {
   /**
    * For a class split in two. Leave empty when the class is not split.
    */
-  classGroup?: ('A' | 'B') | null;
+  classGroup?: ("A" | "B") | null;
   /**
    * The work group this student belongs to for the semester, if any. Pick a group of the same offer.
    */
@@ -695,12 +746,25 @@ export interface AccountRequest {
   /**
    * Role the account is created with on approval. Change it before approving if needed.
    */
-  requestedRole: 'student' | 'professor';
+  requestedRole: "student" | "professor";
   /**
    * What the requester wrote (course, class, reason).
    */
   message?: string | null;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "terms".
+ */
+export interface Term {
+  id: number;
+  /**
+   * Semester period (e.g., 2026.1, 2026.2)
+   */
+  period: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -729,64 +793,68 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'users';
+        relationTo: "users";
         value: number | User;
       } | null)
     | ({
-        relationTo: 'courses';
+        relationTo: "courses";
         value: number | Course;
       } | null)
     | ({
-        relationTo: 'modules';
+        relationTo: "modules";
         value: number | Module;
       } | null)
     | ({
-        relationTo: 'tesselas';
+        relationTo: "tesselas";
         value: number | Tessela;
       } | null)
     | ({
-        relationTo: 'offers';
+        relationTo: "offers";
         value: number | Offer;
       } | null)
     | ({
-        relationTo: 'posts';
+        relationTo: "posts";
         value: number | Post;
       } | null)
     | ({
-        relationTo: 'media';
+        relationTo: "media";
         value: number | Media;
       } | null)
     | ({
-        relationTo: 'activities';
+        relationTo: "activities";
         value: number | Activity;
       } | null)
     | ({
-        relationTo: 'student-groups';
+        relationTo: "student-groups";
         value: number | StudentGroup;
       } | null)
     | ({
-        relationTo: 'scores';
+        relationTo: "scores";
         value: number | Score;
       } | null)
     | ({
-        relationTo: 'references';
+        relationTo: "references";
         value: number | Reference;
       } | null)
     | ({
-        relationTo: 'account-requests';
+        relationTo: "account-requests";
         value: number | AccountRequest;
       } | null)
     | ({
-        relationTo: 'enrollments';
+        relationTo: "enrollments";
         value: number | Enrollment;
       } | null)
     | ({
-        relationTo: 'payload-folders';
+        relationTo: "terms";
+        value: number | Term;
+      } | null)
+    | ({
+        relationTo: "payload-folders";
         value: number | FolderInterface;
       } | null);
   globalSlug?: string | null;
   user: {
-    relationTo: 'users';
+    relationTo: "users";
     value: number | User;
   };
   updatedAt: string;
@@ -799,7 +867,7 @@ export interface PayloadLockedDocument {
 export interface PayloadPreference {
   id: number;
   user: {
-    relationTo: 'users';
+    relationTo: "users";
     value: number | User;
   };
   key?: string | null;
@@ -997,6 +1065,14 @@ export interface ActivitiesSelect<T extends boolean = true> {
         name?: T;
         id?: T;
       };
+  questions?:
+    | T
+    | {
+        code?: T;
+        name?: T;
+        weight?: T;
+        id?: T;
+      };
   dueDate?: T;
   comment?: T;
   category?: T;
@@ -1028,6 +1104,7 @@ export interface ScoresSelect<T extends boolean = true> {
   student?: T;
   group?: T;
   completedTasks?: T;
+  questionScores?: T;
   percentage?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1068,6 +1145,15 @@ export interface EnrollmentsSelect<T extends boolean = true> {
   name?: T;
   classGroup?: T;
   group?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "terms_select".
+ */
+export interface TermsSelect<T extends boolean = true> {
+  period?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1125,13 +1211,36 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  /**
+   * The offer the course pages show. Empty: no offer is shown.
+   */
+  activeTerm?: (number | null) | Term;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  activeTerm?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
 export interface CollectionsWidget {
   data?: {
     [k: string]: unknown;
   };
-  width: 'full';
+  width: "full";
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1141,7 +1250,6 @@ export interface Auth {
   [k: string]: unknown;
 }
 
-
-declare module 'payload' {
+declare module "payload" {
   export interface GeneratedTypes extends Config {}
 }

@@ -7,9 +7,10 @@ import { menuLinksForRole, roleLabel } from "./user-menu";
 describe("menuLinksForRole", () => {
   const minhaArea = { label: "Minha área", href: "/minha-area" };
 
-  it("gives the admin the account page, then the Payload panel as a full page load", () => {
+  it("gives the admin the account page, the general settings, then the Payload panel as a full page load", () => {
     expect(menuLinksForRole("admin")).toEqual([
       minhaArea,
+      { label: "Configurações gerais", href: "/configuracoes" },
       { label: "Painel Payload", href: "/payload", external: true },
     ]);
   });

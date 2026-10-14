@@ -992,3 +992,215 @@ describe("an assessment graded by tasks", () => {
     ).toEqual(["Mover tarefa Lista 1", "Mover tarefa Lista 2"]);
   });
 });
+
+describe("an assessment graded by questions", () => {
+  const exam: AssessmentRow = {
+    id: 9,
+    code: "PR",
+    name: "Prova",
+    weight: 4,
+    category: "regular",
+    scoredBy: "student",
+    mode: "questions",
+    tasks: [],
+    questions: [
+      { id: "q1", name: "Questão 1", weight: 1 },
+      { id: "q2", name: "Questão 2", weight: 3 },
+    ],
+  };
+  const openQuestions = () => {
+    fireEvent.click(
+      screen.getByRole("button", { name: "Editar tabela de avaliações" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Editar as questões de PR" }),
+    );
+    return screen.getByRole("dialog");
+  };
+  const questionNames = () =>
+    screen
+      .getAllByLabelText(/^Nome da questão \d+$/)
+      .map((input) => (input as HTMLInputElement).value);
+  const insert = (name: string, weight?: string) => {
+    fireEvent.change(screen.getByLabelText("Nova questão"), {
+      target: { value: name },
+    });
+    if (weight !== undefined) {
+      fireEvent.change(document.getElementById("new-question-weight")!, {
+        target: { value: weight },
+      });
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Inserir" }));
+  };
+
+  it("is offered when the assessment is created, and starts empty", async () => {
+    const fetchMock = mockFetch(201, { doc: { id: 10 } });
+    table();
+    openRow();
+    fill("PR", "Prova", "4");
+    fireEvent.change(screen.getByLabelText("Avaliada por"), {
+      target: { value: "questions" },
+    });
+    save();
+
+    await waitFor(() => expect(screen.queryByLabelText("Código")).toBeNull());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).mode).toBe("questions");
+    expect(screen.getByText("Questões · 0")).toBeTruthy();
+  });
+
+  it("counts the questions, editable only in edit mode", () => {
+    table([exam]);
+    expect(screen.getByText("Questões · 2")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Editar as questões de PR" }),
+    ).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Editar tabela de avaliações" }),
+    );
+    expect(
+      screen.getByRole("button", { name: "Editar as questões de PR" }),
+    ).toBeTruthy();
+  });
+
+  it("shows what each question is worth in points", () => {
+    table([exam]);
+    const dialog = openQuestions();
+    expect(questionNames()).toEqual(["Questão 1", "Questão 2"]);
+    // Weights 1 and 3 over 4.0 points: 1.0 and 3.0, i.e. 25% and 75%.
+    const valueOf = (n: number) =>
+      (screen.getByLabelText(`Valor da questão ${n}`) as HTMLInputElement)
+        .value;
+    expect([valueOf(1), valueOf(2)]).toEqual(["1", "3"]);
+    const shares = dialog.querySelectorAll("[data-question-share]");
+    expect([...shares].map((el) => el.textContent)).toEqual(["25%", "75%"]);
+    fireEvent.change(screen.getByLabelText("Valor da questão 1"), {
+      target: { value: "3" },
+    });
+    expect(
+      [...dialog.querySelectorAll("[data-question-share]")].map(
+        (el) => el.textContent,
+      ),
+    ).toEqual(["50%", "50%"]);
+  });
+
+  it("writes the values as a percentage of the assessment on request", async () => {
+    const fetchMock = mockFetch(200, { doc: { questions: [] } });
+    table([exam]);
+    openQuestions();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Valores em porcentagem da avaliação",
+      }),
+    );
+    const valueOf = (n: number) =>
+      (screen.getByLabelText(`Valor da questão ${n}`) as HTMLInputElement)
+        .value;
+    expect([valueOf(1), valueOf(2)]).toEqual(["25", "75"]);
+    // The side column now shows points: 25% and 75% of 4.0.
+    expect(
+      [...document.querySelectorAll("[data-question-share]")].map(
+        (el) => el.textContent,
+      ),
+    ).toEqual(["1.0", "3.0"]);
+    // Nothing changed but the unit: leaving asks nothing.
+    expect(document.querySelector("[data-sum-warning]")).toBeNull();
+
+    fireEvent.change(screen.getByLabelText("Valor da questão 1"), {
+      target: { value: "40" },
+    });
+    expect(document.querySelector("[data-sum-warning]")?.textContent).toMatch(
+      /somam 115%/,
+    );
+    fireEvent.change(screen.getByLabelText("Valor da questão 2"), {
+      target: { value: "60" },
+    });
+    expect(document.querySelector("[data-sum-warning]")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Salvar questões" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).questions).toEqual([
+      { id: "q1", name: "Questão 1", weight: 40 },
+      { id: "q2", name: "Questão 2", weight: 60 },
+    ]);
+  });
+
+  it("warns when the points do not add up to the assessment", () => {
+    table([exam]);
+    openQuestions();
+    expect(document.querySelector("[data-sum-warning]")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Valor da questão 2"), {
+      target: { value: "2" },
+    });
+    expect(document.querySelector("[data-sum-warning]")?.textContent).toMatch(
+      /somam 3\.0, e a avaliação vale 4\.0/,
+    );
+  });
+
+  it("does not count a change of unit as an unsaved change", () => {
+    table([exam]);
+    const dialog = openQuestions();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Valores em porcentagem da avaliação",
+      }),
+    );
+    fireEvent.click(within(dialog).getByRole("button", { name: "Fechar" }));
+    expect(screen.queryByText("Sair sem salvar?")).toBeNull();
+  });
+
+  it("saves the whole list, weights included, keeping surviving ids", async () => {
+    const fetchMock = mockFetch(200, {
+      doc: {
+        questions: [
+          { id: "q2", name: "Questão 2", weight: 3 },
+          { id: "q9", name: "Questão 3", weight: 2.5 },
+        ],
+      },
+    });
+    table([exam]);
+    openQuestions();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remover questão Questão 1" }),
+    );
+    insert("Questão 3", "2,5");
+    expect(screen.getByText(/Uma questão já salva será removida/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Salvar questões" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/activities/9?depth=0");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toEqual({
+      questions: [
+        { id: "q2", name: "Questão 2", weight: 3 },
+        { name: "Questão 3", weight: 2.5 },
+      ],
+    });
+    expect(
+      screen.getByRole("button", { name: "Editar as questões de PR" })
+        .textContent,
+    ).toBe("Questões · 2");
+  });
+
+  it("refuses a weight that is not a positive number", () => {
+    const fetchMock = mockFetch(200);
+    table([exam]);
+    openQuestions();
+    fireEvent.change(screen.getByLabelText("Valor da questão 2"), {
+      target: { value: "0" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar questões" }));
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /peso de “Questão 2”/,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("moves a question up and down", () => {
+    table([exam]);
+    openQuestions();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Descer questão Questão 1" }),
+    );
+    expect(questionNames()).toEqual(["Questão 2", "Questão 1"]);
+  });
+});

@@ -9,7 +9,11 @@
 # Run this for every subsequent deploy after the initial setup with deploy.sh.
 #
 # Usage (from repo root on the server):
-#   ./scripts/update-app-in-server.sh [--branch main]
+#   ./scripts/update-app-in-server.sh [--branch main] [--skip-backup]
+#
+# A database backup (scripts/backup-db.sh) is taken before the migrations run,
+# and the deploy stops if it fails. --skip-backup exists for the rare case
+# where one was just taken by hand.
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -18,6 +22,7 @@ set -euo pipefail
 # snapshot of this script from outside the repo; otherwise derive it normally.
 REPO_DIR="${KUARA_REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 BRANCH="${BRANCH:-main}"
+SKIP_BACKUP=0
 COMPOSE_APP="$REPO_DIR/docker-compose.prod.yml"
 ENV_FILE="$REPO_DIR/.env.prod"
 
@@ -52,6 +57,7 @@ step() { echo; echo "━━━━━━━━━━━━━━━━━━━�
 while [[ $# -gt 0 ]]; do
     case $1 in
         --branch) BRANCH="$2"; shift 2 ;;
+        --skip-backup) SKIP_BACKUP=1; shift ;;
         *) fail "Unknown argument: $1" ;;
     esac
 done
@@ -109,7 +115,7 @@ log "Migration index OK."
 step "Building updated application images"
 
 # Tag the image we are about to replace. Building moves the :latest tag to the
-# new image and leaves the old one dangling, so the cleanup in Step 7 would
+# new image and leaves the old one dangling, so the cleanup in Step 8 would
 # delete the only artifact a rollback could use. Keeping it under a fixed tag
 # means reverting is `up -d --no-deps web` with kuara-web:rollback, with no
 # rebuild — and each deploy overwrites the tag, so it never accumulates.
@@ -124,7 +130,20 @@ fi
 docker compose -f "$COMPOSE_APP" build --pull migrate web
 log "Images built."
 
-# ── Step 4: Run database migrations ──────────────────────────────────────────
+# ── Step 4: Back up the database ─────────────────────────────────────────────
+step "Backing up the database"
+# After the build (a broken build should not leave a backup behind) and
+# before the migrations, which are the only part of a deploy that changes
+# data. If the backup fails the deploy stops here: shipping a migration with
+# no way back is worse than not shipping. Uses the script as just pulled.
+if [[ "$SKIP_BACKUP" -eq 1 ]]; then
+    log "WARNING: --skip-backup given — deploying without a fresh backup."
+else
+    "$REPO_DIR/scripts/backup-db.sh" \
+        || fail "Database backup failed; nothing was migrated. Fix it, or re-run with --skip-backup if you already have a fresh one."
+fi
+
+# ── Step 5: Run database migrations ──────────────────────────────────────────
 step "Running database migrations"
 # Runs against the already-running postgres. Aborts on non-zero exit.
 docker compose -f "$COMPOSE_APP" run --rm migrate
@@ -140,13 +159,13 @@ APPLIED="$(docker compose -f "$COMPOSE_APP" exec -T postgres \
     || fail "Database has $APPLIED migrations recorded, repo has $EXPECTED. Run: docker compose -f docker-compose.prod.yml run --rm migrate"
 log "Migrations complete ($APPLIED recorded)."
 
-# ── Step 5: Restart web service with the new image ───────────────────────────
+# ── Step 6: Restart web service with the new image ───────────────────────────
 step "Restarting web service"
 # --no-deps: only restart web, leave postgres/garage/traefik untouched.
 docker compose -f "$COMPOSE_APP" up -d --no-deps web
 log "Web service restarted."
 
-# ── Step 6: Wait for web service health ──────────────────────────────────────
+# ── Step 7: Wait for web service health ──────────────────────────────────────
 step "Waiting for web service to become healthy (up to 3 min)"
 MAX_WAIT=180
 ELAPSED=0
@@ -164,7 +183,7 @@ until docker compose -f "$COMPOSE_APP" exec -T web \
 done
 log "Web service is healthy."
 
-# ── Step 7: Reclaim disk from the build ──────────────────────────────────────
+# ── Step 8: Reclaim disk from the build ──────────────────────────────────────
 step "Pruning unused images and build cache"
 
 # NEVER use `-a` here, on images or via `system prune`. This host also runs

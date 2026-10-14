@@ -14,7 +14,8 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   pointerWithin,
   useDraggable,
   useDroppable,
@@ -27,8 +28,10 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  Check,
   GripVertical,
   Hash,
+  ListChecks,
   Loader2,
   Pencil,
   Percent,
@@ -37,11 +40,14 @@ import {
   Trash2,
   User,
   UserMinus,
+  X,
 } from "lucide-react";
 import { UsersThreeIcon } from "@/components/ui/users-three-icon";
 import { GradeIcon } from "@/components/ui/grade-icon";
 import {
   formatPoints,
+  questionsOf,
+  type AssessmentQuestion,
   type AssessmentRow,
   type AssessmentTask,
 } from "@/lib/assessment";
@@ -52,10 +58,14 @@ import {
   gradeInputValue,
   gradeTone,
   groupPercentage,
+  groupQuestionMark,
   groupTaskState,
   nextGradeCell,
+  nextGradeCellAcross,
   parseGradeInput,
   percentageFor,
+  questionMarkFor,
+  withQuestionMark,
   toggleTask,
   totalFor,
   totalTone,
@@ -70,6 +80,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { comBasePath } from "@/lib/base-path";
+import { useCoarsePointer, useMediaQuery } from "@/lib/use-coarse-pointer";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   filterAndSortEnrollments,
   groupEnrollments,
@@ -80,11 +97,26 @@ import {
   type StudentGroupOption,
 } from "@/lib/enrollment";
 import { validateGroupName } from "@/lib/group-draw";
+import { AssessmentInfo } from "./AssessmentInfo";
 import { EnrollStudentsModal } from "./EnrollStudentsModal";
 import { GroupsModal } from "./GroupsModal";
 import { SigaaExportModal } from "./SigaaExportModal";
 
 type Direction = "asc" | "desc";
+
+/** What to tell the user when saving grades was refused or failed. */
+function saveFailureMessage(status: number, what: string): string {
+  if (status === 401) {
+    return `Sua sessão expirou. Entre novamente: ${what} não foi salvo.`;
+  }
+  if (status === 403) {
+    return "Sua sessão não permite lançar notas. Entre novamente como administrador.";
+  }
+  if (status === 409) {
+    return "Esta nota foi alterada em outro lugar. A tabela foi recarregada; confira e tente de novo.";
+  }
+  return `Não foi possível salvar ${what}. Tente novamente.`;
+}
 
 // A stable default: a fresh `[]` on every render would retrigger the effects
 // that watch the `groups` prop, forever.
@@ -133,6 +165,11 @@ const toneClass = (tone: GradeTone | null) =>
  * entry it opens into one checkbox column per task, ticked as each student
  * does it, and its grade is the share of tasks done.
  *
+ * An assessment graded by questions is not typed either: during grade entry
+ * it opens into one column per question, each a percentage typed like any
+ * grade (Enter walks down the question), and its grade is the average of those
+ * marks weighted by the questions' weights.
+ *
  * The pencil beside the magnifier switches on the table's own edit mode
  * (unrelated to the site-wide one in the top bar): each row then gets a bin
  * that removes that student from the offer, after a confirmation that pops
@@ -161,7 +198,7 @@ export function EnrollmentTable({
 }) {
   // Grades view: one column per assessment, to the right of the name.
   const [showGrades, setShowGrades] = useState(false);
-  const [gradeDisplay, setGradeDisplay] = useState<GradeDisplay>("points");
+  const [gradeDisplay, setGradeDisplay] = useState<GradeDisplay>("percent");
   const gradeColumns = showGrades ? assessments : NO_ASSESSMENTS;
   // Entering grades: a mode of its own inside the grades view, so that
   // looking a grade up never risks changing it.
@@ -184,6 +221,13 @@ export function EnrollmentTable({
     {},
   );
   useEffect(() => setTaskOverrides({}), [scores]);
+
+  // Question marks typed here, by "<assessment>:<student>": that student's
+  // whole set of marks in the assessment, by question id.
+  const [markOverrides, setMarkOverrides] = useState<
+    Record<string, Record<string, number>>
+  >({});
+  useEffect(() => setMarkOverrides({}), [scores]);
 
   const currentScores = useMemo(() => {
     const keyOf = (score: ScoreRow) =>
@@ -216,8 +260,147 @@ export function EnrollmentTable({
       });
       list = [...list.filter((s) => !(keyOf(s) in taskOverrides)), ...ticked];
     }
+    const markedKeys = Object.keys(markOverrides);
+    if (markedKeys.length > 0) {
+      const marked = markedKeys.map((key) => {
+        const [assessmentId, enrollmentId] = key.split(":");
+        const saved = list.find((s) => keyOf(s) === key);
+        return {
+          id: saved?.id ?? `local:${key}`,
+          assessmentId,
+          enrollmentId,
+          percentage: saved?.percentage ?? 0,
+          questionPercentages: markOverrides[key],
+        };
+      });
+      list = [...list.filter((s) => !(keyOf(s) in markOverrides)), ...marked];
+    }
     return list;
-  }, [scores, scoreOverrides, taskOverrides]);
+  }, [scores, scoreOverrides, taskOverrides, markOverrides]);
+
+  const coarse = useCoarsePointer();
+  // Touch screens have no hover: a tap on a heading opens what the hover
+  // balloon says, and a legend lists every assessment at once.
+  const [infoOpen, setInfoOpen] = useState<string | null>(null);
+  const [legendOpen, setLegendOpen] = useState(false);
+  useEffect(() => {
+    if (infoOpen === null) return;
+    const close = () => setInfoOpen(null);
+    window.addEventListener("scroll", close, true);
+    return () => window.removeEventListener("scroll", close, true);
+  }, [infoOpen]);
+  /** A heading's text as a tap target that opens `content` below it. */
+  const tapInfo = (
+    key: string,
+    label: string,
+    align: string,
+    shown: ReactNode,
+    content: ReactNode,
+  ) => (
+    <Popover
+      open={infoOpen === key}
+      onOpenChange={(open) => setInfoOpen(open ? key : null)}
+    >
+      <PopoverTrigger
+        aria-label={label}
+        data-tooltip="off"
+        className={`block w-full rounded font-[inherit] ${align} focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+      >
+        {shown}
+      </PopoverTrigger>
+      <PopoverContent
+        side="bottom"
+        align="center"
+        collisionPadding={8}
+        className="w-72 max-w-[calc(100vw-1rem)] p-3"
+      >
+        {content}
+      </PopoverContent>
+    </Popover>
+  );
+  // Requests to save grades in flight, for the "Salvando…" note.
+  const [saving, setSaving] = useState(0);
+  // A group-wide grade waiting for a yes, because it would replace
+  // different grades its members already have.
+  const [confirmWrite, setConfirmWrite] = useState<{
+    message: string;
+    run: () => void;
+  } | null>(null);
+  // The `updatedAt` each score row had when last saved from here, by
+  // "<assessment>:<student>": ahead of the `scores` prop until the server
+  // re-render lands, so that two quick changes are not taken for a clash.
+  const stampsRef = useRef<Record<string, string | null>>({});
+  useEffect(() => {
+    stampsRef.current = {};
+  }, [scores]);
+
+  /** What the server should find: the stamps this table last saw. */
+  const expectedFor = (assessment: AssessmentRow, rows: EnrollmentRow[]) =>
+    Object.fromEntries(
+      rows.map((row) => {
+        const key = `${assessment.id}:${row.id}`;
+        const saved =
+          key in stampsRef.current
+            ? stampsRef.current[key]
+            : (scores.find(
+                (s) =>
+                  String(s.assessmentId) === String(assessment.id) &&
+                  String(s.enrollmentId) === String(row.id),
+              )?.updatedAt ?? null);
+        return [String(row.id), saved];
+      }),
+    );
+
+  /**
+   * Sends a change of grades. Calls `undo` with a message when it cannot be
+   * saved — no connection, a session gone, someone else's change in between.
+   * `what` names the change in those messages ("a nota de P1").
+   */
+  async function sendScores(
+    path: string,
+    assessment: AssessmentRow,
+    rows: EnrollmentRow[],
+    body: Record<string, unknown>,
+    what: string,
+    undo: (message: string) => void,
+  ) {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      undo(`Sem conexão: ${what} não foi salvo.`);
+      return;
+    }
+    setSaving((n) => n + 1);
+    try {
+      const res = await fetch(comBasePath(path), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          offer: offerId,
+          activity: assessment.id,
+          enrollments: rows.map((row) => row.id),
+          expected: expectedFor(assessment, rows),
+          ...body,
+        }),
+      });
+      if (!res.ok) {
+        undo(saveFailureMessage(res.status, what));
+        // Someone else changed it: show what is there now.
+        if (res.status === 409) router.refresh();
+        return;
+      }
+      const data = (await res.json().catch(() => null)) as {
+        stamps?: Record<string, string | null>;
+      } | null;
+      for (const [id, stamp] of Object.entries(data?.stamps ?? {})) {
+        stampsRef.current[`${assessment.id}:${id}`] = stamp;
+      }
+      router.refresh();
+    } catch {
+      undo(`Erro de conexão: ${what} não foi salvo. Tente novamente.`);
+    } finally {
+      setSaving((n) => n - 1);
+    }
+  }
   // One list in alphabetical order, or the same students under their groups.
   const [view, setView] = useState<"students" | "groups">("students");
   const [search, setSearch] = useState("");
@@ -384,7 +567,12 @@ export function EnrollmentTable({
   const sensors = useSensors(
     // A few pixels of travel before a drag starts, so a plain click on the
     // row's bin is still a click.
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    // A finger drags only after a press-and-hold, so that scrolling the
+    // table with it stays scrolling.
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 300, tolerance: 8 },
+    }),
     useSensor(KeyboardSensor),
   );
 
@@ -500,18 +688,31 @@ export function EnrollmentTable({
       : list;
   }, [visible, currentGroups, search, canDrag]);
   const split = current.some((row) => row.classGroup);
+  // Turma and matrícula take room the grades need: they give way on a
+  // narrow screen, and while grades are being entered (the name stays).
+  const wide = useMediaQuery("(min-width: 768px)", true);
+  const showIdentity = wide && !enteringGrades;
+  const identityCols = showIdentity ? (split ? 2 : 1) : 0;
   // While grades are being entered, a checklist assessment opens up into
   // one checkbox column per task, to the left of its grade.
   const taskColumns = (assessment: AssessmentRow): AssessmentTask[] =>
     enteringGrades && assessment.mode === "checklist" ? assessment.tasks : [];
+  // A questions assessment likewise opens into one column per question.
+  const questionColumns = (assessment: AssessmentRow): AssessmentQuestion[] =>
+    enteringGrades && assessment.mode === "questions"
+      ? questionsOf(assessment)
+      : [];
+  const subColumnCount = (assessment: AssessmentRow) =>
+    taskColumns(assessment).length + questionColumns(assessment).length;
   // Checkbox columns need a second heading row: the assessment's name spans
   // them all, and the task labels sit beneath it.
-  const headRows = gradeColumns.some((a) => taskColumns(a).length > 0) ? 2 : 1;
+  const headRows = gradeColumns.some((a) => subColumnCount(a) > 0) ? 2 : 1;
   const columns =
-    (split ? 3 : 2) +
+    identityCols +
+    1 +
     // One column per assessment (plus its tasks' checkboxes), and the total.
     (showGrades
-      ? gradeColumns.reduce((n, a) => n + 1 + taskColumns(a).length, 0) + 1
+      ? gradeColumns.reduce((n, a) => n + 1 + subColumnCount(a), 0) + 1
       : 0) +
     (editing ? 1 : 0);
 
@@ -549,46 +750,169 @@ export function EnrollmentTable({
       ),
     }));
 
-    void (async () => {
-      const undo = (message: string) => {
+    void sendScores(
+      "/api/scores/tasks",
+      assessment,
+      changed,
+      { task: task.id, done },
+      `“${task.name}” em ${assessment.code}`,
+      (message) => {
         setTaskOverrides((ticked) => ({ ...ticked, ...before }));
         setMoveError(message);
-      };
-      try {
-        const res = await fetch(comBasePath("/api/scores/tasks"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            offer: offerId,
-            activity: assessment.id,
-            task: task.id,
-            enrollments: changed.map((row) => row.id),
-            done,
-          }),
-        });
-        if (!res.ok) {
-          undo(
-            res.status === 401 || res.status === 403
-              ? "Sua sessão não permite lançar notas. Entre novamente como administrador."
-              : `Não foi possível salvar “${task.name}” em ${assessment.code}. Tente novamente.`,
-          );
-          return;
-        }
-        router.refresh();
-      } catch {
-        undo("Erro de conexão ao salvar a tarefa. Tente novamente.");
-      }
-    })();
+      },
+    );
   }
 
-  // Editable cells, per assessment, top to bottom as on screen: the order
-  // Tab walks in. A group's own cell comes right above its members'.
+  /**
+   * Gives a mark (0–100%) in one question of a "questions" assessment to the
+   * students of a cell — one, or every member of a group. Shown at once;
+   * taken back if the server refuses. Returns false — leaving the cell open
+   * — only when the text is not a valid mark.
+   */
+  function commitQuestionMark(cellId: string, text: string): boolean {
+    const [kind, assessmentId, questionId, targetId] = cellId.split(":");
+    const assessment = assessments.find((a) => String(a.id) === assessmentId);
+    const question = (assessment ? questionsOf(assessment) : []).find(
+      (q) => q.id === questionId,
+    );
+    if (!assessment || !question) return true;
+
+    const parsed = parseGradeInput(text, 100, "percent");
+    if (!parsed.ok) {
+      setCellError(parsed.error);
+      return false;
+    }
+    setCellError(null);
+
+    const students =
+      kind === "qg"
+        ? current.filter((row) => String(row.groupId) === targetId)
+        : current.filter((row) => String(row.id) === targetId);
+    const changed = students.filter((row) => {
+      const before = questionMarkFor(
+        row,
+        assessment,
+        question.id,
+        currentScores,
+      );
+      return before === null || parsed.percentage === null
+        ? before !== parsed.percentage
+        : Math.abs(before - parsed.percentage) > 1e-6;
+    });
+    if (changed.length === 0) return true;
+
+    const apply = () => {
+      const validIds = questionsOf(assessment).map((q) => q.id);
+      const marksOf = (row: EnrollmentRow) => {
+        const score = currentScores.find(
+          (s) =>
+            String(s.assessmentId) === String(assessment.id) &&
+            String(s.enrollmentId) === String(row.id),
+        );
+        return score?.questionPercentages ?? {};
+      };
+      const before = Object.fromEntries(
+        changed.map((row) => [`${assessment.id}:${row.id}`, marksOf(row)]),
+      );
+      setMoveError(null);
+      setMarkOverrides((marked) => ({
+        ...marked,
+        ...Object.fromEntries(
+          changed.map((row) => [
+            `${assessment.id}:${row.id}`,
+            withQuestionMark(
+              marksOf(row),
+              question.id,
+              parsed.percentage,
+              validIds,
+            ),
+          ]),
+        ),
+      }));
+
+      void sendScores(
+        "/api/scores/questions",
+        assessment,
+        changed,
+        { question: question.id, percentage: parsed.percentage },
+        `“${question.name}” em ${assessment.code}`,
+        (message) => {
+          setMarkOverrides((marked) => ({ ...marked, ...before }));
+          setMoveError(message);
+        },
+      );
+    };
+    if (
+      kind === "qg" &&
+      groupQuestionMark(students, assessment, question.id, currentScores)
+        .kind === "mixed"
+    ) {
+      setConfirmWrite({
+        message: `Os integrantes do grupo têm notas diferentes em “${question.name}”, de ${assessment.code}. Dar esta nota ao grupo substitui as notas individuais.`,
+        run: apply,
+      });
+      return true;
+    }
+    apply();
+    return true;
+  }
+
+  // The rows as on screen, top to bottom: where Tab goes across, and Enter
+  // down. A group's own row comes right above its members'.
+  const gradeRowOrder = useMemo(
+    () =>
+      view === "groups"
+        ? sections.flatMap((section) => [
+            ...(section.group ? [`g:${section.group.id}`] : []),
+            ...section.rows.map((row) => `s:${row.id}`),
+          ])
+        : visible.map((row) => `s:${row.id}`),
+    [view, sections, visible],
+  );
+
+  // Editable cells, per column left to right, each top to bottom as on
+  // screen. A group's own cell comes right above its members'.
   const gradeCellOrder = useMemo(
     () =>
-      gradeColumns
-        .filter((assessment) => assessment.mode !== "checklist")
-        .map((assessment) =>
+      gradeColumns.flatMap((assessment) => {
+        if (assessment.mode === "checklist") {
+          // One column of checkboxes per task. A group's own checkbox only
+          // exists when the group has members.
+          return assessment.tasks.map((task) =>
+            view === "groups"
+              ? sections.flatMap((section) => [
+                  ...(section.group &&
+                  assessment.scoredBy === "group" &&
+                  current.some(
+                    (row) => String(row.groupId) === String(section.group!.id),
+                  )
+                    ? [`tg:${assessment.id}:${task.id}:${section.group.id}`]
+                    : []),
+                  ...section.rows.map(
+                    (row) => `t:${assessment.id}:${task.id}:${row.id}`,
+                  ),
+                ])
+              : visible.map((row) => `t:${assessment.id}:${task.id}:${row.id}`),
+          );
+        }
+        if (assessment.mode === "questions") {
+          // One column per question, only while grades are being entered.
+          return questionsOf(assessment).map((question) =>
+            view === "groups"
+              ? sections.flatMap((section) => [
+                  ...(section.group && assessment.scoredBy === "group"
+                    ? [`qg:${assessment.id}:${question.id}:${section.group.id}`]
+                    : []),
+                  ...section.rows.map(
+                    (row) => `q:${assessment.id}:${question.id}:${row.id}`,
+                  ),
+                ])
+              : visible.map(
+                  (row) => `q:${assessment.id}:${question.id}:${row.id}`,
+                ),
+          );
+        }
+        return [
           view === "groups"
             ? sections.flatMap((section) => [
                 ...(section.group && assessment.scoredBy === "group"
@@ -597,9 +921,34 @@ export function EnrollmentTable({
                 ...section.rows.map((row) => `s:${assessment.id}:${row.id}`),
               ])
             : visible.map((row) => `s:${assessment.id}:${row.id}`),
-        ),
-    [gradeColumns, view, sections, visible],
+        ];
+      }),
+    [gradeColumns, view, sections, visible, current],
   );
+
+  /**
+   * Goes to the cell next to `id`, from a checkbox or a number: a number
+   * opens as an input, a checkbox takes the keyboard focus. Does nothing
+   * where there is no cell that way.
+   */
+  function goToCell(id: string, direction: 1 | -1, axis: "across" | "down") {
+    const next = neighbourCell(id, direction, axis);
+    if (next === null) return;
+    setCellError(null);
+    if (isCheckboxCell(next)) {
+      setOpenCell(null);
+      // After the input that may be open has closed.
+      setTimeout(
+        () =>
+          document
+            .querySelector<HTMLInputElement>(`[data-grade-cell="${next}"]`)
+            ?.focus(),
+        0,
+      );
+    } else {
+      setOpenCell(next);
+    }
+  }
 
   /**
    * Saves what was typed into a cell. Returns false — leaving the cell open
@@ -631,51 +980,55 @@ export function EnrollmentTable({
     });
     if (changed.length === 0) return true;
 
-    const keys = changed.map((row) => `${assessment.id}:${row.id}`);
-    const before = Object.fromEntries(
-      changed.map((row) => [
-        `${assessment.id}:${row.id}`,
-        percentageFor(row, assessment, currentScores),
-      ]),
-    );
-    setMoveError(null);
-    setScoreOverrides((typed) => ({
-      ...typed,
-      ...Object.fromEntries(keys.map((key) => [key, parsed.percentage])),
-    }));
+    const apply = () => {
+      const keys = changed.map((row) => `${assessment.id}:${row.id}`);
+      const before = Object.fromEntries(
+        changed.map((row) => [
+          `${assessment.id}:${row.id}`,
+          percentageFor(row, assessment, currentScores),
+        ]),
+      );
+      setMoveError(null);
+      setScoreOverrides((typed) => ({
+        ...typed,
+        ...Object.fromEntries(keys.map((key) => [key, parsed.percentage])),
+      }));
 
-    void (async () => {
-      const undo = (message: string) => {
-        setScoreOverrides((typed) => ({ ...typed, ...before }));
-        setMoveError(message);
-      };
-      try {
-        const res = await fetch(comBasePath("/api/scores/set"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            offer: offerId,
-            activity: assessment.id,
-            enrollments: changed.map((row) => row.id),
-            percentage: parsed.percentage,
-          }),
-        });
-        if (!res.ok) {
-          undo(
-            res.status === 401 || res.status === 403
-              ? "Sua sessão não permite lançar notas. Entre novamente como administrador."
-              : `Não foi possível salvar a nota de ${assessment.code}. Tente novamente.`,
-          );
-          return;
-        }
-        router.refresh();
-      } catch {
-        undo("Erro de conexão ao salvar a nota. Tente novamente.");
-      }
-    })();
+      void sendScores(
+        "/api/scores/set",
+        assessment,
+        changed,
+        { percentage: parsed.percentage },
+        `a nota de ${assessment.code}`,
+        (message) => {
+          setScoreOverrides((typed) => ({ ...typed, ...before }));
+          setMoveError(message);
+        },
+      );
+    };
+    if (
+      kind === "g" &&
+      groupPercentage(students, assessment, currentScores).kind === "mixed"
+    ) {
+      setConfirmWrite({
+        message: `Os integrantes do grupo têm notas diferentes em ${assessment.code}. Dar esta nota ao grupo substitui as notas individuais.`,
+        run: apply,
+      });
+      return true;
+    }
+    apply();
     return true;
   }
+
+  /** The cell next to another: across its row (Tab) or down its column. */
+  const neighbourCell = (
+    id: string,
+    direction: 1 | -1,
+    axis: "across" | "down",
+  ) =>
+    axis === "down"
+      ? nextGradeCell(gradeCellOrder, id, direction)
+      : nextGradeCellAcross(gradeCellOrder, gradeRowOrder, id, direction);
 
   /** What goes inside a grade cell: plain text, a button, or the input. */
   const gradeCell = ({
@@ -684,15 +1037,29 @@ export function EnrollmentTable({
     text,
     initial,
     label,
+    percentOnly = false,
   }: {
     id: string;
     assessment: AssessmentRow;
     text: string;
     initial: string;
     label: string;
+    /** A question's cell: always typed as a percentage, 0–100. */
+    percentOnly?: boolean;
   }) => {
-    // A checklist's grade is worked out from its tasks, never typed.
-    if (!enteringGrades || assessment.mode === "checklist") return text;
+    // A checklist's or a questions assessment's grade is worked out from its
+    // tasks or questions, never typed; only the questions' own cells are.
+    if (!enteringGrades || (assessment.mode !== "graded" && !percentOnly)) {
+      return text;
+    }
+    const asPercent = percentOnly || gradeDisplay === "percent";
+    // "P1", or "P1 · Q2" for one question of a questions assessment.
+    const question = percentOnly
+      ? questionsOf(assessment).find((q) => q.id === id.split(":")[2])
+      : undefined;
+    const tag = question
+      ? `${assessment.code} · ${question.code || question.name}`
+      : assessment.code;
     if (openCell !== id) {
       return (
         <button
@@ -703,7 +1070,7 @@ export function EnrollmentTable({
           }}
           aria-label={label}
           data-grade-cell={id}
-          className="w-full rounded px-2 py-1.5 text-right transition-colors hover:bg-primary/10 hover:outline hover:outline-1 hover:outline-primary/40 focus-visible:outline focus-visible:outline-1 focus-visible:outline-primary"
+          className="w-full rounded px-2 py-1.5 text-right transition-colors [@media(pointer:coarse)]:py-3 hover:bg-primary/10 hover:outline hover:outline-1 hover:outline-primary/40 focus-visible:outline focus-visible:outline-1 focus-visible:outline-primary"
         >
           {text}
         </button>
@@ -713,26 +1080,31 @@ export function EnrollmentTable({
       <GradeInput
         key={id}
         label={label}
+        tag={tag}
         initial={initial}
-        suffix={gradeDisplay === "percent" ? "%" : undefined}
-        max={
-          gradeDisplay === "percent" ? "100" : formatPoints(assessment.weight)
-        }
+        suffix={asPercent ? "%" : undefined}
+        max={asPercent ? "100" : formatPoints(assessment.weight)}
         error={cellError}
-        onCommit={(value) => commitGrade(id, value)}
+        onCommit={(value) =>
+          percentOnly ? commitQuestionMark(id, value) : commitGrade(id, value)
+        }
         onClose={() => {
           setCellError(null);
           setOpenCell(null);
         }}
-        onMove={(direction) => {
-          setCellError(null);
-          setOpenCell(nextGradeCell(gradeCellOrder, id, direction));
-        }}
+        hasNext={(direction, axis) =>
+          neighbourCell(id, direction, axis) !== null
+        }
+        onMove={(direction, axis) => goToCell(id, direction, axis)}
       />
     );
   };
 
-  const sortButton = (target: EnrollmentSortField, label: string) => {
+  const sortButton = (
+    target: EnrollmentSortField,
+    label: string,
+    shown: string = label,
+  ) => {
     const active = field === target;
     const Icon = !active
       ? ArrowUpDown
@@ -748,7 +1120,7 @@ export function EnrollmentTable({
           active ? "text-foreground" : ""
         }`}
       >
-        {label}
+        {shown}
         <Icon className={`h-3 w-3 ${active ? "" : "opacity-40"}`} />
       </button>
     );
@@ -773,37 +1145,70 @@ export function EnrollmentTable({
         ref={drag?.setNodeRef}
         {...drag?.listeners}
         className={`transition-colors hover:bg-muted/40 ${
-          drag ? "cursor-grab touch-none select-none" : ""
+          drag ? "cursor-grab select-none" : ""
         } ${drag?.isDragging ? "opacity-30" : ""}`}
       >
-        {split && (
-          <td className="px-4 py-2.5 text-muted-foreground">
+        {showIdentity && split && (
+          <td className="px-3 py-2.5 text-muted-foreground">
             <span className="flex items-center gap-1.5">
               {handle}
               {row.classGroup ?? "—"}
             </span>
           </td>
         )}
-        <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
-          {split ? (
-            row.registration
-          ) : (
-            <span className="flex items-center gap-1.5">
-              {handle}
-              {row.registration}
-            </span>
-          )}
+        {showIdentity && (
+          <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">
+            {split ? (
+              row.registration
+            ) : (
+              <span className="flex items-center gap-1.5">
+                {handle}
+                {row.registration}
+              </span>
+            )}
+          </td>
+        )}
+        <td className="sticky left-0 z-10 bg-card px-4 py-2.5 font-medium">
+          {row.name}
         </td>
-        <td className="px-4 py-2.5 font-medium">{row.name}</td>
         {gradeColumns.map((assessment) => {
           const percentage = percentageFor(row, assessment, currentScores);
           const tone = gradeTone(percentage);
           const done = completedTasksFor(row, assessment, currentScores);
           return (
             <Fragment key={assessment.id}>
+              {questionColumns(assessment).map((question) => {
+                const mark = questionMarkFor(
+                  row,
+                  assessment,
+                  question.id,
+                  currentScores,
+                );
+                return (
+                  <td
+                    key={question.id}
+                    className="px-1 py-1 text-right font-mono text-xs tabular-nums"
+                  >
+                    {gradeCell({
+                      id: `q:${assessment.id}:${question.id}:${row.id}`,
+                      assessment,
+                      percentOnly: true,
+                      text: formatGrade(mark, assessment.weight, "percent"),
+                      initial: gradeInputValue(
+                        mark,
+                        assessment.weight,
+                        "percent",
+                      ),
+                      label: `Nota de ${row.name} em ${question.name}, de ${assessment.code}`,
+                    })}
+                  </td>
+                );
+              })}
               {taskColumns(assessment).map((task) => (
                 <td key={task.id} className="px-0.5 py-1 text-center">
                   <TaskCheckbox
+                    cellId={`t:${assessment.id}:${task.id}:${row.id}`}
+                    onNavigate={goToCell}
                     label={`${row.name} fez ${task.name}, de ${assessment.code}`}
                     state={done.has(task.id) ? "all" : "none"}
                     onChange={(checked) =>
@@ -815,7 +1220,7 @@ export function EnrollmentTable({
               <td
                 data-tone={tone ?? undefined}
                 className={`text-right font-mono text-xs tabular-nums ${
-                  enteringGrades && assessment.mode !== "checklist"
+                  enteringGrades && assessment.mode === "graded"
                     ? "px-1 py-1"
                     : "px-3 py-2.5"
                 } ${toneClass(tone)}`}
@@ -870,7 +1275,7 @@ export function EnrollmentTable({
                 type="button"
                 onClick={() => void moveStudent(row, null)}
                 aria-label={`Remover ${row.name} do grupo`}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-red-600/60 transition-colors hover:bg-red-500/10 hover:text-red-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/50 dark:text-red-400/60 dark:hover:text-red-400"
+                className="inline-flex h-7 w-7 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded-md text-red-600/60 transition-colors hover:bg-red-500/10 hover:text-red-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/50 dark:text-red-400/60 dark:hover:text-red-400"
               >
                 <UserMinus className="h-3.5 w-3.5" />
               </button>
@@ -888,7 +1293,7 @@ export function EnrollmentTable({
             >
               <PopoverTrigger
                 aria-label={`Remover ${row.name}`}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-red-600/60 transition-colors hover:bg-red-500/10 hover:text-red-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/50 data-[state=open]:bg-red-500/10 data-[state=open]:text-red-600 dark:text-red-400/60 dark:hover:text-red-400"
+                className="inline-flex h-7 w-7 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded-md text-red-600/60 transition-colors hover:bg-red-500/10 hover:text-red-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/50 data-[state=open]:bg-red-500/10 data-[state=open]:text-red-600 dark:text-red-400/60 dark:hover:text-red-400"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </PopoverTrigger>
@@ -948,7 +1353,7 @@ export function EnrollmentTable({
   return (
     <section
       aria-label="Discentes da oferta"
-      className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm"
+      className="relative overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm"
     >
       <div className="flex flex-wrap items-center gap-3 border-b border-border/60 px-4 py-3">
         <h2 className="font-serif text-lg font-semibold tracking-tight">
@@ -970,7 +1375,7 @@ export function EnrollmentTable({
             onClick={() => setView("students")}
             aria-pressed={view === "students"}
             aria-label="Ver por alunos"
-            className={`flex h-7 w-7 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+            className={`flex h-7 w-7 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
               view === "students"
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:text-foreground"
@@ -983,7 +1388,7 @@ export function EnrollmentTable({
             onClick={() => setView("groups")}
             aria-pressed={view === "groups"}
             aria-label="Ver por grupos"
-            className={`flex h-7 w-7 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+            className={`flex h-7 w-7 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
               view === "groups"
                 ? "bg-muted text-foreground"
                 : "text-muted-foreground hover:text-foreground"
@@ -1005,7 +1410,7 @@ export function EnrollmentTable({
             }}
             aria-pressed={showGrades}
             aria-label={showGrades ? "Ocultar notas" : "Ver notas"}
-            className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+            className={`flex h-8 w-8 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
               showGrades
                 ? "bg-primary text-primary-foreground hover:bg-primary/85"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -1024,7 +1429,7 @@ export function EnrollmentTable({
                 onClick={() => setGradeDisplay("points")}
                 aria-pressed={gradeDisplay === "points"}
                 aria-label="Ver notas em pontos"
-                className={`flex h-7 w-7 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+                className={`flex h-7 w-7 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
                   gradeDisplay === "points"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -1037,7 +1442,7 @@ export function EnrollmentTable({
                 onClick={() => setGradeDisplay("percent")}
                 aria-pressed={gradeDisplay === "percent"}
                 aria-label="Ver notas em porcentagem"
-                className={`flex h-7 w-7 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+                className={`flex h-7 w-7 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
                   gradeDisplay === "percent"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -1046,6 +1451,16 @@ export function EnrollmentTable({
                 <Percent className="h-4 w-4" />
               </button>
             </div>
+          )}
+          {showGrades && coarse && assessments.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setLegendOpen(true)}
+              aria-label="Legenda das avaliações"
+              className="flex h-8 w-8 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <ListChecks className="h-4 w-4" />
+            </button>
           )}
           {showGrades && (
             <button
@@ -1057,7 +1472,7 @@ export function EnrollmentTable({
               }}
               aria-pressed={gradeEntry}
               aria-label={gradeEntry ? "Parar de lançar notas" : "Lançar notas"}
-              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+              className={`flex h-7 w-7 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
                 gradeEntry
                   ? "bg-primary text-primary-foreground hover:bg-primary/85"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -1103,7 +1518,7 @@ export function EnrollmentTable({
               type="button"
               onClick={() => setSearchOpen(true)}
               aria-label="Buscar discente"
-              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="flex h-8 w-8 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               <Search className="h-4 w-4" />
             </button>
@@ -1122,7 +1537,7 @@ export function EnrollmentTable({
                 ? "Sair da edição da tabela"
                 : "Editar tabela de discentes"
             }
-            className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+            className={`flex h-8 w-8 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
               editing
                 ? "bg-primary text-primary-foreground hover:bg-primary/85"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -1147,6 +1562,75 @@ export function EnrollmentTable({
         </div>
       </div>
 
+      <Dialog open={legendOpen} onOpenChange={setLegendOpen}>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto">
+          <DialogTitle>Avaliações</DialogTitle>
+          <DialogDescription>
+            O que cada coluna da tabela de notas abrevia.
+          </DialogDescription>
+          <ul className="w-full divide-y divide-border/50">
+            {assessments.map((assessment) => (
+              <li key={assessment.id} className="py-3 first:pt-0 last:pb-0">
+                <AssessmentInfo assessment={assessment} compact />
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={confirmWrite !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmWrite(null);
+        }}
+      >
+        <DialogContent>
+          <DialogTitle>Substituir as notas do grupo?</DialogTitle>
+          <DialogDescription>{confirmWrite?.message}</DialogDescription>
+          <div className="flex w-full justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmWrite(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                const run = confirmWrite?.run;
+                setConfirmWrite(null);
+                run?.();
+              }}
+            >
+              Substituir
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Notes that come and go while grades are saved float over the
+          table instead of pushing it down: the rows must not jump under
+          the pointer each time a grade is given. */}
+      {saving > 0 && (
+        <p
+          role="status"
+          className="pointer-events-none absolute right-3 top-14 z-40 flex items-center gap-2 rounded-md border border-border/60 bg-popover px-2.5 py-1 text-xs text-muted-foreground shadow-md"
+        >
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Salvando…
+        </p>
+      )}
+      {/* On a touch screen the cell's own balloon can fall off the edge of
+          the scrolling table, so the error is also said here. */}
+      {coarse && cellError && !moveError && (
+        <p
+          role="alert"
+          className="absolute inset-x-0 top-14 z-40 border-y border-red-500/20 bg-popover px-4 py-2 text-xs text-red-900 shadow-md dark:text-red-200"
+        >
+          {cellError}
+        </p>
+      )}
       {moveError && (
         <p
           role="alert"
@@ -1163,15 +1647,19 @@ export function EnrollmentTable({
         onDragEnd={onDragEnd}
         onDragCancel={() => setDragged(null)}
       >
-        <div className="overflow-x-auto">
+        {/* The table scrolls inside its own box, so that its heading can
+            stay in view (sticky) while the rows go by: with the grades
+            beside it, the heading is what says which assessment is which. */}
+        <div className="max-h-[75dvh] overflow-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-20 bg-card shadow-[inset_0_-1px_0_hsl(var(--border)/0.6)]">
               <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                {split && (
+                {showIdentity && split && (
                   <th
                     scope="col"
                     rowSpan={headRows}
-                    className="w-28 px-4 py-3 font-semibold"
+                    data-tooltip="Turma"
+                    className="w-14 px-3 py-3 font-semibold"
                     aria-sort={
                       field === "classGroup"
                         ? direction === "asc"
@@ -1180,27 +1668,30 @@ export function EnrollmentTable({
                         : undefined
                     }
                   >
-                    {sortButton("classGroup", "Turma")}
+                    {sortButton("classGroup", "Turma", "T.")}
+                  </th>
+                )}
+                {showIdentity && (
+                  <th
+                    scope="col"
+                    rowSpan={headRows}
+                    data-tooltip="Matrícula"
+                    className="w-28 px-3 py-3 font-semibold"
+                    aria-sort={
+                      field === "registration"
+                        ? direction === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : undefined
+                    }
+                  >
+                    {sortButton("registration", "Matrícula", "M.")}
                   </th>
                 )}
                 <th
                   scope="col"
                   rowSpan={headRows}
-                  className="w-40 px-4 py-3 font-semibold"
-                  aria-sort={
-                    field === "registration"
-                      ? direction === "asc"
-                        ? "ascending"
-                        : "descending"
-                      : undefined
-                  }
-                >
-                  {sortButton("registration", "Matrícula")}
-                </th>
-                <th
-                  scope="col"
-                  rowSpan={headRows}
-                  className="px-4 py-3 font-semibold"
+                  className="sticky left-0 z-10 bg-card px-4 py-3 font-semibold"
                   aria-sort={
                     field === "name"
                       ? direction === "asc"
@@ -1212,13 +1703,15 @@ export function EnrollmentTable({
                   {sortButton("name", "Nome")}
                 </th>
                 {gradeColumns.map((assessment) => {
-                  const tasks = taskColumns(assessment);
+                  const subCount = subColumnCount(assessment);
                   const description = `${assessment.name} — vale ${formatPoints(assessment.weight)}${
                     assessment.scoredBy === "group" ? ", por grupo" : ""
                   }${
                     assessment.mode === "checklist"
                       ? `, ${assessment.tasks.length} tarefa(s)`
-                      : ""
+                      : assessment.mode === "questions"
+                        ? `, ${questionsOf(assessment).length} questão(ões)`
+                        : ""
                   }`;
                   const heading = (
                     <>
@@ -1237,7 +1730,7 @@ export function EnrollmentTable({
                       </span>
                     </>
                   );
-                  if (tasks.length === 0) {
+                  if (subCount === 0) {
                     return (
                       <th
                         key={assessment.id}
@@ -1246,7 +1739,15 @@ export function EnrollmentTable({
                         data-tooltip={description}
                         className="w-20 border-l border-border/40 px-3 py-2 text-right font-semibold"
                       >
-                        {heading}
+                        {coarse
+                          ? tapInfo(
+                              `a:${assessment.id}`,
+                              `Detalhes de ${assessment.code}`,
+                              "text-right",
+                              heading,
+                              <AssessmentInfo assessment={assessment} />,
+                            )
+                          : heading}
                       </th>
                     );
                   }
@@ -1254,11 +1755,19 @@ export function EnrollmentTable({
                     <th
                       key={assessment.id}
                       scope="colgroup"
-                      colSpan={tasks.length + 1}
+                      colSpan={subCount + 1}
                       data-tooltip={description}
                       className="border-l border-border/40 px-3 py-2 text-center font-semibold"
                     >
-                      {heading}
+                      {coarse
+                        ? tapInfo(
+                            `a:${assessment.id}`,
+                            `Detalhes de ${assessment.code}`,
+                            "text-center",
+                            heading,
+                            <AssessmentInfo assessment={assessment} />,
+                          )
+                        : heading}
                     </th>
                   );
                 })}
@@ -1282,8 +1791,40 @@ export function EnrollmentTable({
                 <tr className="border-b border-border/60 text-xs text-muted-foreground">
                   {gradeColumns.flatMap((assessment) => {
                     const tasks = taskColumns(assessment);
-                    if (tasks.length === 0) return [];
+                    const questions = questionColumns(assessment);
+                    if (tasks.length + questions.length === 0) return [];
                     return [
+                      ...questions.map((question, index) => (
+                        <th
+                          key={`${assessment.id}:${question.id}`}
+                          scope="col"
+                          data-tooltip={`${assessment.code} · ${question.name} (peso ${question.weight})`}
+                          className={`w-16 px-0.5 py-2 text-center align-bottom font-normal normal-case ${
+                            index === 0 ? "border-l border-border/40" : ""
+                          }`}
+                        >
+                          {(() => {
+                            const label = (
+                              <span className="mx-auto block max-w-16 truncate font-mono text-[0.65rem] leading-tight">
+                                {question.code || question.name}
+                              </span>
+                            );
+                            return coarse
+                              ? tapInfo(
+                                  `q:${assessment.id}:${question.id}`,
+                                  `Detalhes de ${question.name}`,
+                                  "text-center",
+                                  label,
+                                  <QuestionInfo
+                                    assessment={assessment}
+                                    name={question.name}
+                                    weight={`peso ${question.weight}`}
+                                  />,
+                                )
+                              : label;
+                          })()}
+                        </th>
+                      )),
                       ...tasks.map((task, index) => (
                         <th
                           key={`${assessment.id}:${task.id}`}
@@ -1293,9 +1834,25 @@ export function EnrollmentTable({
                             index === 0 ? "border-l border-border/40" : ""
                           }`}
                         >
-                          <span className="mx-auto block max-w-10 truncate font-mono text-[0.65rem] leading-tight">
-                            {task.code || task.name}
-                          </span>
+                          {(() => {
+                            const label = (
+                              <span className="mx-auto block max-w-10 truncate font-mono text-[0.65rem] leading-tight">
+                                {task.code || task.name}
+                              </span>
+                            );
+                            return coarse
+                              ? tapInfo(
+                                  `t:${assessment.id}:${task.id}`,
+                                  `Detalhes de ${task.name}`,
+                                  "text-center",
+                                  label,
+                                  <QuestionInfo
+                                    assessment={assessment}
+                                    name={task.name}
+                                  />,
+                                )
+                              : label;
+                          })()}
                         </th>
                       )),
                       <th
@@ -1325,9 +1882,7 @@ export function EnrollmentTable({
                         scope="rowgroup"
                         colSpan={
                           showGrades
-                            ? split
-                              ? 3
-                              : 2
+                            ? identityCols + 1
                             : editing
                               ? columns - 1
                               : columns
@@ -1425,6 +1980,51 @@ export function EnrollmentTable({
                           : [];
                         // A task ticked on the group's row is ticked for
                         // every member.
+                        const questionCells = questionColumns(assessment).map(
+                          (question) => {
+                            const mark = groupQuestionMark(
+                              members,
+                              assessment,
+                              question.id,
+                              currentScores,
+                            );
+                            const value =
+                              mark.kind === "same" ? mark.percentage : null;
+                            return (
+                              <td
+                                key={`${assessment.id}:${question.id}`}
+                                title={
+                                  mark.kind === "mixed"
+                                    ? "Os integrantes têm notas diferentes nesta questão."
+                                    : undefined
+                                }
+                                className="px-1 py-1 text-right font-mono text-xs font-semibold tabular-nums"
+                              >
+                                {ofGroup &&
+                                  members.length > 0 &&
+                                  gradeCell({
+                                    id: `qg:${assessment.id}:${question.id}:${group.id}`,
+                                    assessment,
+                                    percentOnly: true,
+                                    text:
+                                      mark.kind === "mixed"
+                                        ? "≠"
+                                        : formatGrade(
+                                            value,
+                                            assessment.weight,
+                                            "percent",
+                                          ),
+                                    initial: gradeInputValue(
+                                      value,
+                                      assessment.weight,
+                                      "percent",
+                                    ),
+                                    label: `Nota do grupo ${group.name} em ${question.name}, de ${assessment.code}`,
+                                  })}
+                              </td>
+                            );
+                          },
+                        );
                         const taskCells = taskColumns(assessment).map(
                           (task) => (
                             <td
@@ -1433,6 +2033,8 @@ export function EnrollmentTable({
                             >
                               {ofGroup && members.length > 0 && (
                                 <TaskCheckbox
+                                  cellId={`tg:${assessment.id}:${task.id}:${group.id}`}
+                                  onNavigate={goToCell}
                                   label={`Grupo ${group.name} fez ${task.name}, de ${assessment.code}`}
                                   state={groupTaskState(
                                     members,
@@ -1456,6 +2058,7 @@ export function EnrollmentTable({
                         if (!group || !ofGroup) {
                           return (
                             <Fragment key={assessment.id}>
+                              {questionCells}
                               {taskCells}
                               <td />
                             </Fragment>
@@ -1471,6 +2074,7 @@ export function EnrollmentTable({
                         const tone = gradeTone(percentage);
                         return (
                           <Fragment key={assessment.id}>
+                            {questionCells}
                             {taskCells}
                             <td
                               data-tone={tone ?? undefined}
@@ -1481,8 +2085,7 @@ export function EnrollmentTable({
                                   : undefined
                               }
                               className={`text-right font-mono text-xs font-semibold tabular-nums ${
-                                enteringGrades &&
-                                assessment.mode !== "checklist"
+                                enteringGrades && assessment.mode === "graded"
                                   ? "px-1 py-1"
                                   : "px-3 py-2"
                               } ${
@@ -1532,7 +2135,7 @@ export function EnrollmentTable({
                             >
                               <PopoverTrigger
                                 aria-label={`Remover grupo ${section.group.name}`}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-red-600/60 transition-colors hover:bg-red-500/10 hover:text-red-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/50 data-[state=open]:bg-red-500/10 data-[state=open]:text-red-600 dark:text-red-400/60 dark:hover:text-red-400"
+                                className="inline-flex h-7 w-7 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded-md text-red-600/60 transition-colors hover:bg-red-500/10 hover:text-red-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/50 data-[state=open]:bg-red-500/10 data-[state=open]:text-red-600 dark:text-red-400/60 dark:hover:text-red-400"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </PopoverTrigger>
@@ -1700,13 +2303,59 @@ function DraggableRow({
   return <>{children(drag)}</>;
 }
 
+/** What a task's or question's heading abbreviates, in full. */
+function QuestionInfo({
+  assessment,
+  name,
+  weight,
+}: {
+  assessment: AssessmentRow;
+  name: string;
+  weight?: string;
+}) {
+  return (
+    <div className="space-y-1 text-left text-xs font-normal normal-case tracking-normal">
+      <p className="text-sm font-semibold leading-snug text-foreground">
+        {name}
+      </p>
+      <p className="text-muted-foreground">
+        em <span className="font-mono text-primary">{assessment.code}</span>
+        {weight ? ` · ${weight}` : ""} · {assessment.name}
+      </p>
+    </div>
+  );
+}
+
+/** Whether a grade cell id is a task's checkbox rather than a number. */
+const isCheckboxCell = (id: string) =>
+  id.startsWith("t:") || id.startsWith("tg:");
+
+/** What each arrow key does in a grade cell: which way, and along what. */
+const ARROWS: Record<string, [1 | -1, "across" | "down"]> = {
+  ArrowRight: [1, "across"],
+  ArrowLeft: [-1, "across"],
+  ArrowDown: [1, "down"],
+  ArrowUp: [-1, "down"],
+};
+
 /**
- * The input a grade cell turns into. Tab and Enter save and move on to the
- * next student in the same assessment; Shift+Tab goes back; Esc gives up;
- * leaving the cell any other way saves too.
+ * The input a grade cell turns into. Tab saves and moves to the cell on the
+ * right (the next assessment or question, same student); Enter saves and
+ * moves to the cell below (the next student, same column). Shift+Tab and
+ * Shift+Enter go the other way. Esc gives up; leaving the cell any other
+ * way saves too. The arrow keys do the same as Tab (left, right) and Enter
+ * (up, down) — Left and Right only once the caret is at the edge of the
+ * text, so that the number can still be edited — and never close the cell
+ * when there is nowhere to go.
+ *
+ * On a touch screen there is no Tab or Esc, and a stray tap or a scroll
+ * would "leave the cell" and save by accident: so nothing is saved on
+ * leaving, and ✓ / ✕ buttons confirm or give up explicitly. Enter still
+ * confirms and goes on to the next student.
  */
 function GradeInput({
   label,
+  tag,
   initial,
   suffix,
   max,
@@ -1714,8 +2363,11 @@ function GradeInput({
   onCommit,
   onClose,
   onMove,
+  hasNext,
 }: {
   label: string;
+  /** What is being graded, short: "P1" or "P1 · Q2". Shown on touch screens. */
+  tag?: string;
   initial: string;
   suffix?: string;
   max: string;
@@ -1723,60 +2375,131 @@ function GradeInput({
   /** Saves the text; false when it is not a valid grade. */
   onCommit: (text: string) => boolean;
   onClose: () => void;
-  onMove: (direction: 1 | -1) => void;
+  /** Tab goes across the row; Enter goes down the column. */
+  onMove: (direction: 1 | -1, axis: "across" | "down") => void;
+  /** Whether there is a cell that way: an arrow key never closes the cell. */
+  hasNext: (direction: 1 | -1, axis: "across" | "down") => boolean;
 }) {
   const [value, setValue] = useState(initial);
+  const coarse = useCoarsePointer();
   // Set once the cell has been dealt with, so that the blur which follows a
   // Tab or an Esc does not save a second time.
   const done = useRef(false);
 
   return (
-    <span className="relative block">
-      <input
-        autoFocus
-        aria-label={label}
-        aria-invalid={error ? true : undefined}
-        inputMode="decimal"
-        autoComplete="off"
-        placeholder={`0–${max}`}
-        value={value}
-        onFocus={(e) => e.target.select()}
-        onChange={(e) =>
-          setValue(e.target.value.replace(/[^\d.,]/g, "").slice(0, 6))
+    <span className={`relative block ${coarse ? "h-10" : ""}`}>
+      {/* On a touch screen the columns of grades are too narrow to see what
+          is being typed: the box opens wider over its neighbours. */}
+      <span
+        className={
+          coarse
+            ? "absolute right-0 top-0 z-30 block w-36 rounded shadow-lg"
+            : "block"
         }
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.preventDefault();
+      >
+        {coarse && tag && (
+          <span
+            data-grade-tag
+            className="pointer-events-none absolute -top-2.5 left-1.5 z-10 max-w-[calc(100%-0.75rem)] truncate rounded-full bg-primary px-2 py-px font-mono text-[0.65rem] font-semibold leading-4 text-primary-foreground shadow"
+          >
+            {tag}
+          </span>
+        )}
+        <input
+          autoFocus
+          aria-label={label}
+          aria-invalid={error ? true : undefined}
+          inputMode="decimal"
+          enterKeyHint="next"
+          autoComplete="off"
+          placeholder={`0–${max}`}
+          value={value}
+          onFocus={(e) => e.target.select()}
+          onChange={(e) =>
+            setValue(e.target.value.replace(/[^\d.,]/g, "").slice(0, 6))
+          }
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              done.current = true;
+              onClose();
+            } else if (ARROWS[e.key]) {
+              const [direction, axis] = ARROWS[e.key];
+              const field = e.currentTarget;
+              // Left and Right are the caret's while it is inside the text;
+              // at an edge (or with the whole text selected, as on opening)
+              // they go to the neighbouring cell. Up and Down always do.
+              const atEdge =
+                e.key === "ArrowLeft"
+                  ? field.selectionStart === 0
+                  : e.key === "ArrowRight"
+                    ? field.selectionEnd === field.value.length
+                    : true;
+              if (!atEdge || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) {
+                return;
+              }
+              e.preventDefault();
+              if (!hasNext(direction, axis)) return;
+              if (!onCommit(value)) return;
+              done.current = true;
+              onMove(direction, axis);
+            } else if (e.key === "Tab" || e.key === "Enter") {
+              e.preventDefault();
+              if (!onCommit(value)) return;
+              done.current = true;
+              onMove(e.shiftKey ? -1 : 1, e.key === "Tab" ? "across" : "down");
+            }
+          }}
+          onBlur={() => {
+            // A finger leaves by accident: wait for ✓ or ✕ instead.
+            if (done.current || coarse) return;
+            // An invalid grade is dropped rather than trapping the focus.
+            onCommit(value);
             done.current = true;
             onClose();
-          } else if (e.key === "Tab" || e.key === "Enter") {
-            e.preventDefault();
-            if (!onCommit(value)) return;
-            done.current = true;
-            onMove(e.shiftKey ? -1 : 1);
-          }
-        }}
-        onBlur={() => {
-          if (done.current) return;
-          // An invalid grade is dropped rather than trapping the focus.
-          onCommit(value);
-          done.current = true;
-          onClose();
-        }}
-        className={`w-full rounded border bg-input py-1.5 text-right font-mono text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 ${
-          suffix ? "pl-1 pr-4" : "px-2"
-        } ${
-          error
-            ? "border-red-500 focus-visible:ring-red-500"
-            : "border-primary focus-visible:ring-ring"
-        }`}
-      />
-      {suffix && (
-        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[0.65rem] text-muted-foreground">
-          {suffix}
+          }}
+          className={`w-full rounded border bg-input py-1.5 text-right font-mono text-xs text-foreground focus-visible:outline-none focus-visible:ring-1 [@media(pointer:coarse)]:text-base ${
+            suffix ? "pl-1 pr-4" : "px-2"
+          } ${
+            error
+              ? "border-red-500 focus-visible:ring-red-500"
+              : "border-primary focus-visible:ring-ring"
+          }`}
+        />
+        {suffix && (
+          <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[0.65rem] text-muted-foreground">
+            {suffix}
+          </span>
+        )}
+      </span>
+      {coarse && (
+        <span className="absolute right-0 top-full z-30 mt-1 flex gap-1 rounded-md border border-border bg-popover p-1 shadow-md">
+          <button
+            type="button"
+            aria-label="Confirmar nota"
+            onClick={() => {
+              if (!onCommit(value)) return;
+              done.current = true;
+              onClose();
+            }}
+            className="flex h-10 w-10 items-center justify-center rounded bg-primary text-primary-foreground"
+          >
+            <Check className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            aria-label="Cancelar edição da nota"
+            onClick={() => {
+              done.current = true;
+              onClose();
+            }}
+            className="flex h-10 w-10 items-center justify-center rounded text-muted-foreground hover:bg-muted"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </span>
       )}
-      {error && (
+      {error && !coarse && (
         <span
           role="alert"
           className="absolute right-0 top-full z-10 mt-1 w-48 rounded-md border border-red-500/30 bg-popover px-2 py-1 text-left font-sans text-[0.7rem] font-normal normal-case leading-snug text-red-700 shadow-md dark:text-red-300"
@@ -1797,10 +2520,15 @@ function TaskCheckbox({
   label,
   state,
   onChange,
+  cellId,
+  onNavigate,
 }: {
   label: string;
   state: "all" | "none" | "some";
   onChange: (checked: boolean) => void;
+  /** Its place in the grid of grade cells, for the arrow keys. */
+  cellId: string;
+  onNavigate: (id: string, direction: 1 | -1, axis: "across" | "down") => void;
 }) {
   const box = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -1810,10 +2538,20 @@ function TaskCheckbox({
     <input
       ref={box}
       type="checkbox"
+      data-grade-cell={cellId}
       aria-label={label}
+      onKeyDown={(e) => {
+        if (e.shiftKey && e.key !== "Enter") return;
+        if (e.altKey || e.ctrlKey || e.metaKey) return;
+        const move =
+          e.key === "Enter" ? [e.shiftKey ? -1 : 1, "down"] : ARROWS[e.key];
+        if (!move) return;
+        e.preventDefault();
+        onNavigate(cellId, move[0] as 1 | -1, move[1] as "across" | "down");
+      }}
       checked={state === "all"}
       onChange={(e) => onChange(e.target.checked)}
-      className="h-4 w-4 cursor-pointer rounded border-border align-middle accent-[hsl(var(--primary))]"
+      className="h-4 w-4 cursor-pointer rounded border-border [@media(pointer:coarse)]:h-6 [@media(pointer:coarse)]:w-6 align-middle accent-[hsl(var(--primary))]"
     />
   );
 }

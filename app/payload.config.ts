@@ -19,6 +19,8 @@ import { Scores } from "./collections/Scores.ts";
 import { References } from "./collections/References.ts";
 import { AccountRequests } from "./collections/AccountRequests.ts";
 import { Enrollments } from "./collections/Enrollments.ts";
+import { Terms } from "./collections/Terms.ts";
+import { SiteSettings } from "./globals/SiteSettings.ts";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -46,6 +48,15 @@ function resolveSecret(): string {
   return "CHANGE-ME-IN-PRODUCTION";
 }
 
+function productionOrigins(): string[] {
+  if (process.env.NODE_ENV !== "production") return [];
+  try {
+    return [new URL(process.env.NEXT_PUBLIC_SERVER_URL || "").origin];
+  } catch {
+    return [];
+  }
+}
+
 export default buildConfig({
   defaultMaxTextLength: 800000, // ~800 KB — allows large MDX module content (default is 40,000)
   routes: {
@@ -69,6 +80,12 @@ export default buildConfig({
     admin: "/payload",
     api: "/api",
   },
+  // The site uses only the REST API; GraphQL is attack surface (expensive
+  // queries) with no consumer.
+  graphQL: { disable: true },
+  // Cookie sessions are accepted only from the site's own origin. Production
+  // only: dev is reached from localhost and LAN addresses.
+  csrf: productionOrigins(),
   admin: {
     user: Users.slug,
     importMap: {
@@ -105,7 +122,9 @@ export default buildConfig({
     References,
     AccountRequests,
     Enrollments,
+    Terms,
   ],
+  globals: [SiteSettings],
   // Outgoing mail (password recovery, account approval). Configured only when
   // SMTP_HOST is set: `next build` runs without runtime env, and without an
   // adapter Payload logs "Email attempted without being configured" instead
@@ -158,6 +177,13 @@ export default buildConfig({
         // other region with AuthorizationHeaderMalformed.
         region: process.env.S3_REGION || "garage",
         forcePathStyle: true, // Garage is addressed by path, not by subdomain
+        // The SDK default has no socket timeout, so a stalled Garage
+        // connection would hold the request open indefinitely.
+        maxAttempts: 3,
+        requestHandler: {
+          connectionTimeout: 5_000,
+          requestTimeout: 30_000,
+        },
       },
     }),
   ],
@@ -172,6 +198,12 @@ export default buildConfig({
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 2000,
+      keepAlive: true,
+      // Without these a slow query or an abandoned transaction can hold a
+      // pooled connection (and the request waiting on it) indefinitely.
+      statement_timeout: 30_000,
+      query_timeout: 35_000,
+      idle_in_transaction_session_timeout: 60_000,
     },
   }),
 });

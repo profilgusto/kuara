@@ -16,6 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { comBasePath } from "@/lib/base-path";
+import { AssessmentQuestionsModal } from "./AssessmentQuestionsModal";
 import { AssessmentTasksModal } from "./AssessmentTasksModal";
 import {
   EMPTY_ASSESSMENT_DRAFT,
@@ -26,6 +27,8 @@ import {
   formatDueDate,
   formatPoints,
   modeLabel,
+  parseAssessmentMode,
+  questionsOf,
   sanitizeCodeInput,
   scoringUnitLabel,
   scoringUnitToActivityType,
@@ -41,13 +44,13 @@ type RowId = AssessmentRow["id"];
 type OpenForm = { mode: "new" } | { mode: "edit"; id: RowId };
 
 const INPUT_CLASS =
-  "w-full rounded-md border border-border bg-input px-2 py-1 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60";
+  "w-full rounded-md border border-border bg-input px-2 py-1 text-sm text-foreground transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring [@media(pointer:coarse)]:text-base disabled:opacity-60";
 
 const ICON_BUTTON_CLASS =
-  "flex h-8 w-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40";
+  "flex h-8 w-8 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40";
 
 const ROW_ICON_CLASS =
-  "inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-30";
+  "inline-flex h-7 w-7 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-30";
 
 const FORM_ID = "assessment-form";
 
@@ -107,6 +110,12 @@ export function AssessmentTable({
   // The checklist assessment whose tasks are being edited, if any.
   const [tasksOf, setTasksOf] = useState<RowId | null>(null);
   const tasksAssessment = rows.find((row) => row.id === tasksOf) ?? null;
+  // The same for a questions assessment and its questions.
+  const [questionsEditingId, setQuestionsEditingId] = useState<RowId | null>(
+    null,
+  );
+  const questionsAssessment =
+    rows.find((row) => row.id === questionsEditingId) ?? null;
 
   function openNew() {
     setError(null);
@@ -210,6 +219,7 @@ export function AssessmentTable({
                 id: data?.doc?.id ?? `new-${code}`,
                 ...checked.assessment,
                 tasks: [],
+                questions: [],
               },
             ]
           : current.map((row) =>
@@ -347,69 +357,55 @@ export function AssessmentTable({
             form={FORM_ID}
             aria-label="Avaliada por"
             value={draft.mode}
-            onChange={(e) =>
-              set(
-                "mode",
-                e.target.value === "checklist" ? "checklist" : "graded",
-              )
-            }
+            onChange={(e) => set("mode", parseAssessmentMode(e.target.value))}
             disabled={busy}
             className={INPUT_CLASS}
           >
             <option value="graded">Nota</option>
             <option value="checklist">Tarefas</option>
+            <option value="questions">Questões</option>
           </select>
         </td>
-        <td colSpan={3} className="px-4 py-2">
-          <div className="flex items-center justify-end gap-2">
+        <td className="px-4 py-2">
+          <input
+            form={FORM_ID}
+            type="date"
+            aria-label="Entrega"
+            value={draft.dueDate}
+            onChange={(e) => set("dueDate", e.target.value)}
+            disabled={busy}
+            className={INPUT_CLASS}
+          />
+        </td>
+        <td className="px-4 py-2">
+          <textarea
+            form={FORM_ID}
+            aria-label="Comentário"
+            rows={1}
+            maxLength={MAX_ASSESSMENT_COMMENT_LENGTH}
+            value={draft.comment}
+            onChange={(e) => set("comment", e.target.value)}
+            disabled={busy}
+            className={`${INPUT_CLASS} resize-y`}
+          />
+        </td>
+        {showActions && <td />}
+      </tr>
+      <tr className="bg-primary/5" onKeyDown={onKeyDown}>
+        <td colSpan={columns} className="px-4 pb-3 pt-0">
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={discard}
+              className="rounded-md px-2 py-1 text-xs text-red-600/60 underline-offset-4 transition-colors hover:text-red-600 hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/50 disabled:pointer-events-none disabled:opacity-40 dark:text-red-300/60 dark:hover:text-red-400"
+            >
+              Descartar
+            </button>
             <Button type="submit" form={FORM_ID} size="sm" disabled={busy}>
               {busy && <Loader2 className="animate-spin" />}
               Salvar
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={busy}
-              onClick={discard}
-            >
-              Descartar
-            </Button>
-          </div>
-        </td>
-      </tr>
-      <tr className="bg-primary/5 align-top" onKeyDown={onKeyDown}>
-        <td colSpan={columns} className="px-4 pb-3 pt-0">
-          <div className="flex flex-wrap items-start gap-4">
-            <label className="block w-44 shrink-0">
-              <span className="mb-1 block text-xs text-muted-foreground">
-                Entrega
-              </span>
-              <input
-                form={FORM_ID}
-                type="date"
-                aria-label="Entrega"
-                value={draft.dueDate}
-                onChange={(e) => set("dueDate", e.target.value)}
-                disabled={busy}
-                className={INPUT_CLASS}
-              />
-            </label>
-            <label className="block min-w-48 flex-1">
-              <span className="mb-1 block text-xs text-muted-foreground">
-                Comentário
-              </span>
-              <textarea
-                form={FORM_ID}
-                aria-label="Comentário"
-                rows={1}
-                maxLength={MAX_ASSESSMENT_COMMENT_LENGTH}
-                value={draft.comment}
-                onChange={(e) => set("comment", e.target.value)}
-                disabled={busy}
-                className={`${INPUT_CLASS} resize-y`}
-              />
-            </label>
           </div>
         </td>
       </tr>
@@ -467,7 +463,7 @@ export function AssessmentTable({
               <th scope="col" className="w-32 px-4 py-3 font-semibold">
                 Código
               </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
+              <th scope="col" className="w-40 min-w-40 px-4 py-3 font-semibold">
                 Nome
               </th>
               <th
@@ -485,10 +481,10 @@ export function AssessmentTable({
               <th scope="col" className="w-36 px-4 py-3 font-semibold">
                 Avaliada por
               </th>
-              <th scope="col" className="w-36 px-4 py-3 font-semibold">
+              <th scope="col" className="w-44 px-4 py-3 font-semibold">
                 Entrega
               </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
+              <th scope="col" className="min-w-72 px-4 py-3 font-semibold">
                 Comentário
               </th>
               {showActions && (
@@ -530,7 +526,30 @@ export function AssessmentTable({
                     {scoringUnitLabel(row.scoredBy)}
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground">
-                    {row.mode !== "checklist" ? (
+                    {row.mode === "questions" ? (
+                      editing ? (
+                        <button
+                          type="button"
+                          onClick={() => setQuestionsEditingId(row.id)}
+                          disabled={form !== null}
+                          aria-label={`Editar as questões de ${row.code}`}
+                          data-tooltip="Editar questões"
+                          className="rounded-md border border-primary/40 px-2 py-0.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+                        >
+                          Questões · {questionsOf(row).length}
+                        </button>
+                      ) : (
+                        <span
+                          className={
+                            questionsOf(row).length === 0
+                              ? "text-amber-700 dark:text-amber-300"
+                              : undefined
+                          }
+                        >
+                          Questões · {questionsOf(row).length}
+                        </span>
+                      )
+                    ) : row.mode !== "checklist" ? (
                       modeLabel(row.mode)
                     ) : editing ? (
                       <button
@@ -558,7 +577,7 @@ export function AssessmentTable({
                   <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-muted-foreground">
                     {formatDueDate(row.dueDate) || "—"}
                   </td>
-                  <td className="max-w-64 whitespace-pre-line px-4 py-2.5 text-xs text-muted-foreground">
+                  <td className="whitespace-pre-line px-4 py-2.5 text-xs text-muted-foreground">
                     {row.comment}
                   </td>
                   {showActions && (
@@ -704,6 +723,25 @@ export function AssessmentTable({
           </tfoot>
         </table>
       </div>
+      {questionsAssessment && (
+        <AssessmentQuestionsModal
+          // Remounted per assessment: the panel starts from its saved questions.
+          key={questionsAssessment.id}
+          assessment={questionsAssessment}
+          open
+          onOpenChange={(open) => {
+            if (!open) setQuestionsEditingId(null);
+          }}
+          onSaved={(questions) => {
+            setRows((current) =>
+              current.map((row) =>
+                row.id === questionsAssessment.id ? { ...row, questions } : row,
+              ),
+            );
+            router.refresh();
+          }}
+        />
+      )}
       {tasksAssessment && (
         <AssessmentTasksModal
           // Remounted per assessment: the panel starts from its saved tasks.

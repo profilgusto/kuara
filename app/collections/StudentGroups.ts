@@ -12,6 +12,7 @@ import type {
 } from "payload";
 import { planGroupDraw, validateDrawRequest } from "../lib/group-draw.ts";
 import { parseClassGroup } from "../lib/enrollment.ts";
+import { buildRoster, ungroupedNames } from "../lib/group-roster.ts";
 
 const relationId = (value: unknown): unknown =>
   typeof value === "object" && value !== null
@@ -169,6 +170,53 @@ const drawGroups: PayloadHandler = async (req) => {
   }
 };
 
+/**
+ * GET /api/student-groups/public?offer=<id> — the public roster of an offer:
+ * group names and their members' names, abbreviated ("Filipe A. S. Rocha"),
+ * plus the abbreviated names of the students who are in no group.
+ *
+ * `enrollments` is admin-only because it is a list of people, with their
+ * matrículas. This reads it with the local API and hands out only abbreviated
+ * names, so nothing else about the students leaves the server.
+ */
+const publicRoster: PayloadHandler = async (req) => {
+  const offer = new URL(req.url ?? "http://localhost").searchParams.get(
+    "offer",
+  );
+  if (!offer) {
+    return Response.json({ error: "Informe a oferta." }, { status: 400 });
+  }
+
+  const [groups, students] = await Promise.all([
+    req.payload.find({
+      collection: "student-groups",
+      where: { offer: { equals: offer } },
+      depth: 0,
+      pagination: false,
+      select: { name: true },
+      overrideAccess: true,
+    }),
+    req.payload.find({
+      collection: "enrollments",
+      where: { offer: { equals: offer } },
+      depth: 0,
+      pagination: false,
+      select: { name: true, group: true },
+      overrideAccess: true,
+    }),
+  ]);
+
+  const roster = groups.docs.map((g) => ({ id: g.id, name: g.name }));
+  const enrolled = students.docs.map((s) => ({
+    name: s.name,
+    group: relationId(s.group) as string | number | null,
+  }));
+  return Response.json({
+    groups: buildRoster(roster, enrolled),
+    ungrouped: ungroupedNames(roster, enrolled),
+  });
+};
+
 export const StudentGroups: CollectionConfig = {
   slug: "student-groups",
   admin: {
@@ -179,8 +227,9 @@ export const StudentGroups: CollectionConfig = {
     read: ({ req: { user } }) => {
       if (!user) return false;
       if (user.role === "admin" || user.role === "professor") return true;
-      // Students can read groups they belong to
-      return true;
+      // Students can read only the groups they belong to. The site's public
+      // roster goes through /public, which reads with the local API.
+      return { students: { contains: user.id } };
     },
     create: ({ req: { user } }) =>
       user?.role === "admin" || user?.role === "professor",
@@ -189,7 +238,10 @@ export const StudentGroups: CollectionConfig = {
     delete: ({ req: { user } }) =>
       user?.role === "admin" || user?.role === "professor",
   },
-  endpoints: [{ path: "/draw", method: "post", handler: drawGroups }],
+  endpoints: [
+    { path: "/draw", method: "post", handler: drawGroups },
+    { path: "/public", method: "get", handler: publicRoster },
+  ],
   hooks: {
     beforeValidate: [normalizeAndRejectDuplicateName],
   },

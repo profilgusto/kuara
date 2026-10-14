@@ -1,4 +1,29 @@
-import type { CollectionConfig } from "payload";
+import type { CollectionAfterChangeHook, CollectionConfig } from "payload";
+import { ensureOffersForPeriod } from "../lib/ensure-offers.ts";
+
+/**
+ * A new course gets the offer of the active general offer only, not the
+ * history of past ones: it starts with no past and gains offers as periods
+ * go by. With no active offer, it gets none yet — activating one in
+ * "Configurações gerais" gives every course its offer (see SiteSettings).
+ */
+const createActiveOffer: CollectionAfterChangeHook = async ({
+  doc,
+  operation,
+  req,
+}) => {
+  if (operation !== "create") return doc;
+  const settings = await req.payload.findGlobal({
+    slug: "site-settings",
+    depth: 1,
+    req,
+  });
+  const active = settings.activeTerm;
+  if (typeof active === "object" && active !== null) {
+    await ensureOffersForPeriod(req, active.period, [doc.id]);
+  }
+  return doc;
+};
 
 export const Courses: CollectionConfig = {
   slug: "courses",
@@ -19,6 +44,9 @@ export const Courses: CollectionConfig = {
         },
       },
     },
+  },
+  hooks: {
+    afterChange: [createActiveOffer],
   },
   access: {
     // Public read - anyone can see courses

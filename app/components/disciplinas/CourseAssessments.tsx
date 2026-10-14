@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
-import { useSession } from "@/components/layout/SessionContext";
 import { comBasePath } from "@/lib/base-path";
-import { pickActiveOffer } from "@/lib/offer-period";
 import {
   assessmentFromActivity,
   formatDueDate,
@@ -13,57 +11,36 @@ import {
   type AssessmentRow,
 } from "@/lib/assessment";
 
-type Loaded = { period: string | null; rows: AssessmentRow[] };
+type Loaded = { rows: AssessmentRow[] };
 
 /**
  * "Avaliações": a collapsible block on the course page, under the summary,
- * with the assessments of the course's most recent offer — code, name,
+ * with the assessments of the offer — code, name,
  * points, due date and comment.
  *
- * Read from Payload's REST API, on first expansion and as the signed-in user,
- * because `activities` are not public: the course page is static and the data
- * must not travel in its HTML. Signed-out visitors do not see the block.
+ * Read from Payload's REST API on first expansion, so the static course page
+ * does not carry the data in its HTML. The assessments are public: visitors
+ * see the block whether or not they are signed in.
  */
-export function CourseAssessments({ courseId }: { courseId: string | number }) {
-  const { session } = useSession();
+export function CourseAssessments({ offerId }: { offerId: string | number }) {
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
-  if (!session) return null;
-
   async function load() {
     setLoading(true);
     setError(false);
     try {
-      const offersRes = await fetch(
-        comBasePath(
-          `/api/offers?where[course][equals]=${courseId}&depth=0&limit=200&select[period]=true`,
-        ),
-        { credentials: "include" },
-      );
-      if (!offersRes.ok) throw new Error("offers");
-      const offers: { id: string | number; period: string }[] = (
-        await offersRes.json()
-      ).docs;
-      const offer = pickActiveOffer(offers);
-      if (!offer) {
-        setLoaded({ period: null, rows: [] });
-        return;
-      }
       const res = await fetch(
         comBasePath(
-          `/api/activities?where[offer][equals]=${offer.id}&sort=order&depth=0&pagination=false`,
+          `/api/activities?where[offer][equals]=${offerId}&sort=order&depth=0&pagination=false`,
         ),
         { credentials: "include" },
       );
       if (!res.ok) throw new Error("activities");
       const docs = (await res.json()).docs;
-      setLoaded({
-        period: offer.period,
-        rows: docs.map(assessmentFromActivity),
-      });
+      setLoaded({ rows: docs.map(assessmentFromActivity) });
     } catch {
       setError(true);
     } finally {
@@ -91,11 +68,6 @@ export function CourseAssessments({ courseId }: { courseId: string | number }) {
       >
         <Chevron className="h-4 w-4 shrink-0 text-muted-foreground" />
         Avaliações
-        {loaded?.period && (
-          <span className="font-mono text-xs font-normal text-muted-foreground">
-            {loaded.period}
-          </span>
-        )}
       </button>
 
       {open && (
@@ -119,9 +91,7 @@ export function CourseAssessments({ courseId }: { courseId: string | number }) {
           )}
           {loaded && loaded.rows.length === 0 && (
             <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-              {loaded.period
-                ? `Nenhuma avaliação cadastrada na oferta ${loaded.period}.`
-                : "Esta disciplina ainda não tem oferta cadastrada."}
+              Nenhuma avaliação cadastrada nesta oferta.
             </p>
           )}
           {loaded && loaded.rows.length > 0 && (

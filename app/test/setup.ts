@@ -9,12 +9,13 @@
  * text mode on narrow screens, so any component that renders inside the MDX
  * view — Slide, HideInPresentation, InteractiveBox — throws without it.
  *
- * The stub reports "does not match", i.e. a desktop-width viewport, which is
- * the neutral default: it leaves the component's own mode logic in charge.
+ * The stub describes a desktop-width viewport: `max-width` queries do not
+ * match, `min-width` ones do. That is the neutral default: it leaves the
+ * component's own mode logic in charge.
  */
 if (typeof window !== "undefined" && !window.matchMedia) {
   window.matchMedia = ((query: string) => ({
-    matches: false,
+    matches: /\(min-width:/.test(query),
     media: query,
     onchange: null,
     addEventListener: () => {},

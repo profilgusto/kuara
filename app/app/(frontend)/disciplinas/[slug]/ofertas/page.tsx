@@ -89,7 +89,6 @@ export default async function CourseOffersPage({
         />
 
         <OfferToolbar
-          courseId={course.id}
           offers={offers}
           activePeriod={activeOffer?.period ?? null}
         />

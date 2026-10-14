@@ -62,12 +62,8 @@ export const Activities: CollectionConfig = {
     defaultColumns: ["acronym", "description", "weight", "type", "offer"],
   },
   access: {
-    read: ({ req: { user } }) => {
-      if (!user) return false;
-      if (user.role === "admin" || user.role === "professor") return true;
-      // Students can read activities of offers they are enrolled in
-      return true;
-    },
+    // Public read - the assessments of an offer are shown on the course page
+    read: () => true,
     create: async ({ req, data }) => {
       const user = req.user;
       if (!user) return false;
@@ -196,10 +192,11 @@ export const Activities: CollectionConfig = {
       options: [
         { label: "Graded", value: "graded" },
         { label: "Checklist", value: "checklist" },
+        { label: "Questions", value: "questions" },
       ],
       admin: {
         description:
-          "Graded: each student gets a percentage of the points. Checklist: the points are split across the tasks below, and a student earns the share of the tasks marked as done.",
+          "Graded: each student gets a percentage of the points. Checklist: the points are split across the tasks below, and a student earns the share of the tasks marked as done. Questions: each question is graded 0–100% and the grade is the average weighted by the question weights.",
       },
     },
     {
@@ -222,6 +219,40 @@ export const Activities: CollectionConfig = {
           name: "name",
           type: "text",
           required: true,
+        },
+      ],
+    },
+    {
+      name: "questions",
+      type: "array",
+      admin: {
+        description:
+          "The questions of a questions activity. Each is graded 0–100% per student; the weights are relative to one another.",
+        condition: (data) => data?.mode === "questions",
+      },
+      fields: [
+        {
+          name: "code",
+          type: "text",
+          admin: {
+            description: "Short acronym for the table heading (optional).",
+          },
+        },
+        {
+          name: "name",
+          type: "text",
+          required: true,
+        },
+        {
+          name: "weight",
+          type: "number",
+          required: true,
+          defaultValue: 1,
+          min: 0.01,
+          admin: {
+            description:
+              "How much this question counts relative to the others.",
+          },
         },
       ],
     },

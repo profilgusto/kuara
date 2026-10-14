@@ -14,6 +14,7 @@ import {
 } from "@testing-library/react";
 import { EnrollmentTable } from "./EnrollmentTable";
 import type { EnrollmentRow } from "@/lib/enrollment";
+import type { AssessmentRow } from "@/lib/assessment";
 
 const router = { refresh: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
@@ -73,7 +74,7 @@ describe("EnrollmentTable", () => {
     table();
     expect(
       screen.getAllByRole("columnheader").map((h) => h.textContent),
-    ).toEqual(["Matrícula", "Nome"]);
+    ).toEqual(["M.", "Nome"]);
     expect(bodyRows()).toEqual([
       ["204300051", "Ângela Dias"],
       ["214450010", "Bruno Lima"],
@@ -171,7 +172,7 @@ describe("EnrollmentTable", () => {
     ]);
     expect(
       screen.getAllByRole("columnheader").map((h) => h.textContent),
-    ).toEqual(["Turma", "Matrícula", "Nome"]);
+    ).toEqual(["T.", "M.", "Nome"]);
     expect(bodyRows()).toEqual([
       ["B", "204300051", "Ângela Dias"],
       ["A", "214450010", "Bruno Lima"],
@@ -200,7 +201,7 @@ describe("EnrollmentTable", () => {
     ]);
     expect(
       screen
-        .getByRole("columnheader", { name: /Turma/ })
+        .getByRole("columnheader", { name: /T\./ })
         .getAttribute("aria-sort"),
     ).toBe("ascending");
 
@@ -213,7 +214,7 @@ describe("EnrollmentTable", () => {
     ]);
     expect(
       screen
-        .getByRole("columnheader", { name: /Turma/ })
+        .getByRole("columnheader", { name: /T\./ })
         .getAttribute("aria-sort"),
     ).toBe("descending");
   });
@@ -881,12 +882,16 @@ describe("viewing grades", () => {
     );
   const headers = () =>
     screen.getAllByRole("columnheader").map((h) => h.textContent);
-  const showGrades = () =>
+  const showGrades = () => {
     fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ver notas em pontos" }),
+    );
+  };
 
   it("keeps the grades out of the table until asked for", () => {
     gradesTable();
-    expect(headers()).toEqual(["Matrícula", "Nome"]);
+    expect(headers()).toEqual(["M.", "Nome"]);
     expect(
       screen.queryByRole("group", { name: "Formato das notas" }),
     ).toBeNull();
@@ -895,13 +900,7 @@ describe("viewing grades", () => {
   it("adds a column per assessment, right after the name, with its weight", () => {
     gradesTable();
     showGrades();
-    expect(headers()).toEqual([
-      "Matrícula",
-      "Nome",
-      "P14.0",
-      "SEM2.5",
-      "Total",
-    ]);
+    expect(headers()).toEqual(["M.", "Nome", "P14.0", "SEM2.5", "Total"]);
     expect(
       screen
         .getByRole("button", { name: "Ocultar notas" })
@@ -953,7 +952,7 @@ describe("viewing grades", () => {
     gradesTable();
     showGrades();
     fireEvent.click(screen.getByRole("button", { name: "Ocultar notas" }));
-    expect(headers()).toEqual(["Matrícula", "Nome"]);
+    expect(headers()).toEqual(["M.", "Nome"]);
     expect(
       screen.queryByRole("group", { name: "Formato das notas" }),
     ).toBeNull();
@@ -981,7 +980,7 @@ describe("viewing grades", () => {
   it("with no assessments, the grades view shows only an empty total", () => {
     table();
     showGrades();
-    expect(headers()).toEqual(["Matrícula", "Nome", "Total"]);
+    expect(headers()).toEqual(["M.", "Nome", "Total"]);
     expect(bodyRows().map((r) => r[2])).toEqual(["—", "—", "—"]);
   });
 
@@ -1125,7 +1124,13 @@ describe("entering grades", () => {
     { ...students[2], groupId: 20 }, // Carlos Reis, id 3
   ];
   const scores = [
-    { id: 100, assessmentId: 1, enrollmentId: 1, percentage: 80 },
+    {
+      id: 100,
+      assessmentId: 1,
+      enrollmentId: 1,
+      percentage: 80,
+      updatedAt: "2026-10-01T10:00:00.000Z",
+    },
   ];
 
   function mockFetch(status = 200) {
@@ -1155,6 +1160,9 @@ describe("entering grades", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ver notas em pontos" }),
+    );
     if (percent) {
       fireEvent.click(
         screen.getByRole("button", { name: "Ver notas em porcentagem" }),
@@ -1190,6 +1198,9 @@ describe("entering grades", () => {
     );
     expect(screen.queryByRole("button", { name: "Lançar notas" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ver notas em pontos" }),
+    );
     expect(screen.getByRole("button", { name: "Lançar notas" })).toBeTruthy();
     // Grades alone are not clickable.
     expect(screen.queryByRole("button", { name: /^Nota de / })).toBeNull();
@@ -1225,12 +1236,12 @@ describe("entering grades", () => {
     expect(input().value).toBe("80");
   });
 
-  it("saves on Tab and moves to the next student in the same assessment", async () => {
+  it("saves on Enter and moves down to the next student, same assessment", async () => {
     const fetchMock = mockFetch();
     start({ percent: true });
     fireEvent.click(cell("Nota de Ângela Dias em P1"));
     type("70");
-    press("Tab");
+    press("Enter");
 
     // Ângela's grade is on screen at once, and Bruno's cell is open.
     expect(cell("Nota de Ângela Dias em P1").textContent).toBe("70%");
@@ -1250,6 +1261,8 @@ describe("entering grades", () => {
         offer: 7,
         activity: 1,
         enrollments: [2],
+        // Ângela has no grade yet: nothing for the server to find.
+        expected: { "2": null },
         percentage: 70,
       },
       {
@@ -1257,29 +1270,121 @@ describe("entering grades", () => {
         offer: 7,
         activity: 1,
         enrollments: [1],
+        // Bruno's grade came with its stamp from the server.
+        expected: { "1": "2026-10-01T10:00:00.000Z" },
         percentage: 90,
       },
     ]);
     await waitFor(() => expect(router.refresh).toHaveBeenCalled());
   });
 
+  it("saves on Tab and moves right to the same student's next assessment", async () => {
+    const fetchMock = mockFetch();
+    start({ percent: true });
+    fireEvent.click(cell("Nota de Ângela Dias em P1"));
+    type("70");
+    press("Tab");
+
+    expect(cell("Nota de Ângela Dias em P1").textContent).toBe("70%");
+    expect(input().getAttribute("aria-label")).toBe(
+      "Nota de Ângela Dias em SEM",
+    );
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(bodies(fetchMock)[0]).toMatchObject({
+      activity: 1,
+      enrollments: [2],
+      percentage: 70,
+    });
+  });
+
+  it("goes from the end of a row to the start of the next with Tab", () => {
+    mockFetch();
+    start();
+    fireEvent.click(cell("Nota de Ângela Dias em SEM"));
+    press("Tab");
+    expect(input().getAttribute("aria-label")).toBe("Nota de Bruno Lima em P1");
+  });
+
+  describe("with the arrow keys", () => {
+    const label = () => input().getAttribute("aria-label");
+
+    it("goes down and up, saving what was typed", async () => {
+      const fetchMock = mockFetch();
+      start({ percent: true });
+      fireEvent.click(cell("Nota de Ângela Dias em P1"));
+      type("70");
+      press("ArrowDown");
+      expect(label()).toBe("Nota de Bruno Lima em P1");
+      expect(cell("Nota de Ângela Dias em P1").textContent).toBe("70%");
+      press("ArrowUp");
+      expect(label()).toBe("Nota de Ângela Dias em P1");
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    });
+
+    it("goes right and left once the caret is at the edge", () => {
+      mockFetch();
+      start();
+      fireEvent.click(cell("Nota de Bruno Lima em P1"));
+      // Opening selects the whole text: an arrow goes to the next cell.
+      press("ArrowRight");
+      expect(label()).toBe("Nota de Bruno Lima em SEM");
+      press("ArrowLeft");
+      expect(label()).toBe("Nota de Bruno Lima em P1");
+    });
+
+    it("leaves Left and Right to the caret while it is inside the text", () => {
+      mockFetch();
+      start();
+      fireEvent.click(cell("Nota de Bruno Lima em P1"));
+      type("3,25");
+      input().setSelectionRange(2, 2);
+      press("ArrowLeft");
+      press("ArrowRight");
+      expect(label()).toBe("Nota de Bruno Lima em P1");
+      input().setSelectionRange(4, 4);
+      press("ArrowRight");
+      expect(label()).toBe("Nota de Bruno Lima em SEM");
+    });
+
+    it("stays put where there is no cell, instead of closing", () => {
+      mockFetch();
+      start();
+      fireEvent.click(cell("Nota de Ângela Dias em P1"));
+      press("ArrowUp");
+      press("ArrowLeft");
+      expect(label()).toBe("Nota de Ângela Dias em P1");
+    });
+
+    it("stays on a grade that is not valid", () => {
+      mockFetch();
+      start({ percent: true });
+      fireEvent.click(cell("Nota de Ângela Dias em P1"));
+      type("120");
+      press("ArrowDown");
+      expect(label()).toBe("Nota de Ângela Dias em P1");
+      expect(screen.getByRole("alert").textContent).toMatch(/0 a 100/);
+    });
+  });
+
+  it("goes back left with Shift+Tab, and up with Shift+Enter", () => {
+    mockFetch();
+    start();
+    fireEvent.click(cell("Nota de Bruno Lima em SEM"));
+    press("Tab", true);
+    expect(input().getAttribute("aria-label")).toBe("Nota de Bruno Lima em P1");
+    press("Enter", true);
+    expect(input().getAttribute("aria-label")).toBe(
+      "Nota de Ângela Dias em P1",
+    );
+  });
+
   it("goes from the last student to the top of the next assessment", () => {
     mockFetch();
     start();
     fireEvent.click(cell("Nota de Carlos Reis em P1"));
-    press("Tab");
+    press("Enter");
     expect(input().getAttribute("aria-label")).toBe(
       "Nota de Ângela Dias em SEM",
-    );
-  });
-
-  it("goes back with Shift+Tab", () => {
-    mockFetch();
-    start();
-    fireEvent.click(cell("Nota de Bruno Lima em P1"));
-    press("Tab", true);
-    expect(input().getAttribute("aria-label")).toBe(
-      "Nota de Ângela Dias em P1",
     );
   });
 
@@ -1403,7 +1508,7 @@ describe("entering grades", () => {
       start({ byGroup: true, percent: true });
       fireEvent.click(cell("Nota do grupo Grupo 2 em SEM"));
       type("90");
-      press("Tab");
+      press("Enter");
 
       await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
       expect(bodies(fetchMock)[0]).toEqual({
@@ -1412,9 +1517,10 @@ describe("entering grades", () => {
         activity: 2,
         // Bruno and Carlos, the two members of Grupo 2.
         enrollments: [1, 3],
+        expected: { "1": null, "3": null },
         percentage: 90,
       });
-      // Tab went on to the first member, whose cell opens on the new grade.
+      // Enter went down to the first member, whose cell opens on the new grade.
       expect(input().getAttribute("aria-label")).toBe(
         "Nota de Bruno Lima em SEM",
       );
@@ -1463,6 +1569,9 @@ describe("entering grades", () => {
         />,
       );
       fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Ver notas em pontos" }),
+      );
       fireEvent.click(
         screen.getByRole("button", { name: "Ver notas em porcentagem" }),
       );
@@ -1576,6 +1685,9 @@ describe("ticking off the tasks of a checklist assessment", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ver notas em pontos" }),
+    );
     if (byGroup) {
       fireEvent.click(screen.getByRole("button", { name: "Ver por grupos" }));
     }
@@ -1595,7 +1707,7 @@ describe("ticking off the tasks of a checklist assessment", () => {
 
   it("shows the grade as the share of tasks done, like any other", () => {
     start({ entering: false });
-    expect(headers()).toEqual(["Matrícula", "Nome", "EX2.0", "Total"]);
+    expect(headers()).toEqual(["M.", "Nome", "EX2.0", "Total"]);
     // Ângela none (0.0), Bruno 2 of 4 (1.0), Carlos none.
     expect(bodyRows().map((r) => r[2])).toEqual(["0.0", "1.0", "0.0"]);
     expect(screen.queryByRole("checkbox")).toBeNull();
@@ -1604,7 +1716,6 @@ describe("ticking off the tasks of a checklist assessment", () => {
   it("opens into one checkbox per task while grades are being entered", () => {
     start();
     expect(headers()).toEqual([
-      "Matrícula",
       "Nome",
       "EX2.0",
       "Total",
@@ -1652,6 +1763,9 @@ describe("ticking off the tasks of a checklist assessment", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ver notas em pontos" }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Lançar notas" }));
     const coded = screen.getByRole("columnheader", { name: "L1" });
     expect(coded.getAttribute("data-tooltip")).toBe(
@@ -1685,6 +1799,7 @@ describe("ticking off the tasks of a checklist assessment", () => {
       activity: 5,
       task: "t3",
       enrollments: [1],
+      expected: { "1": null },
       done: true,
     });
     await waitFor(() => expect(router.refresh).toHaveBeenCalled());
@@ -1724,8 +1839,8 @@ describe("ticking off the tasks of a checklist assessment", () => {
 
   it("shows a dash while the assessment has no tasks", () => {
     start({ assessment: { ...exercises, tasks: [] } });
-    expect(headers()).toEqual(["Matrícula", "Nome", "EX2.0", "Total"]);
-    expect(bodyRows().map((r) => r[2])).toEqual(["—", "—", "—"]);
+    expect(headers()).toEqual(["Nome", "EX2.0", "Total"]);
+    expect(bodyRows().map((r) => r[1])).toEqual(["—", "—", "—"]);
     expect(screen.queryByRole("checkbox")).toBeNull();
   });
 
@@ -1779,5 +1894,935 @@ describe("ticking off the tasks of a checklist assessment", () => {
       expect(screen.queryByRole("checkbox", { name: /^Grupo / })).toBeNull();
       expect(screen.getAllByRole("checkbox")).toHaveLength(12);
     });
+  });
+});
+
+describe("marking the questions of a questions assessment", () => {
+  const questions = [
+    { id: "q1", code: "Q1", name: "Primeira questão", weight: 1 },
+    { id: "q2", name: "Segunda questão", weight: 3 },
+  ];
+  const exam = {
+    id: 6,
+    code: "PR",
+    name: "Prova",
+    weight: 4,
+    category: "regular" as const,
+    scoredBy: "student" as const,
+    mode: "questions" as const,
+    tasks: [],
+    questions,
+  };
+  const groups = [{ id: 20, name: "Grupo 2" }];
+  // Sorted by name: Ângela, Bruno, Carlos.
+  const enrolled: EnrollmentRow[] = [
+    { ...students[0], groupId: 20 }, // Bruno Lima, id 1
+    students[1], // Ângela Dias, id 2
+    { ...students[2], groupId: 20 }, // Carlos Reis, id 3
+  ];
+  // Bruno: 100% in Q1, 50% in Q2 → (1·100 + 3·50) / 4 = 62.5% of 4.0 = 2.5.
+  const scores = [
+    {
+      id: 100,
+      assessmentId: 6,
+      enrollmentId: 1,
+      percentage: 0,
+      questionPercentages: { q1: 100, q2: 50 },
+    },
+  ];
+
+  function mockFetch(status = 200) {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => ({}),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+  const lastBody = (fetchMock: ReturnType<typeof vi.fn>) => {
+    const [url, init] = fetchMock.mock.calls.at(-1)!;
+    return { url, ...JSON.parse(init.body) };
+  };
+
+  function start({
+    byGroup = false,
+    entering = true,
+    assessment = exam as AssessmentRow,
+  }: {
+    byGroup?: boolean;
+    entering?: boolean;
+    assessment?: AssessmentRow;
+  } = {}) {
+    render(
+      <EnrollmentTable
+        offerId={7}
+        offerPeriod="2026.2"
+        enrollments={enrolled}
+        groups={groups}
+        assessments={[assessment]}
+        scores={scores}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ver notas em pontos" }),
+    );
+    if (byGroup) {
+      fireEvent.click(screen.getByRole("button", { name: "Ver por grupos" }));
+    }
+    if (entering) {
+      fireEvent.click(screen.getByRole("button", { name: "Lançar notas" }));
+    }
+  }
+  const headers = () =>
+    screen.getAllByRole("columnheader").map((h) => h.textContent);
+  const cell = (label: string) =>
+    screen.getByRole("button", { name: label }) as HTMLButtonElement;
+
+  beforeEach(() => {
+    router.refresh.mockClear();
+    vi.unstubAllGlobals();
+  });
+
+  it("shows the weighted average as the grade", () => {
+    start({ entering: false });
+    expect(headers()).toEqual(["M.", "Nome", "PR4.0", "Total"]);
+    // Ângela has no marks (0.0), Bruno 2.5, Carlos none.
+    expect(bodyRows().map((r) => r[2])).toEqual(["0.0", "2.5", "0.0"]);
+    expect(screen.queryByRole("button", { name: /^Nota de/ })).toBeNull();
+  });
+
+  it("opens into one column per question while grades are entered", () => {
+    start();
+    expect(headers()).toEqual([
+      "Nome",
+      "PR4.0",
+      "Total",
+      "Q1",
+      "Segunda questão",
+      "nota",
+    ]);
+    expect(
+      screen.getByRole("columnheader", { name: /PR/ }).getAttribute("colspan"),
+    ).toBe("3");
+    expect(
+      screen
+        .getByRole("columnheader", { name: "Segunda questão" })
+        .getAttribute("data-tooltip"),
+    ).toBe("PR · Segunda questão (peso 3)");
+    // Bruno's marks, as percentages; the grade itself is not typed.
+    expect(
+      cell("Nota de Bruno Lima em Primeira questão, de PR").textContent,
+    ).toBe("100%");
+    expect(
+      cell("Nota de Bruno Lima em Segunda questão, de PR").textContent,
+    ).toBe("50%");
+    expect(
+      cell("Nota de Ângela Dias em Primeira questão, de PR").textContent,
+    ).toBe("—");
+    expect(
+      screen.queryByRole("button", { name: "Nota de Bruno Lima em PR" }),
+    ).toBeNull();
+  });
+
+  it("saves a typed mark and updates the grade at once", async () => {
+    const fetchMock = mockFetch();
+    start();
+    fireEvent.click(cell("Nota de Ângela Dias em Segunda questão, de PR"));
+    const input = screen.getByRole("textbox", {
+      name: "Nota de Ângela Dias em Segunda questão, de PR",
+    });
+    fireEvent.change(input, { target: { value: "80" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    // 3·80 / 4 = 60% of 4.0 = 2.4
+    expect(bodyRows()[0].slice(-2)).toEqual(["2.4", "2.4"]);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(lastBody(fetchMock)).toMatchObject({
+      url: expect.stringContaining("/api/scores/questions"),
+      activity: 6,
+      question: "q2",
+      enrollments: [2],
+      percentage: 80,
+    });
+  });
+
+  it("refuses a mark above 100%", () => {
+    const fetchMock = mockFetch();
+    start();
+    fireEvent.click(cell("Nota de Ângela Dias em Primeira questão, de PR"));
+    const input = screen.getByRole("textbox", {
+      name: "Nota de Ângela Dias em Primeira questão, de PR",
+    });
+    fireEvent.change(input, { target: { value: "120" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(screen.getByRole("alert").textContent).toMatch(/0 a 100/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("takes the mark back and says so when the server refuses", async () => {
+    mockFetch(403);
+    start();
+    fireEvent.click(cell("Nota de Bruno Lima em Segunda questão, de PR"));
+    const input = screen.getByRole("textbox", {
+      name: "Nota de Bruno Lima em Segunda questão, de PR",
+    });
+    fireEvent.change(input, { target: { value: "0" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect((await screen.findByRole("alert")).textContent).toMatch(/sessão/);
+    expect(
+      cell("Nota de Bruno Lima em Segunda questão, de PR").textContent,
+    ).toBe("50%");
+    expect(bodyRows()[1].slice(-2)).toEqual(["2.5", "2.5"]);
+  });
+
+  it("clears a mark when the cell is left blank", async () => {
+    const fetchMock = mockFetch();
+    start();
+    fireEvent.click(cell("Nota de Bruno Lima em Primeira questão, de PR"));
+    const input = screen.getByRole("textbox", {
+      name: "Nota de Bruno Lima em Primeira questão, de PR",
+    });
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(lastBody(fetchMock)).toMatchObject({
+      question: "q1",
+      enrollments: [1],
+      percentage: null,
+    });
+    // Only Q2 is left: 3·50 / 4 = 37.5% of 4.0 = 1.5.
+    expect(bodyRows()[1].slice(-2)).toEqual(["1.5", "1.5"]);
+  });
+
+  it("shows a dash while the assessment has no questions", () => {
+    start({ assessment: { ...exam, questions: [] } });
+    expect(headers()).toEqual(["Nome", "PR4.0", "Total"]);
+    expect(bodyRows().map((r) => r[1])).toEqual(["—", "—", "—"]);
+  });
+
+  it("gives the group's row a cell per question, set for every member", async () => {
+    const fetchMock = mockFetch();
+    start({
+      byGroup: true,
+      assessment: { ...exam, scoredBy: "group" as const },
+    });
+    // Bruno 100%, Carlos none: the members differ.
+    expect(
+      cell("Nota do grupo Grupo 2 em Primeira questão, de PR").textContent,
+    ).toBe("≠");
+    fireEvent.click(cell("Nota do grupo Grupo 2 em Primeira questão, de PR"));
+    const input = screen.getByRole("textbox", {
+      name: "Nota do grupo Grupo 2 em Primeira questão, de PR",
+    });
+    fireEvent.change(input, { target: { value: "70" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    // The members hold different marks: replacing them needs a yes.
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Substituir" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(lastBody(fetchMock)).toMatchObject({
+      question: "q1",
+      enrollments: [1, 3],
+      percentage: 70,
+    });
+  });
+});
+
+describe("the compact identity columns", () => {
+  it("heads turma and matrícula by initial, with the full name on hover", () => {
+    render(
+      <EnrollmentTable
+        offerId={7}
+        offerPeriod="2026.2"
+        enrollments={[{ ...students[0], classGroup: "A" }, students[1]]}
+      />,
+    );
+    const turma = screen.getByRole("columnheader", { name: /T\./ });
+    expect(turma.getAttribute("data-tooltip")).toBe("Turma");
+    const matricula = screen.getByRole("columnheader", { name: /M\./ });
+    expect(matricula.getAttribute("data-tooltip")).toBe("Matrícula");
+    // Sorting keeps its full, spoken name.
+    expect(
+      screen.getByRole("button", { name: "Ordenar por matrícula" }),
+    ).toBeTruthy();
+  });
+});
+
+describe("the grade display", () => {
+  it("starts as a percentage of each assessment", () => {
+    render(
+      <EnrollmentTable
+        offerId={7}
+        offerPeriod="2026.2"
+        enrollments={students}
+        assessments={[
+          {
+            id: 1,
+            code: "P1",
+            name: "Prova",
+            weight: 4,
+            category: "regular",
+            scoredBy: "student",
+            mode: "graded",
+            tasks: [],
+          },
+        ]}
+        scores={[{ id: 1, assessmentId: 1, enrollmentId: 1, percentage: 80 }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+    expect(
+      screen
+        .getByRole("button", { name: "Ver notas em porcentagem" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(bodyRows().map((r) => r[2])).toContain("80%");
+  });
+});
+
+describe("saving grades safely", () => {
+  const assessments: AssessmentRow[] = [
+    {
+      id: 1,
+      code: "P1",
+      name: "Prova",
+      weight: 4,
+      category: "regular",
+      scoredBy: "student",
+      mode: "graded",
+      tasks: [],
+    },
+    {
+      id: 2,
+      code: "SEM",
+      name: "Seminário",
+      weight: 2,
+      category: "regular",
+      scoredBy: "group",
+      mode: "graded",
+      tasks: [],
+    },
+  ];
+  const groups = [{ id: 20, name: "Grupo 2" }];
+  const enrolled: EnrollmentRow[] = [
+    { ...students[0], groupId: 20 }, // Bruno, id 1
+    students[1], // Ângela, id 2
+    { ...students[2], groupId: 20 }, // Carlos, id 3
+  ];
+  const scores = [
+    {
+      id: 1,
+      assessmentId: 1,
+      enrollmentId: 1,
+      percentage: 80,
+      updatedAt: "2026-10-01T10:00:00.000Z",
+    },
+    { id: 2, assessmentId: 2, enrollmentId: 1, percentage: 50 },
+    { id: 3, assessmentId: 2, enrollmentId: 3, percentage: 90 },
+  ];
+
+  function mockFetch(
+    status = 200,
+    json: unknown = { stamps: { "2": "2026-10-14T12:00:00.000Z" } },
+  ) {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => json,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+  function start(byGroup = false) {
+    render(
+      <EnrollmentTable
+        offerId={7}
+        offerPeriod="2026.2"
+        enrollments={enrolled}
+        groups={groups}
+        assessments={assessments}
+        scores={scores}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ver notas em porcentagem" }),
+    );
+    if (byGroup) {
+      fireEvent.click(screen.getByRole("button", { name: "Ver por grupos" }));
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Lançar notas" }));
+  }
+  const typeInto = (label: string, value: string, key = "Enter") => {
+    fireEvent.click(screen.getByRole("button", { name: label }));
+    const field = screen.getByRole("textbox", { name: label });
+    fireEvent.change(field, { target: { value } });
+    fireEvent.keyDown(field, { key });
+  };
+
+  beforeEach(() => {
+    router.refresh.mockClear();
+    vi.unstubAllGlobals();
+  });
+
+  it("sends the stamp it saw, and the next change uses the one it got back", async () => {
+    const fetchMock = mockFetch();
+    start();
+    typeInto("Nota de Ângela Dias em P1", "70");
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    typeInto("Nota de Ângela Dias em P1", "75");
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    const sent = fetchMock.mock.calls.map(([, init]) => JSON.parse(init.body));
+    expect(sent[0].expected).toEqual({ "2": null });
+    expect(sent[1].expected).toEqual({ "2": "2026-10-14T12:00:00.000Z" });
+  });
+
+  it("takes the grade back and explains when someone else changed it", async () => {
+    mockFetch(409, { error: "x" });
+    start();
+    typeInto("Nota de Bruno Lima em P1", "10");
+
+    expect((await screen.findByRole("alert")).textContent).toMatch(
+      /alterada em outro lugar/,
+    );
+    expect(
+      screen.getByRole("button", { name: "Nota de Bruno Lima em P1" })
+        .textContent,
+    ).toBe("80%");
+    // The table reloads, to show what is there now.
+    await waitFor(() => expect(router.refresh).toHaveBeenCalled());
+  });
+
+  it("says the session ended, and which grade was not saved", async () => {
+    mockFetch(401, {});
+    start();
+    typeInto("Nota de Ângela Dias em P1", "70");
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toMatch(/sessão expirou/);
+    expect(alert.textContent).toMatch(/a nota de P1 não foi salvo/);
+  });
+
+  it("does not even try without a connection", async () => {
+    const fetchMock = mockFetch();
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    start();
+    typeInto("Nota de Ângela Dias em P1", "70");
+
+    expect((await screen.findByRole("alert")).textContent).toMatch(
+      /Sem conexão/,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Nota de Ângela Dias em P1" })
+        .textContent,
+    ).toBe("—");
+    vi.restoreAllMocks();
+  });
+
+  it("shows that it is saving while the request is out", async () => {
+    let finish: (value: unknown) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+      ),
+    );
+    start();
+    typeInto("Nota de Ângela Dias em P1", "70");
+    expect(await screen.findByText(/Salvando/)).toBeTruthy();
+    finish({ ok: true, status: 200, json: async () => ({}) });
+    await waitFor(() => expect(screen.queryByText(/Salvando/)).toBeNull());
+  });
+
+  describe("a group's grade over different member grades", () => {
+    it("asks before replacing them, and sends nothing on Cancelar", () => {
+      const fetchMock = mockFetch();
+      start(true);
+      expect(
+        screen.getByRole("button", { name: "Nota do grupo Grupo 2 em SEM" })
+          .textContent,
+      ).toBe("≠");
+      typeInto("Nota do grupo Grupo 2 em SEM", "100");
+
+      expect(screen.getByText(/notas diferentes em SEM/)).toBeTruthy();
+      expect(fetchMock).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+      expect(fetchMock).not.toHaveBeenCalled();
+      // Nothing shown changed either.
+      expect(
+        screen.getByRole("button", { name: "Nota de Bruno Lima em SEM" })
+          .textContent,
+      ).toBe("50%");
+    });
+
+    it("replaces them on Substituir", async () => {
+      const fetchMock = mockFetch();
+      start(true);
+      typeInto("Nota do grupo Grupo 2 em SEM", "100");
+      fireEvent.click(screen.getByRole("button", { name: "Substituir" }));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
+        enrollments: [1, 3],
+        percentage: 100,
+      });
+    });
+  });
+
+  describe("on a touch screen", () => {
+    beforeEach(() => {
+      vi.stubGlobal(
+        "matchMedia",
+        vi.fn().mockImplementation((query: string) => ({
+          matches: query.includes("pointer: coarse"),
+          media: query,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        })),
+      );
+    });
+
+    it("does not save when the cell is left, only on ✓", async () => {
+      const fetchMock = mockFetch();
+      start();
+      fireEvent.click(
+        screen.getByRole("button", { name: "Nota de Ângela Dias em P1" }),
+      );
+      const field = screen.getByRole("textbox", {
+        name: "Nota de Ângela Dias em P1",
+      });
+      fireEvent.change(field, { target: { value: "70" } });
+      fireEvent.blur(field);
+      expect(fetchMock).not.toHaveBeenCalled();
+      // Still open, waiting for a decision.
+      expect(
+        screen.getByRole("textbox", { name: "Nota de Ângela Dias em P1" }),
+      ).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("button", { name: "Confirmar nota" }));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body).percentage).toBe(70);
+    });
+
+    it("gives up on ✕, keeping the grade it had", () => {
+      const fetchMock = mockFetch();
+      start();
+      fireEvent.click(
+        screen.getByRole("button", { name: "Nota de Bruno Lima em P1" }),
+      );
+      const field = screen.getByRole("textbox", {
+        name: "Nota de Bruno Lima em P1",
+      });
+      fireEvent.change(field, { target: { value: "5" } });
+      fireEvent.click(
+        screen.getByRole("button", { name: "Cancelar edição da nota" }),
+      );
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole("button", { name: "Nota de Bruno Lima em P1" })
+          .textContent,
+      ).toBe("80%");
+    });
+
+    it("names what is being graded on the box, by acronym", () => {
+      start();
+      fireEvent.click(
+        screen.getByRole("button", { name: "Nota de Ângela Dias em P1" }),
+      );
+      expect(document.querySelector("[data-grade-tag]")?.textContent).toBe(
+        "P1",
+      );
+    });
+
+    it("opens the box wider than the column, so the typing can be seen", () => {
+      start();
+      fireEvent.click(
+        screen.getByRole("button", { name: "Nota de Ângela Dias em P1" }),
+      );
+      const box = screen
+        .getByRole("textbox", { name: "Nota de Ângela Dias em P1" })
+        .closest("span");
+      expect(box?.className).toMatch(/\babsolute\b/);
+      expect(box?.className).toMatch(/\bw-36\b/);
+    });
+
+    it("hints the keyboard's Enter key as 'next'", () => {
+      start();
+      fireEvent.click(
+        screen.getByRole("button", { name: "Nota de Ângela Dias em P1" }),
+      );
+      expect(
+        screen
+          .getByRole("textbox", { name: "Nota de Ângela Dias em P1" })
+          .getAttribute("enterkeyhint"),
+      ).toBe("next");
+    });
+
+    it("says an invalid grade above the table too", () => {
+      start();
+      typeInto("Nota de Ângela Dias em P1", "120", "Enter");
+      // The balloon is replaced by a message that cannot be cut off.
+      expect(screen.getByRole("alert").textContent).toMatch(/0 a 100/);
+    });
+  });
+});
+
+describe("the identity columns and the heading", () => {
+  // Earlier suites stub `matchMedia` for a touch screen.
+  beforeEach(() => vi.unstubAllGlobals());
+  const assessments: AssessmentRow[] = [
+    {
+      id: 1,
+      code: "P1",
+      name: "Prova",
+      weight: 4,
+      category: "regular",
+      scoredBy: "student",
+      mode: "graded",
+      tasks: [],
+    },
+  ];
+  const draw = () =>
+    render(
+      <EnrollmentTable
+        offerId={7}
+        offerPeriod="2026.2"
+        enrollments={[{ ...students[0], classGroup: "A" }, students[1]]}
+        assessments={assessments}
+      />,
+    );
+  const headers = () =>
+    screen.getAllByRole("columnheader").map((h) => h.textContent);
+
+  it("drops turma and matrícula while grades are being entered", () => {
+    draw();
+    expect(headers()).toEqual(["T.", "M.", "Nome"]);
+    fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+    expect(headers().slice(0, 3)).toEqual(["T.", "M.", "Nome"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Lançar notas" }));
+    expect(headers()[0]).toBe("Nome");
+    expect(headers()).not.toContain("T.");
+    expect(headers()).not.toContain("M.");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Parar de lançar notas" }),
+    );
+    expect(headers().slice(0, 3)).toEqual(["T.", "M.", "Nome"]);
+  });
+
+  it("drops them on a narrow screen too", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    draw();
+    expect(headers()).toEqual(["Nome"]);
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps the heading in view while the rows scroll", () => {
+    draw();
+    const head = screen.getAllByRole("rowgroup")[0];
+    expect(head.tagName).toBe("THEAD");
+    expect(head.className).toMatch(/\bsticky\b/);
+    expect(head.className).toMatch(/\btop-0\b/);
+    // The table scrolls in its own box: sticky has nothing to stick to
+    // inside an unbounded one.
+    expect(head.closest("div")?.className).toMatch(/max-h-/);
+  });
+});
+
+describe("what a heading abbreviates, on a touch screen", () => {
+  const assessments: AssessmentRow[] = [
+    {
+      id: 1,
+      code: "P1",
+      name: "Prova Prática",
+      weight: 4,
+      category: "regular",
+      scoredBy: "student",
+      mode: "graded",
+      tasks: [],
+      dueDate: "2026-10-08",
+      comment: "Com consulta ao material.",
+    },
+    {
+      id: 2,
+      code: "BN",
+      name: "Bônus de participação",
+      weight: 1,
+      category: "extra",
+      scoredBy: "group",
+      mode: "questions",
+      tasks: [],
+      questions: [
+        { id: "q1", code: "Q1", name: "Primeira questão", weight: 2 },
+      ],
+    },
+  ];
+  const draw = () => {
+    render(
+      <EnrollmentTable
+        offerId={7}
+        offerPeriod="2026.2"
+        enrollments={students}
+        assessments={assessments}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+  };
+  const touch = (coarse: boolean) =>
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: coarse
+          ? query.includes("pointer: coarse") || query.includes("min-width")
+          : query.includes("min-width"),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+
+  beforeEach(() => vi.unstubAllGlobals());
+
+  it("opens the assessment's details on a tap of its heading", () => {
+    touch(true);
+    draw();
+    fireEvent.click(screen.getByRole("button", { name: "Detalhes de P1" }));
+    const text = document.body.textContent ?? "";
+    expect(text).toContain("Prova Prática");
+    expect(text).toContain("Vale 4.0");
+    expect(text).toContain("08/10/2026");
+    expect(text).toContain("Com consulta ao material.");
+  });
+
+  it("opens a question's heading too, while grades are entered", () => {
+    touch(true);
+    draw();
+    fireEvent.click(screen.getByRole("button", { name: "Lançar notas" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Detalhes de Primeira questão" }),
+    );
+    expect(document.body.textContent).toContain("peso 2");
+    expect(document.body.textContent).toContain("Bônus de participação");
+  });
+
+  it("lists every assessment in the legend", () => {
+    touch(true);
+    draw();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Legenda das avaliações" }),
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.textContent).toContain("Prova Prática");
+    expect(dialog.textContent).toContain("Bônus de participação");
+    expect(dialog.textContent).toContain("Extra");
+  });
+
+  it("leaves the mouse screens as they were", () => {
+    touch(false);
+    draw();
+    expect(screen.queryByRole("button", { name: "Detalhes de P1" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Legenda das avaliações" }),
+    ).toBeNull();
+    expect(
+      screen
+        .getByRole("columnheader", { name: /P1/ })
+        .getAttribute("data-tooltip"),
+    ).toMatch(/Prova Prática/);
+  });
+});
+
+describe("naming the question on the edit box, on a touch screen", () => {
+  it("shows the assessment and question acronyms", () => {
+    vi.unstubAllGlobals();
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches:
+          query.includes("pointer: coarse") || query.includes("min-width"),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    render(
+      <EnrollmentTable
+        offerId={7}
+        offerPeriod="2026.2"
+        enrollments={students}
+        assessments={[
+          {
+            id: 6,
+            code: "PR",
+            name: "Prova",
+            weight: 4,
+            category: "regular",
+            scoredBy: "student",
+            mode: "questions",
+            tasks: [],
+            questions: [
+              { id: "q1", code: "Q1", name: "Primeira", weight: 1 },
+              { id: "q2", name: "Segunda questão", weight: 1 },
+            ],
+          },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lançar notas" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Nota de Ângela Dias em Primeira, de PR",
+      }),
+    );
+    expect(document.querySelector("[data-grade-tag]")?.textContent).toBe(
+      "PR · Q1",
+    );
+    // Without an acronym, the question's name stands in.
+    fireEvent.keyDown(
+      screen.getByRole("textbox", {
+        name: "Nota de Ângela Dias em Primeira, de PR",
+      }),
+      { key: "Escape" },
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Nota de Ângela Dias em Segunda questão, de PR",
+      }),
+    );
+    expect(document.querySelector("[data-grade-tag]")?.textContent).toBe(
+      "PR · Segunda questão",
+    );
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("arrow keys over task checkboxes", () => {
+  const assessments: AssessmentRow[] = [
+    {
+      id: 1,
+      code: "P1",
+      name: "Prova",
+      weight: 4,
+      category: "regular",
+      scoredBy: "student",
+      mode: "graded",
+      tasks: [],
+    },
+    {
+      id: 5,
+      code: "EX",
+      name: "Exercícios",
+      weight: 2,
+      category: "regular",
+      scoredBy: "student",
+      mode: "checklist",
+      tasks: [
+        { id: "t1", name: "Lista 1" },
+        { id: "t2", name: "Lista 2" },
+      ],
+    },
+  ];
+  // Sorted by name: Ângela, Bruno, Carlos.
+  const draw = () => {
+    vi.unstubAllGlobals();
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue({ ok: true, status: 200, json: async () => ({}) }),
+    );
+    render(
+      <EnrollmentTable
+        offerId={7}
+        offerPeriod="2026.2"
+        enrollments={students}
+        assessments={assessments}
+        scores={[]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Ver notas" }));
+    fireEvent.click(screen.getByRole("button", { name: "Lançar notas" }));
+  };
+  const box = (label: string) =>
+    screen.getByRole("checkbox", { name: label }) as HTMLInputElement;
+  const focused = () => document.activeElement?.getAttribute("aria-label");
+
+  it("moves from checkbox to checkbox, across and down", async () => {
+    draw();
+    const first = box("Ângela Dias fez Lista 1, de EX");
+    first.focus();
+    fireEvent.keyDown(first, { key: "ArrowRight" });
+    await waitFor(() =>
+      expect(focused()).toBe("Ângela Dias fez Lista 2, de EX"),
+    );
+
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+    await waitFor(() =>
+      expect(focused()).toBe("Bruno Lima fez Lista 2, de EX"),
+    );
+
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowLeft" });
+    await waitFor(() =>
+      expect(focused()).toBe("Bruno Lima fez Lista 1, de EX"),
+    );
+
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
+    await waitFor(() =>
+      expect(focused()).toBe("Ângela Dias fez Lista 1, de EX"),
+    );
+  });
+
+  it("goes from a number to the checkbox beside it, and back", async () => {
+    draw();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Nota de Ângela Dias em P1" }),
+    );
+    fireEvent.keyDown(
+      screen.getByRole("textbox", { name: "Nota de Ângela Dias em P1" }),
+      { key: "ArrowRight" },
+    );
+    await waitFor(() =>
+      expect(focused()).toBe("Ângela Dias fez Lista 1, de EX"),
+    );
+    // The number's input has closed.
+    expect(screen.queryByRole("textbox")).toBeNull();
+
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowLeft" });
+    expect(
+      screen
+        .getByRole("textbox", { name: "Nota de Ângela Dias em P1" })
+        .getAttribute("aria-label"),
+    ).toBe("Nota de Ângela Dias em P1");
+  });
+
+  it("stays put at the last cell, and leaves Shift+arrows alone", () => {
+    draw();
+    const last = box("Carlos Reis fez Lista 2, de EX");
+    last.focus();
+    fireEvent.keyDown(last, { key: "ArrowDown" });
+    fireEvent.keyDown(last, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(last);
+    // Shift with an arrow is not ours.
+    fireEvent.keyDown(last, { key: "ArrowUp", shiftKey: true });
+    expect(document.activeElement).toBe(last);
   });
 });
